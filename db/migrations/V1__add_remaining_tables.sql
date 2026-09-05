@@ -1,6 +1,6 @@
 -- 1. Independent Tables
 CREATE TABLE SkyNest_Membership (
-    Memebership_ID INT PRIMARY KEY,
+    Membership_ID INT PRIMARY KEY,
     Membership_Name VARCHAR(255),
     Room_Discount_Percentage DECIMAL(10,2),
     Service_Discount_Percentage DECIMAL(10,2)
