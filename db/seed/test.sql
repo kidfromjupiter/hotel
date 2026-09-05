@@ -1,4 +1,3 @@
-```sql
 -- =====================================================================
 -- HRGSMS / SkyNest
 -- SEED DATA
@@ -567,13 +566,6 @@ VALUES
 -- amount NUMERIC(10,2)
 --
 -- payment_method is added by another migration.
---
--- Invoice 1001: fully paid
--- Invoice 1002: partially paid
--- Invoice 1003: fully paid
--- Invoice 1004: fully paid using two transactions
--- Invoice 1005: pending, therefore no payment transaction
--- Invoice 1008: fully paid
 -- =====================================================================
 
 INSERT INTO transactions (
@@ -585,10 +577,8 @@ INSERT INTO transactions (
 )
 VALUES
 
-    -- ---------------------------------------------------------------
     -- Invoice 1111 / Booking 1001
     -- Fully paid: 78,200
-    -- ---------------------------------------------------------------
     (
         'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         '11111111-1111-1111-1111-111111111111',
@@ -597,10 +587,8 @@ VALUES
         'CARD'
     ),
 
-    -- ---------------------------------------------------------------
     -- Invoice 2222 / Booking 1002
     -- Partially paid: 40,000
-    -- ---------------------------------------------------------------
     (
         'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         '22222222-2222-2222-2222-222222222222',
@@ -609,10 +597,8 @@ VALUES
         'CASH'
     ),
 
-    -- ---------------------------------------------------------------
     -- Invoice 3333 / Booking 1003
     -- Fully paid: 59,225
-    -- ---------------------------------------------------------------
     (
         'cccccccc-cccc-cccc-cccc-cccccccccccc',
         '33333333-3333-3333-3333-333333333333',
@@ -621,11 +607,9 @@ VALUES
         'CARD'
     ),
 
-    -- ---------------------------------------------------------------
     -- Invoice 4444 / Booking 1004
     -- Fully paid using two transactions
     -- 60,000 + 46,950 = 106,950
-    -- ---------------------------------------------------------------
     (
         'dddddddd-dddd-dddd-dddd-dddddddddddd',
         '44444444-4444-4444-4444-444444444444',
@@ -642,10 +626,8 @@ VALUES
         'CARD'
     ),
 
-    -- ---------------------------------------------------------------
     -- Invoice 6666 / Booking 1008
     -- Fully paid: 37,950
-    -- ---------------------------------------------------------------
     (
         'ffffffff-ffff-ffff-ffff-ffffffffffff',
         '66666666-6666-6666-6666-666666666666',
