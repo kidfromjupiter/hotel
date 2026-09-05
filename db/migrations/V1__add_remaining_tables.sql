@@ -24,8 +24,8 @@ CREATE TABLE room_types (
 );
 
 CREATE TABLE amenities (
-    amentity_id INT PRIMARY KEY,
-    amentity_name VARCHAR(255)
+    amenity_id INT PRIMARY KEY,
+    amenity_name VARCHAR(255)
 );
 
 CREATE TABLE service_catalogue (
@@ -125,13 +125,13 @@ CREATE TABLE invoice_taxes (
 
 CREATE TABLE booking_extra_amenities (
     booking_id BIGINT,
-    amentity_id INT,
+    amenity_id INT,
     quantity INT,
-    PRIMARY KEY (booking_id, amentity_id),
+    PRIMARY KEY (booking_id, amenity_id),
     FOREIGN KEY (booking_id)
         REFERENCES booking(booking_id),
-    FOREIGN KEY (amentity_id)
-        REFERENCES amenities(amentity_id)
+    FOREIGN KEY (amenity_id)
+        REFERENCES amenities(amenity_id)
 );
 
 ALTER TABLE transactions
