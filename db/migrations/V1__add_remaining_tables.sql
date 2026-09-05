@@ -58,12 +58,12 @@ CREATE TABLE room_details (
 );
 
 CREATE TABLE room_amenities (
-    amentity_id INT,
-    room_type VARCHAR(50),
-    PRIMARY KEY (amentity_id, room_type),
-    FOREIGN KEY (amentity_id)
-        REFERENCES amenities(amentity_id),
-    FOREIGN KEY (room_type)
+    amenity_id INT,
+    room_type_id VARCHAR(50),
+    PRIMARY KEY (amenity_id, room_type_id),
+    FOREIGN KEY (amenity_id)
+        REFERENCES amenities(amenity_id),
+    FOREIGN KEY (room_type_id)
         REFERENCES room_types(room_type_id)
 );
 
