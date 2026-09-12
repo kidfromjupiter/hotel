@@ -12,14 +12,15 @@ import StepIndicator from './StepIndicator';
 import BookingForm from './BookingForm';
 import RoomCard from './RoomCard';
 import AmenitiesSelector from './AmenitiesSelector';
-import PhoneOTPForm from './PhoneOTPForm';
 import BookingSummary from './BookingSummary';
+import PhoneOTPForm from './PhoneOTPForm';
+import BookingConfirmed from './BookingConfirmed';
 
 // ─────────────────────────────────────────────
 //  Constants
 // ─────────────────────────────────────────────
-const STEPS: BookingStep[] = ['form', 'rooms', 'amenities', 'verify', 'summary'];
-const STEP_LABELS = ['Details', 'Select Room', 'Add-ons', 'Verify', 'Confirmed'];
+const STEPS: BookingStep[] = ['form', 'rooms', 'amenities', 'summary', 'phone', 'confirmed'];
+const STEP_LABELS = ['Details', 'Select Room', 'Add-ons', 'Summary', 'Contact', 'Confirmed'];
 
 const BRANCH_DISPLAY: Record<string, string> = {
   colombo: 'Colombo',
@@ -57,7 +58,7 @@ export default function BookingWizard({ branch }: Props) {
     checkOut: '',
     adults: 1,
     children: 0,
-    nights: 0,
+    nights: 1,
     selectedRoom: null,
     selectedAmenities: [],
     phone: '',
@@ -70,7 +71,15 @@ export default function BookingWizard({ branch }: Props) {
   const calcNights = (ci: string, co: string) =>
     Math.max(1, Math.ceil((new Date(co).getTime() - new Date(ci).getTime()) / 86_400_000));
 
-  const goBack = () => setStep(STEPS[Math.max(0, currentIndex - 1)]);
+  const goBack = () => {
+    if (step === 'summary') {
+      setStep('amenities');
+    } else if (step === 'phone') {
+      setStep('summary');
+    } else {
+      setStep(STEPS[Math.max(0, currentIndex - 1)]);
+    }
+  };
 
   // ─────────────────────────────────────────────
   //  STEP 1 → 2 : Check Availability
@@ -103,7 +112,13 @@ export default function BookingWizard({ branch }: Props) {
             'No rooms are available for the selected dates and guest count. Please try different dates or fewer guests.'
         );
       } else {
-        setAvailableRooms(res.rooms);
+        // Ensure totalPrice reflects the calculated nights
+        const roomsWithNights = res.rooms.map(r => ({
+          ...r,
+          nights,
+          totalPrice: (r.membershipPrice && res.hasMembership ? r.membershipPrice : r.pricePerNight) * nights,
+        }));
+        setAvailableRooms(roomsWithNights);
         setNoRoomMsg(null);
       }
 
@@ -133,7 +148,6 @@ export default function BookingWizard({ branch }: Props) {
       setAmenitiesList(list);
     } catch {
       setAmenitiesList([]); // AmenitiesSelector has built-in fallback
-      toast('Could not load optional amenities — showing defaults.', { icon: 'ℹ️' });
     } finally {
       setLoadingAmenities(false);
       setStep('amenities');
@@ -141,24 +155,37 @@ export default function BookingWizard({ branch }: Props) {
   };
 
   // ─────────────────────────────────────────────
-  //  STEP 3 → 4 : Amenities Confirmed
+  //  STEP 3 → 4 : Amenities Confirmed → Review Summary
   // ─────────────────────────────────────────────
   const handleAmenitiesConfirm = (selected: Amenity[]) => {
     const addonsTotal = selected.reduce((s, a) => s + a.price, 0);
+    const roomPricePerNight = state.hasMembership && state.selectedRoom?.membershipPrice
+      ? state.selectedRoom.membershipPrice
+      : (state.selectedRoom?.pricePerNight ?? 0);
+    const roomTotal = roomPricePerNight * (state.nights || 1);
+
     setState(prev => ({
       ...prev,
       selectedAmenities: selected,
-      totalPrice: (prev.selectedRoom?.totalPrice ?? 0) + addonsTotal,
+      totalPrice: roomTotal + addonsTotal,
     }));
-    setStep('verify');
+    // Goes to clear, complete booking summary step
+    setStep('summary');
   };
 
   // ─────────────────────────────────────────────
-  //  STEP 4 → 5 : OTP Verified + Booking Created
+  //  STEP 4 → 5 : Summary Reviewed → Phone Input
   // ─────────────────────────────────────────────
-  const handleVerificationComplete = (phone: string, bookingRef: string) => {
+  const handleSummaryContinue = () => {
+    setStep('phone');
+  };
+
+  // ─────────────────────────────────────────────
+  //  STEP 5 → 6 : Phone Submitted → Booking Confirmed
+  // ─────────────────────────────────────────────
+  const handlePhoneComplete = (phone: string, bookingRef: string) => {
     setState(prev => ({ ...prev, phone, bookingRef }));
-    setStep('summary');
+    setStep('confirmed');
   };
 
   // ─────────────────────────────────────────────
@@ -171,7 +198,7 @@ export default function BookingWizard({ branch }: Props) {
       <div className="bg-skynest-navy text-white py-6 px-4 shadow-lg">
         <div className="max-w-6xl mx-auto">
           {/* Back navigation */}
-          {step !== 'summary' && (
+          {step !== 'confirmed' && (
             <div className="mb-3">
               {step === 'form' ? (
                 <Link
@@ -195,7 +222,7 @@ export default function BookingWizard({ branch }: Props) {
           <h1 className="text-xl font-bold">
             <span className="text-white">SkyNest </span>
             <span className="text-skynest-blue">{branchName}</span>
-            <span className="text-gray-500 font-normal text-sm ml-2">— Booking</span>
+            <span className="text-gray-500 font-normal text-sm ml-2">— Reservation</span>
           </h1>
 
           <StepIndicator steps={STEP_LABELS} currentStep={currentIndex} />
@@ -212,7 +239,7 @@ export default function BookingWizard({ branch }: Props) {
           </div>
         )}
 
-        {/* ── STEP 1: Booking Form ── */}
+        {/* ── STEP 1: Booking Form (Details) ── */}
         {step === 'form' && (
           <BookingForm
             branchName={branchName}
@@ -221,7 +248,7 @@ export default function BookingWizard({ branch }: Props) {
           />
         )}
 
-        {/* ── STEP 2: Room Selection ── */}
+        {/* ── STEP 2: Room Selection (Standard & Deluxe) ── */}
         {step === 'rooms' && (
           <div className="animate-slide-up">
             {/* Membership banner */}
@@ -239,10 +266,13 @@ export default function BookingWizard({ branch }: Props) {
 
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
               <div>
-                <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-0.5">STEP 2 OF 5</p>
-                <h2 className="text-2xl font-bold text-skynest-navy">Select a Room</h2>
+                <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-0.5 uppercase">STEP 2 OF 6</p>
+                <h2 className="text-2xl font-bold text-skynest-navy">Available Rooms</h2>
+                <p className="text-xs text-skynest-muted mt-0.5">
+                  Select your preferred room type from the available options below.
+                </p>
               </div>
-              <p className="text-sm text-skynest-muted bg-white px-3 py-1.5 rounded-full border border-gray-200">
+              <p className="text-sm text-skynest-muted bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
                 🌙 {state.nights} night{state.nights !== 1 ? 's' : ''} &nbsp;·&nbsp;
                 👤 {state.adults} adult{state.adults !== 1 ? 's' : ''}
                 {state.children > 0 && ` · 🧒 ${state.children} child${state.children !== 1 ? 'ren' : ''}`}
@@ -281,7 +311,7 @@ export default function BookingWizard({ branch }: Props) {
           </div>
         )}
 
-        {/* ── STEP 3: Amenities ── */}
+        {/* ── STEP 3: Extra Amenities Selection ── */}
         {step === 'amenities' && state.selectedRoom && (
           <AmenitiesSelector
             amenities={amenitiesList}
@@ -292,8 +322,17 @@ export default function BookingWizard({ branch }: Props) {
           />
         )}
 
-        {/* ── STEP 4: Phone + OTP + Create Booking ── */}
-        {step === 'verify' && (
+        {/* ── STEP 4: Booking Summary & Review ── */}
+        {step === 'summary' && (
+          <BookingSummary
+            booking={state}
+            onBack={() => setStep('amenities')}
+            onContinue={handleSummaryContinue}
+          />
+        )}
+
+        {/* ── STEP 5: Phone Number Input & Submit to Backend ── */}
+        {step === 'phone' && state.selectedRoom && (
           <PhoneOTPForm
             bookingData={{
               branch: state.branch,
@@ -301,16 +340,21 @@ export default function BookingWizard({ branch }: Props) {
               checkOut: state.checkOut,
               adults: state.adults,
               children: state.children,
-              roomId: state.selectedRoom!.id,
+              nights: state.nights,
+              roomId: state.selectedRoom.id,
+              roomType: state.selectedRoom.name,
               amenityIds: state.selectedAmenities.map(a => a.id),
+              amenities: state.selectedAmenities,
+              totalPrice: state.totalPrice,
             }}
-            onComplete={handleVerificationComplete}
+            onBack={() => setStep('summary')}
+            onComplete={handlePhoneComplete}
           />
         )}
 
-        {/* ── STEP 5: Summary ── */}
-        {step === 'summary' && (
-          <BookingSummary booking={state} />
+        {/* ── STEP 6: Final Confirmation & Receptionist OTP ── */}
+        {step === 'confirmed' && (
+          <BookingConfirmed booking={state} />
         )}
       </div>
     </div>
