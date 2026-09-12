@@ -110,8 +110,12 @@ export interface CreateBookingPayload {
   checkOut: string;
   adults: number;
   children: number;
+  nights: number;
   roomId: string;
+  roomType: string;
   amenityIds: string[];
+  amenities: Amenity[];
+  totalPrice: number;
   phone: string;
 }
 
@@ -124,7 +128,7 @@ export interface CreateBookingResponse {
 // ─────────────────────────────────────────────
 //  Wizard State
 // ─────────────────────────────────────────────
-export type BookingStep = 'form' | 'rooms' | 'amenities' | 'verify' | 'summary';
+export type BookingStep = 'form' | 'rooms' | 'amenities' | 'summary' | 'phone' | 'confirmed';
 
 export interface BookingWizardState {
   branch: string;
