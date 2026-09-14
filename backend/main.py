@@ -1,8 +1,4 @@
-from fastapi import FastAPI
+"""Top-level FastAPI entrypoint for uvicorn runner and Docker container."""
+from app.main import app
 
-app = FastAPI()
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+__all__ = ["app"]
