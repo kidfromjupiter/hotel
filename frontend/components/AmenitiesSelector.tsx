@@ -19,51 +19,16 @@ const LKR = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-/** Shown when the backend returns no amenities */
-const FALLBACK_AMENITIES: Amenity[] = [
-  {
-    id: 'breakfast',
-    name: 'Breakfast Package',
-    description: 'Full Sri Lankan buffet breakfast for all guests each morning',
-    price: 2500,
-    icon: '🍳',
-  },
-  {
-    id: 'airport',
-    name: 'Airport Transfer',
-    description: 'Private round-trip vehicle for airport pick-up and drop-off',
-    price: 8500,
-    icon: '🚗',
-  },
-  {
-    id: 'spa',
-    name: 'Spa Package',
-    description: '60-minute couples relaxation massage at our in-house spa',
-    price: 12000,
-    icon: '💆',
-  },
-  {
-    id: 'tour',
-    name: 'City Tour',
-    description: 'Half-day guided city sightseeing with a private guide',
-    price: 6000,
-    icon: '🗺️',
-  },
-  {
-    id: 'decoration',
-    name: 'Room Decoration',
-    description: 'Romantic setup with fresh flowers, candles, and rose petals',
-    price: 4500,
-    icon: '🌸',
-  },
-  {
-    id: 'minibar',
-    name: 'Premium Minibar',
-    description: 'Fully stocked minibar with premium local and imported beverages',
-    price: 3500,
-    icon: '🍾',
-  },
-];
+const ICON_MAP: Record<string, string> = {
+  car: '🚗',
+  spa: '💆',
+  coffee: '☕',
+  utensils: '🍽️',
+  'map-pin': '📍',
+  anchor: '⚓',
+  breakfast: '🍳',
+  airport: '🚗',
+};
 
 export default function AmenitiesSelector({
   amenities,
@@ -72,8 +37,9 @@ export default function AmenitiesSelector({
   nights,
   onConfirm,
 }: AmenitiesSelectorProps) {
-  const list = amenities.length > 0 ? amenities : FALLBACK_AMENITIES;
+  const list = amenities || [];
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
 
   const toggle = (id: string) =>
     setSelected(prev => {
@@ -97,44 +63,51 @@ export default function AmenitiesSelector({
       </div>
 
       {/* ── Amenity grid ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        {list.map(amenity => {
-          const isOn = selected.has(amenity.id);
-          return (
-            <button
-              key={amenity.id}
-              onClick={() => toggle(amenity.id)}
-              className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                isOn
-                  ? 'border-skynest-blue bg-skynest-blue/5 shadow-md shadow-skynest-blue/10'
-                  : 'border-gray-200 bg-white hover:border-skynest-blue/40 hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">{amenity.icon}</span>
-                  <div>
-                    <p className="font-semibold text-skynest-navy text-sm leading-tight">
-                      {amenity.name}
-                    </p>
-                    <p className="text-xs text-skynest-muted mt-0.5 leading-relaxed">
-                      {amenity.description}
-                    </p>
+      {list.length === 0 ? (
+        <div className="text-center py-10 bg-white rounded-xl border border-gray-200 mb-8 p-6 shadow-sm">
+          <p className="text-gray-500 text-sm">No optional add-on amenities currently available for this branch.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {list.map(amenity => {
+            const isOn = selected.has(amenity.id);
+            const iconDisplay = ICON_MAP[amenity.icon] || amenity.icon || '✨';
+            return (
+              <button
+                key={amenity.id}
+                onClick={() => toggle(amenity.id)}
+                className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                  isOn
+                    ? 'border-skynest-blue bg-skynest-blue/5 shadow-md shadow-skynest-blue/10'
+                    : 'border-gray-200 bg-white hover:border-skynest-blue/40 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">{iconDisplay}</span>
+                    <div>
+                      <p className="font-semibold text-skynest-navy text-sm leading-tight">
+                        {amenity.name}
+                      </p>
+                      <p className="text-xs text-skynest-muted mt-0.5 leading-relaxed">
+                        {amenity.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <span className="text-sm font-bold text-skynest-blue whitespace-nowrap">
+                      {LKR(amenity.price)}
+                    </span>
+                    {isOn && (
+                      <HiCheckCircle className="text-skynest-blue" size={18} />
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                  <span className="text-sm font-bold text-skynest-blue whitespace-nowrap">
-                    {LKR(amenity.price)}
-                  </span>
-                  {isOn && (
-                    <HiCheckCircle className="text-skynest-blue" size={18} />
-                  )}
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Price breakdown ── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-5">
@@ -155,11 +128,12 @@ export default function AmenitiesSelector({
           {selectedList.map(a => (
             <div key={a.id} className="flex justify-between text-gray-600">
               <span className="flex items-center gap-1.5">
-                <span>{a.icon}</span> {a.name}
+                <span>{ICON_MAP[a.icon] || a.icon || '✨'}</span> {a.name}
               </span>
               <span className="font-medium text-skynest-navy">{LKR(a.price)}</span>
             </div>
           ))}
+
 
           <div className="border-t border-gray-100 pt-3 flex justify-between font-black text-skynest-navy text-base">
             <span>Grand Total</span>
