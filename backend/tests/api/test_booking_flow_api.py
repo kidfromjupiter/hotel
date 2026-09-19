@@ -78,6 +78,7 @@ def test_get_amenities_colombo(client):
     response = client.get("/api/amenities?branch=colombo")
     assert response.status_code == 200
     data = response.json()
+    print(data)
     assert "amenities" in data
     assert len(data["amenities"]) >= 2
     item = data["amenities"][0]

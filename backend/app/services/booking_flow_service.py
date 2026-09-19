@@ -11,7 +11,7 @@ class BookingFlowService:
         self.booking_flow_repo = booking_flow_repo
 
     def get_amenities(self, branch: str = "colombo"):
-        return self.booking_flow_repo.get_amenities_catalog(branch)
+        return {"amenities": self.booking_flow_repo.get_amenities_catalog(branch)}
 
     def create_booking(self, request: Request):
         booking_dict = request.model_dump()
