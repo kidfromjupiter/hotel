@@ -1,5 +1,7 @@
 def test_get_occupancy_report(client):
-    response = client.get("/api/v1/reports/occupancy?start_date=2026-10-01&end_date=2026-10-31")
+    response = client.get(
+        "/api/v1/reports/occupancy?start_date=2026-10-01&end_date=2026-10-31"
+    )
     assert response.status_code == 200
     data = response.json()
     assert "period" in data
@@ -42,7 +44,10 @@ def test_get_monthly_revenue_report(client):
     month_item = data["data"][0]
     assert "room_revenue" in month_item
     assert "service_revenue" in month_item
-    assert month_item["total_revenue"] == month_item["room_revenue"] + month_item["service_revenue"]
+    assert (
+        month_item["total_revenue"]
+        == month_item["room_revenue"] + month_item["service_revenue"]
+    )
 
 
 def test_get_service_trends_report(client):

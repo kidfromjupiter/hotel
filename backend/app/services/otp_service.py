@@ -36,6 +36,3 @@ class OTPService:
             self._store.pop(phone, None)
             return True
         return False
-
-
-otp_service = OTPService()
