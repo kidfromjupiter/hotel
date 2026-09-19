@@ -1,45 +1,18 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
 from app.repositories.booking_flow_repo import booking_flow_repo
+from app.schemas.booking_flow import (
+    AvailabilityRequest,
+    CreateBookingRequest,
+    SendOTPRequest,
+    VerifyOTPRequest,
+)
 from app.services.otp_service import otp_service
 
 router = APIRouter()
-
-
-class AvailabilityRequest(BaseModel):
-    branch: str
-    checkIn: str
-    checkOut: str
-    adults: int
-    children: int
-
-
-class SendOTPRequest(BaseModel):
-    phone: str
-
-
-class VerifyOTPRequest(BaseModel):
-    phone: str
-    otp: str
-
-
-class CreateBookingRequest(BaseModel):
-    branch: str
-    checkIn: str
-    checkOut: str
-    adults: int
-    children: int
-    nights: Optional[int] = 1
-    roomId: str
-    roomType: Optional[str] = None
-    phone: str
-    totalPrice: float
-    amenityIds: Optional[List[str]] = []
-    amenities: Optional[List[Dict[str, Any]]] = []
 
 
 @router.post("/rooms/availability")
@@ -69,7 +42,9 @@ def check_availability(payload: AvailabilityRequest):
     for room in all_rooms:
         if room.get("maxCapacity", 2) < total_guests:
             continue
-        if booking_flow_repo.is_room_booked(room["id"], payload.checkIn, payload.checkOut):
+        if booking_flow_repo.is_room_booked(
+            room["id"], payload.checkIn, payload.checkOut
+        ):
             continue
 
         r_data = dict(room)
@@ -80,7 +55,9 @@ def check_availability(payload: AvailabilityRequest):
     return {
         "available": len(available_rooms) > 0,
         "rooms": available_rooms,
-        "message": "Rooms available" if available_rooms else "No rooms available for the selected dates.",
+        "message": "Rooms available"
+        if available_rooms
+        else "No rooms available for the selected dates.",
     }
 
 
@@ -108,7 +85,10 @@ def verify_otp(payload: VerifyOTPRequest):
     if not success:
         return JSONResponse(
             status_code=400,
-            content={"success": False, "message": "Invalid or expired OTP. Please try again."},
+            content={
+                "success": False,
+                "message": "Invalid or expired OTP. Please try again.",
+            },
         )
     return {
         "success": True,
