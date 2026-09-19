@@ -1,21 +1,7 @@
-import pytest
-from app.services.otp_service import otp_service
-from app.repositories.booking_flow_repo import booking_flow_repo
-
-
-@pytest.fixture(autouse=True)
-def cleanup():
-    """Cleans up in-memory stores before and after each test."""
-    otp_service.clear()
-    booking_flow_repo.clear()
-    yield
-    otp_service.clear()
-    booking_flow_repo.clear()
-
-
 # ─────────────────────────────────────────────
 # 1. Check Room Availability Tests
 # ─────────────────────────────────────────────
+
 
 def test_check_availability_success(client):
     payload = {
@@ -56,14 +42,16 @@ def test_check_availability_capacity_exceeded(client):
     assert "Maximum capacity" in data["message"]
 
 
-def test_check_availability_filters_overlapping_bookings(client):
-    booking_flow_repo.save_booking({
-        "bookingRef": "SKN-1111",
-        "branch": "colombo",
-        "start_date": "2026-10-15",
-        "end_date": "2026-10-18",
-        "roomId": "standard-room",
-    })
+def test_check_availability_filters_overlapping_bookings(client, booking_repo):
+    booking_repo.save_booking(
+        {
+            "bookingRef": "SKN-1111",
+            "branch": "colombo",
+            "start_date": "2026-10-15",
+            "end_date": "2026-10-18",
+            "roomId": "standard-room",
+        }
+    )
 
     payload = {
         "branch": "colombo",
@@ -85,6 +73,7 @@ def test_check_availability_filters_overlapping_bookings(client):
 # 2. Amenities Endpoint Tests
 # ─────────────────────────────────────────────
 
+
 def test_get_amenities_colombo(client):
     response = client.get("/api/amenities?branch=colombo")
     assert response.status_code == 200
@@ -102,16 +91,19 @@ def test_get_amenities_kandy(client):
     response = client.get("/api/amenities?branch=kandy")
     assert response.status_code == 200
     data = response.json()
-    assert any("tea" in a["id"] or "tea" in a["name"].lower() for a in data["amenities"])
+    assert any(
+        "tea" in a["id"] or "tea" in a["name"].lower() for a in data["amenities"]
+    )
 
 
 # ─────────────────────────────────────────────
 # 3 & 4. OTP Send & Verify Tests
 # ─────────────────────────────────────────────
 
-def test_otp_send_and_verify_flow(client):
+
+def test_otp_send_and_verify_flow(client, otp_service):
     phone = "+94771234567"
-    
+
     send_res = client.post("/api/otp/send", json={"phone": phone})
     assert send_res.status_code == 200
     assert send_res.json()["success"] is True
@@ -135,7 +127,8 @@ def test_otp_send_and_verify_flow(client):
 # 5. Create Final Booking Tests
 # ─────────────────────────────────────────────
 
-def test_create_booking_success(client):
+
+def test_create_booking_success(client, booking_repo):
     booking_payload = {
         "branch": "colombo",
         "checkIn": "2026-10-15T00:00:00.000Z",
@@ -166,8 +159,8 @@ def test_create_booking_success(client):
     assert data["bookingRef"].startswith("SKN-")
     assert "confirmed" in data["message"].lower()
 
-    assert len(booking_flow_repo._bookings) == 1
-    saved = booking_flow_repo._bookings[0]
+    assert len(booking_repo._bookings) == 1
+    saved = booking_repo._bookings[0]
     assert saved["bookingRef"] == data["bookingRef"]
     assert saved["branch"] == "colombo"
     assert saved["roomId"] == "deluxe-101"
