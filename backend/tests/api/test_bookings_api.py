@@ -3,45 +3,87 @@ import pytest
 
 @pytest.fixture
 def sample_bookings(booking_repo):
-    booking_repo.save_booking({
-        "booking_id": 500101,
-        "bookingRef": "SKN-5101",
-        "guest_id": 1001,
-        "guest_name": "Amal Perera",
-        "room_number": 101,
-        "branch_id": 1,
-        "branch_name": "Colombo",
-        "roomId": "standard-room",
-        "room_type_id": "STANDARD",
-        "booking_status": "Confirmed",
-        "start_date": "2026-10-01",
-        "end_date": "2026-10-05",
-        "adult_count": 2,
-        "children_count": 0,
-        "grand_total": 50000.0,
-        "amount_paid": 50000.0,
-        "invoice_status": "PAID",
-    })
-    booking_repo.save_booking({
-        "booking_id": 500102,
-        "bookingRef": "SKN-5102",
-        "guest_id": 1002,
-        "guest_name": "Kamal Silva",
-        "room_number": 201,
-        "branch_id": 2,
-        "branch_name": "Kandy",
-        "roomId": "deluxe-room",
-        "room_type_id": "DELUXE",
-        "booking_status": "Checked-In",
-        "start_date": "2026-10-02",
-        "end_date": "2026-10-06",
-        "adult_count": 2,
-        "children_count": 1,
-        "checked_in_time": "14:00:00",
-        "grand_total": 84000.0,
-        "amount_paid": 0.0,
-        "invoice_status": "UNPAID",
-    })
+    booking_repo.save_booking(
+        {
+            "booking_id": 500101,
+            "bookingRef": "SKN-5101",
+            "guest_id": 1001,
+            "guest_name": "Amal Perera",
+            "room_number": 101,
+            "branch_id": 1,
+            "branch_name": "Colombo",
+            "roomId": "standard-room",
+            "room_type_id": "STANDARD",
+            "booking_status": "Confirmed",
+            "start_date": "2026-10-01",
+            "end_date": "2026-10-05",
+            "adult_count": 2,
+            "children_count": 0,
+            "grand_total": 50000.0,
+            "amount_paid": 50000.0,
+            "invoice_status": "PAID",
+        }
+    )
+    booking_repo.save_booking(
+        {
+            "booking_id": 500102,
+            "bookingRef": "SKN-5102",
+            "guest_id": 1002,
+            "guest_name": "Kamal Silva",
+            "room_number": 201,
+            "branch_id": 2,
+            "branch_name": "Kandy",
+            "roomId": "deluxe-room",
+            "room_type_id": "DELUXE",
+            "booking_status": "Checked-In",
+            "start_date": "2026-10-02",
+            "end_date": "2026-10-06",
+            "adult_count": 2,
+            "children_count": 1,
+            "checked_in_time": "14:00:00",
+            "grand_total": 84000.0,
+            "amount_paid": 0.0,
+            "invoice_status": "UNPAID",
+        }
+    )
+
+
+def test_create_booking_success(client, booking_repo):
+    booking_payload = {
+        "branch": "colombo",
+        "checkIn": "2026-10-15T00:00:00.000Z",
+        "checkOut": "2026-10-18T00:00:00.000Z",
+        "adults": 2,
+        "children": 0,
+        "nights": 3,
+        "roomId": "deluxe-101",
+        "roomType": "Deluxe Room",
+        "phone": "+94771234567",
+        "totalPrice": 105000,
+        "amenityIds": ["airport-pickup"],
+        "amenities": [
+            {
+                "id": "airport-pickup",
+                "name": "Airport Pickup",
+                "price": 5000,
+                "icon": "car",
+                "description": "Luxury car transfer",
+            }
+        ],
+    }
+
+    response = client.post("/api/v1/bookings/", json=booking_payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["bookingRef"].startswith("SKN-")
+    assert "confirmed" in data["message"].lower()
+
+    assert len(booking_repo._bookings) == 1
+    saved = booking_repo._bookings[0]
+    assert saved["bookingRef"] == data["bookingRef"]
+    assert saved["branch"] == "colombo"
+    assert saved["roomId"] == "deluxe-101"
 
 
 def test_list_bookings_all(client, sample_bookings):
@@ -84,7 +126,9 @@ def test_get_booking_not_found(client):
 
 
 def test_check_in_success(client, sample_bookings):
-    res = client.post("/api/v1/bookings/500101/check-in", json={"check_in_time": "14:30:00"})
+    res = client.post(
+        "/api/v1/bookings/500101/check-in", json={"check_in_time": "14:30:00"}
+    )
     assert res.status_code == 200
     data = res.json()
     assert data["booking_status"] == "Checked-In"
@@ -106,14 +150,18 @@ def test_check_out_unpaid_balance_error(client, sample_bookings):
 
 
 def test_check_out_success_when_paid(client, booking_repo):
-    booking_repo.save_booking({
-        "booking_id": 500103,
-        "bookingRef": "SKN-5103",
-        "booking_status": "Checked-In",
-        "grand_total": 40000.0,
-        "amount_paid": 40000.0,
-    })
-    res = client.post("/api/v1/bookings/500103/check-out", json={"check_out_time": "11:00:00"})
+    booking_repo.save_booking(
+        {
+            "booking_id": 500103,
+            "bookingRef": "SKN-5103",
+            "booking_status": "Checked-In",
+            "grand_total": 40000.0,
+            "amount_paid": 40000.0,
+        }
+    )
+    res = client.post(
+        "/api/v1/bookings/500103/check-out", json={"check_out_time": "11:00:00"}
+    )
     assert res.status_code == 200
     data = res.json()
     assert data["booking_status"] == "Checked-Out"

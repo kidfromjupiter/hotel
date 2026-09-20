@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 
 from app.api.dependencies import get_booking_service
+from app.schemas.booking_flow import CreateBookingRequest
 from app.schemas.bookings import (
     BookingDetailResponse,
     BookingListItem,
@@ -40,13 +41,12 @@ def list_bookings(
     )
 
 
-# TODO: Add create booking endpoint
 @router.post("/")
 def create_booking(
     payload: CreateBookingRequest,
-    flow_service: BookingService = Depends(get_booking_service),
+    booking_service: BookingService = Depends(get_booking_service),
 ):
-    return flow_service.create_booking(payload)
+    return booking_service.create_booking(payload)
 
 
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
