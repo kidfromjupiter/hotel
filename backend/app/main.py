@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api import api_router
-from app.api.booking_flow import router as booking_flow_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -21,12 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Booking Flow routes for the frontend booking wizard
-app.include_router(booking_flow_router, prefix="/api", tags=["Booking Flow"])
 
 # Include API v1 routes
 app.include_router(api_router)
-
 
 
 @app.get("/")

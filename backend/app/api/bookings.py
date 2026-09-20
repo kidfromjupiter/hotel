@@ -22,8 +22,12 @@ def list_bookings(
     branch_id: Optional[int] = Query(None, description="Filter by branch ID"),
     guest_id: Optional[int] = Query(None, description="Filter by guest ID"),
     status: Optional[str] = Query(None, description="Filter by booking status"),
-    start_date: Optional[str] = Query(None, description="Filter bookings starting from YYYY-MM-DD"),
-    end_date: Optional[str] = Query(None, description="Filter bookings ending before YYYY-MM-DD"),
+    start_date: Optional[str] = Query(
+        None, description="Filter bookings starting from YYYY-MM-DD"
+    ),
+    end_date: Optional[str] = Query(
+        None, description="Filter bookings ending before YYYY-MM-DD"
+    ),
     booking_flow_service: BookingFlowService = Depends(get_booking_flow_service),
 ):
     """Search and filter bookings."""
@@ -34,6 +38,9 @@ def list_bookings(
         start_date=start_date,
         end_date=end_date,
     )
+
+
+# TODO: Add create booking endpoint
 
 
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
