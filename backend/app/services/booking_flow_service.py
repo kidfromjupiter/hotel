@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from fastapi import HTTPException, Request
 
-from app.repositories.booking_flow_repo import BookingFlowRepository
+from app.repositories.booking_repo import BookingRepository
 from app.schemas.bookings import (
     BookingDetailResponse,
     BookingListItem,
@@ -18,7 +18,7 @@ from app.schemas.bookings import (
 
 # TODO: Connect the proper DB to the repo
 class BookingFlowService:
-    def __init__(self, *, booking_flow_repo: BookingFlowRepository):
+    def __init__(self, *, booking_flow_repo: BookingRepository):
         self.booking_flow_repo = booking_flow_repo
 
     def get_amenities(self, branch: str = "colombo"):
@@ -99,7 +99,10 @@ class BookingFlowService:
                 continue
             if guest_id is not None and b.get("guest_id") != guest_id:
                 continue
-            if status is not None and b.get("booking_status", "").lower() != status.lower():
+            if (
+                status is not None
+                and b.get("booking_status", "").lower() != status.lower()
+            ):
                 continue
             if start_date is not None and b.get("start_date", "") < start_date:
                 continue
@@ -157,7 +160,9 @@ class BookingFlowService:
             amount_paid=float(b.get("amount_paid", 0.0)),
         )
 
-    def check_in(self, booking_id: int, check_in_time: Optional[str] = None) -> CheckInResponse:
+    def check_in(
+        self, booking_id: int, check_in_time: Optional[str] = None
+    ) -> CheckInResponse:
         b = self.booking_flow_repo.find_booking_by_id(booking_id)
         if not b:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
@@ -180,7 +185,9 @@ class BookingFlowService:
             checked_in_time=in_time,
         )
 
-    def check_out(self, booking_id: int, check_out_time: Optional[str] = None) -> CheckOutResponse:
+    def check_out(
+        self, booking_id: int, check_out_time: Optional[str] = None
+    ) -> CheckOutResponse:
         b = self.booking_flow_repo.find_booking_by_id(booking_id)
         if not b:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
@@ -224,7 +231,9 @@ class BookingFlowService:
                 detail="Cannot cancel a booking that is already Checked-In or Checked-Out.",
             )
 
-        self.booking_flow_repo.update_booking(booking_id, {"booking_status": "Cancelled"})
+        self.booking_flow_repo.update_booking(
+            booking_id, {"booking_status": "Cancelled"}
+        )
         return CancelBookingResponse(
             booking_id=booking_id,
             booking_status="Cancelled",
