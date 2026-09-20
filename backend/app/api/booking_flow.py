@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from app.api.dependencies import get_booking_flow_service
 from app.schemas.booking_flow import (
     AvailabilityRequest,
+    CreateBookingRequest,
 )
 from app.services.booking_flow_service import BookingFlowService
 
@@ -23,3 +24,11 @@ def get_amenities(
     flow_service: BookingFlowService = Depends(get_booking_flow_service),
 ):
     return flow_service.get_amenities(branch)
+
+
+@router.post("/booking/create")
+def create_booking(
+    payload: CreateBookingRequest,
+    flow_service: BookingFlowService = Depends(get_booking_flow_service),
+):
+    return flow_service.create_booking(payload)

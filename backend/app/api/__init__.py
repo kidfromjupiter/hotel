@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.api.billing import router as billing_router
-from app.api.booking_flow import router as booking_flow_router
 from app.api.bookings import router as bookings_router
 from app.api.branches import router as branches_router
 from app.api.guests import router as guests_router
@@ -22,5 +21,3 @@ api_router.include_router(
 )
 api_router.include_router(reports_router, prefix="/reports", tags=["Reports"])
 api_router.include_router(otp_router, prefix="/otp", tags=["Otp"])
-
-api_router.include_router(booking_flow_router, tags=["Booking Flow"])
