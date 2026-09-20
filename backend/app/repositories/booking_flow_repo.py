@@ -8,55 +8,6 @@ class BookingFlowRepository:
     def __init__(self):
         self._bookings: List[Dict[str, Any]] = []
         self._next_id: int = 500001
-        self._seed_sample_bookings()
-
-    def _seed_sample_bookings(self):
-        self._bookings.extend([
-            {
-                "booking_id": 500001,
-                "bookingRef": "SKN-5001",
-                "guest_id": 1001,
-                "guest_name": "Amal Perera",
-                "room_number": 101,
-                "branch_id": 1,
-                "branch_name": "Colombo",
-                "roomId": "standard-room",
-                "room_type_id": "STANDARD",
-                "booking_status": "Confirmed",
-                "start_date": "2026-10-01",
-                "end_date": "2026-10-05",
-                "adult_count": 2,
-                "children_count": 0,
-                "checked_in_time": None,
-                "checked_out_time": None,
-                "service_charges": [],
-                "invoice_status": "PAID",
-                "grand_total": 50000.0,
-                "amount_paid": 50000.0,
-            },
-            {
-                "booking_id": 500002,
-                "bookingRef": "SKN-5002",
-                "guest_id": 1002,
-                "guest_name": "Kamal Silva",
-                "room_number": 201,
-                "branch_id": 2,
-                "branch_name": "Kandy",
-                "roomId": "deluxe-room",
-                "room_type_id": "DELUXE",
-                "booking_status": "Checked-In",
-                "start_date": "2026-10-02",
-                "end_date": "2026-10-06",
-                "adult_count": 2,
-                "children_count": 1,
-                "checked_in_time": "14:00:00",
-                "checked_out_time": None,
-                "service_charges": [{"service_name": "Spa Treatment", "service_dates": 1, "service_total": 40.0}],
-                "invoice_status": "UNPAID",
-                "grand_total": 84040.0,
-                "amount_paid": 0.0,
-            },
-        ])
 
     def clear(self):
         self._bookings.clear()
