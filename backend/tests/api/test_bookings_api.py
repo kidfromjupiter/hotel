@@ -48,6 +48,7 @@ def sample_bookings(booking_repo):
     )
 
 
+# TODO: This is probably the wrong format to send create booking in.
 def test_create_booking_success(client, booking_repo):
     booking_payload = {
         "branch": "colombo",
