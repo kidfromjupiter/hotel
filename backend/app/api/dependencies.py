@@ -2,12 +2,18 @@ from app.repositories.booking_repo import BookingRepository
 from app.services.booking_service import BookingService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
+from app.services.room_service import RoomService
 
 # TODO: Make these stateless. That means removing the singleton pattern
 report_service = ReportService()
 booking_repo = BookingRepository()
 booking_service = BookingService(booking_repo=booking_repo)
 otp_service = OTPService()
+room_service = RoomService()
+
+
+def get_room_service() -> RoomService:
+    return room_service
 
 
 def get_report_service() -> ReportService:

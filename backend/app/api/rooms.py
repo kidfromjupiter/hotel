@@ -1,17 +1,26 @@
-from fastapi import APIRouter, Depends
+from datetime import date
+from typing import Optional
 
-from app.api.dependencies import get_booking_service
-from app.schemas.booking_flow import (
-    AvailabilityRequest,
-)
-from app.services.booking_service import BookingService
+from fastapi import APIRouter, Depends, Query
+
+from app.api.dependencies import get_room_service
+from app.services.room_service import RoomService
 
 router = APIRouter()
 
 
-@router.post("/rooms/availability")
+@router.get("/rooms")
 def check_availability(
-    payload: AvailabilityRequest,
-    booking_service: BookingService = Depends(get_booking_service),
+    check_in: Optional[date] = Query(
+        None, description="Filter rooms starting from YYYY-MM-DD"
+    ),
+    check_out: Optional[date] = Query(
+        None, description="Filter rooms ending before YYYY-MM-DD"
+    ),
+    adults: Optional[int] = Query(None, description="No. of adults"),
+    children: Optional[int] = Query(None, description="No. of children"),
+    branch: Optional[str] = Query(None, description="Filter rooms by branch"),
+    room_service: RoomService = Depends(get_room_service),
 ):
-    return booking_service.check_availability(request=payload)
+    return room_service.get_rooms(check_in, check_out, branch, children, adults)
+    # return room_service.check_availability(request=payload)

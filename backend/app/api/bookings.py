@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -23,10 +24,10 @@ def list_bookings(
     branch_id: Optional[int] = Query(None, description="Filter by branch ID"),
     guest_id: Optional[int] = Query(None, description="Filter by guest ID"),
     status: Optional[str] = Query(None, description="Filter by booking status"),
-    start_date: Optional[str] = Query(
+    start_date: Optional[date] = Query(
         None, description="Filter bookings starting from YYYY-MM-DD"
     ),
-    end_date: Optional[str] = Query(
+    end_date: Optional[date] = Query(
         None, description="Filter bookings ending before YYYY-MM-DD"
     ),
     booking_service: BookingService = Depends(get_booking_service),
