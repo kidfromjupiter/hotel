@@ -1,36 +1,17 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from app.api.dependencies import get_booking_flow_service, get_otp_service
+from app.api.dependencies import get_otp_service
 from app.schemas.booking_flow import (
-    AvailabilityRequest,
-    CreateBookingRequest,
     SendOTPRequest,
     VerifyOTPRequest,
 )
-from app.services.booking_flow_service import BookingFlowService
 from app.services.otp_service import OTPService
 
 router = APIRouter()
 
 
-@router.post("/rooms/availability")
-def check_availability(
-    payload: AvailabilityRequest,
-    flow_service: BookingFlowService = Depends(get_booking_flow_service),
-):
-    return flow_service.check_availability(request=payload)
-
-
-@router.get("/amenities")
-def get_amenities(
-    branch: str = "colombo",
-    flow_service: BookingFlowService = Depends(get_booking_flow_service),
-):
-    return flow_service.get_amenities(branch)
-
-
-@router.post("/otp/send")
+@router.post("/send")
 def send_otp(
     payload: SendOTPRequest, otp_service: OTPService = Depends(get_otp_service)
 ):
@@ -44,7 +25,7 @@ def send_otp(
     return res
 
 
-@router.post("/otp/verify")
+@router.post("/verify")
 def verify_otp(
     payload: VerifyOTPRequest, otp_service: OTPService = Depends(get_otp_service)
 ):
@@ -61,11 +42,3 @@ def verify_otp(
         "success": True,
         "message": "Phone number verified successfully!",
     }
-
-
-@router.post("/booking/create")
-def create_booking(
-    payload: CreateBookingRequest,
-    flow_service: BookingFlowService = Depends(get_booking_flow_service),
-):
-    return flow_service.create_booking(payload)

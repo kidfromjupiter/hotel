@@ -1,12 +1,12 @@
 import random
 import string
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
-class BookingFlowRepository:
+class BookingRepository:
     def __init__(self):
         self._bookings: List[Dict[str, Any]] = []
+        self._next_id: int = 500001
 
     def clear(self):
         self._bookings.clear()
@@ -17,10 +17,33 @@ class BookingFlowRepository:
 
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
+        if "booking_id" not in record:
+            record["booking_id"] = self._next_id
+            self._next_id += 1
         if "bookingRef" not in record or not record["bookingRef"]:
             record["bookingRef"] = self.generate_booking_ref()
+        if "booking_status" not in record:
+            record["booking_status"] = "Confirmed"
         self._bookings.append(record)
         return record
+
+    def find_booking_by_id(self, booking_id: int) -> Optional[Dict[str, Any]]:
+        for b in self._bookings:
+            if b.get("booking_id") == booking_id:
+                return b
+        return None
+
+    def list_all_bookings(self) -> List[Dict[str, Any]]:
+        return list(self._bookings)
+
+    def update_booking(
+        self, booking_id: int, updates: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        booking = self.find_booking_by_id(booking_id)
+        if booking:
+            booking.update(updates)
+            return booking
+        return None
 
     def is_overlapping(self, start1: str, end1: str, start2: str, end2: str) -> bool:
         # Normalize date strings (YYYY-MM-DD)
@@ -36,7 +59,11 @@ class BookingFlowRepository:
             if b_room == room_id:
                 b_start = b.get("start_date") or b.get("checkIn") or ""
                 b_end = b.get("end_date") or b.get("checkOut") or ""
-                if b_start and b_end and self.is_overlapping(b_start, b_end, start_date, end_date):
+                if (
+                    b_start
+                    and b_end
+                    and self.is_overlapping(b_start, b_end, start_date, end_date)
+                ):
                     return True
         return False
 
@@ -53,7 +80,12 @@ class BookingFlowRepository:
                     "membershipPrice": 22500,
                     "membershipDiscount": 10,
                     "maxCapacity": 2,
-                    "features": ["Queen Bed", "Mountain View", "Tea Station", "Free Wi-Fi"],
+                    "features": [
+                        "Queen Bed",
+                        "Mountain View",
+                        "Tea Station",
+                        "Free Wi-Fi",
+                    ],
                     "image": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -66,7 +98,12 @@ class BookingFlowRepository:
                     "membershipPrice": 37800,
                     "membershipDiscount": 10,
                     "maxCapacity": 3,
-                    "features": ["King Bed", "Private Terrace", "Fireplace", "En-suite Bath"],
+                    "features": [
+                        "King Bed",
+                        "Private Terrace",
+                        "Fireplace",
+                        "En-suite Bath",
+                    ],
                     "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": True,
                 },
@@ -79,7 +116,12 @@ class BookingFlowRepository:
                     "membershipPrice": 52200,
                     "membershipDiscount": 10,
                     "maxCapacity": 4,
-                    "features": ["2 King Beds", "Balcony", "Separate Living Area", "Breakfast Included"],
+                    "features": [
+                        "2 King Beds",
+                        "Balcony",
+                        "Separate Living Area",
+                        "Breakfast Included",
+                    ],
                     "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -95,7 +137,12 @@ class BookingFlowRepository:
                     "membershipPrice": 25200,
                     "membershipDiscount": 10,
                     "maxCapacity": 2,
-                    "features": ["Queen Bed", "Sea Breeze Balcony", "Mini Bar", "Free Wi-Fi"],
+                    "features": [
+                        "Queen Bed",
+                        "Sea Breeze Balcony",
+                        "Mini Bar",
+                        "Free Wi-Fi",
+                    ],
                     "image": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -108,7 +155,12 @@ class BookingFlowRepository:
                     "membershipPrice": 43200,
                     "membershipDiscount": 10,
                     "maxCapacity": 3,
-                    "features": ["King Bed", "Ocean View", "Free Minibar", "Rain Shower"],
+                    "features": [
+                        "King Bed",
+                        "Ocean View",
+                        "Free Minibar",
+                        "Rain Shower",
+                    ],
                     "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": True,
                 },
@@ -121,7 +173,12 @@ class BookingFlowRepository:
                     "membershipPrice": 67500,
                     "membershipDiscount": 10,
                     "maxCapacity": 4,
-                    "features": ["Private Pool", "Butler Service", "Oceanfront", "Gourmet Kitchen"],
+                    "features": [
+                        "Private Pool",
+                        "Butler Service",
+                        "Oceanfront",
+                        "Gourmet Kitchen",
+                    ],
                     "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -138,7 +195,12 @@ class BookingFlowRepository:
                     "membershipPrice": 22500,
                     "membershipDiscount": 10,
                     "maxCapacity": 2,
-                    "features": ["Queen Bed", "City View", "Ergonomic Workspace", "High-Speed Wi-Fi"],
+                    "features": [
+                        "Queen Bed",
+                        "City View",
+                        "Ergonomic Workspace",
+                        "High-Speed Wi-Fi",
+                    ],
                     "image": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -151,7 +213,12 @@ class BookingFlowRepository:
                     "membershipPrice": 31500,
                     "membershipDiscount": 10,
                     "maxCapacity": 3,
-                    "features": ["King Bed", "Ocean View", "Lounge Access", "Marble Bathroom"],
+                    "features": [
+                        "King Bed",
+                        "Ocean View",
+                        "Lounge Access",
+                        "Marble Bathroom",
+                    ],
                     "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": True,
                 },
@@ -164,7 +231,12 @@ class BookingFlowRepository:
                     "membershipPrice": 58500,
                     "membershipDiscount": 10,
                     "maxCapacity": 4,
-                    "features": ["2 King Bedrooms", "Jacuzzi", "Skyline View", "Private Bar"],
+                    "features": [
+                        "2 King Bedrooms",
+                        "Jacuzzi",
+                        "Skyline View",
+                        "Private Bar",
+                    ],
                     "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800",
                     "isBestseller": False,
                 },
@@ -244,6 +316,3 @@ class BookingFlowRepository:
                     "icon": "spa",
                 },
             ]
-
-
-booking_flow_repo = BookingFlowRepository()
