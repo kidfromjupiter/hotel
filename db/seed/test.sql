@@ -56,9 +56,9 @@ INSERT INTO branches (
     branch_name
 )
 VALUES
-    (1, 'Colombo'),
-    (2, 'Kandy'),
-    (3, 'Galle');
+    (1, 'colombo'),
+    (2, 'kandy'),
+    (3, 'galle');
 
 
 -- =====================================================================

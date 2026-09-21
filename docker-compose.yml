@@ -5,6 +5,8 @@ services:
       POSTGRES_DB: app_db
       POSTGRES_USER: app_user
       POSTGRES_PASSWORD: app_password
+    ports:
+      - "5431:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -29,7 +31,23 @@ services:
       - migrate
     volumes:
       - ./db/migrations:/flyway/sql:ro
-
+  seed:
+    image: postgres:17
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: app_password
+    volumes:
+      - ./db/seed:/seed:ro
+    command:
+      [
+        "psql",
+        "-h", "db",
+        "-U", "app_user",
+        "-d", "app_db",
+        "-f", "/seed/test.sql"
+      ]
   backend:
     build: ./backend
     environment:
@@ -39,6 +57,8 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
 
   frontend:
     build: ./frontend
