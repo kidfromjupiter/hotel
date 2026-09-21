@@ -1,4 +1,9 @@
+from fastapi import Depends
+from psycopg2.extensions import connection
+
+from app.db import get_db
 from app.repositories.booking_repo import BookingRepository
+from app.repositories.rooms_repo import RoomsRepo
 from app.services.booking_service import BookingService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
@@ -8,12 +13,14 @@ from app.services.room_service import RoomService
 report_service = ReportService()
 booking_repo = BookingRepository()
 booking_service = BookingService(booking_repo=booking_repo)
-otp_service = OTPService()
-room_service = RoomService()
 
 
-def get_room_service() -> RoomService:
-    return room_service
+def get_room_repo(db: connection = Depends(get_db)) -> RoomsRepo:
+    return RoomsRepo(db=db)
+
+
+def get_room_service(room_repo: RoomsRepo = Depends(get_room_repo)) -> RoomService:
+    return RoomService(repo=room_repo)
 
 
 def get_report_service() -> ReportService:
@@ -31,5 +38,4 @@ def get_booking_service() -> BookingService:
 
 
 def get_otp_service() -> OTPService:
-    return otp_service
-    # return OTPService()
+    return OTPService()
