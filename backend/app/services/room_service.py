@@ -11,4 +11,6 @@ class RoomService:
         self, check_in: date, check_out: date, branch: str, children: int, adults: int
     ):
 
-        return self.repo.get_rooms(check_in, check_out, branch, children, adults)
+        return self.repo.get_rooms(
+            check_in, check_out, branch.lower(), children, adults
+        )

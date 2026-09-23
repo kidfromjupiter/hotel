@@ -56,9 +56,9 @@ INSERT INTO branches (
     branch_name
 )
 VALUES
-    (1, 'Colombo'),
-    (2, 'Kandy'),
-    (3, 'Galle');
+    (1, 'colombo'),
+    (2, 'kandy'),
+    (3, 'galle');
 
 
 -- =====================================================================
@@ -144,29 +144,30 @@ INSERT INTO room_details (
     room_number,
     branch_id,
     room_type_id,
-    room_status
+    room_status,
+    capacity
 )
 VALUES
     -- Colombo Branch
-    (101, 1, 'STANDARD', 'AVAILABLE'),
-    (102, 1, 'STANDARD', 'OCCUPIED'),
-    (103, 1, 'STANDARD', 'AVAILABLE'),
-    (201, 1, 'DELUXE',   'AVAILABLE'),
-    (202, 1, 'DELUXE',   'AVAILABLE'),
-    (301, 1, 'SUITE',    'MAINTENANCE'),
-    (401, 1, 'FAMILY',   'AVAILABLE'),
+    (101, 1, 'STANDARD', 'AVAILABLE',2),
+    (102, 1, 'STANDARD', 'OCCUPIED',2),
+    (103, 1, 'STANDARD', 'AVAILABLE',2),
+    (201, 1, 'DELUXE',   'AVAILABLE',2),
+    (202, 1, 'DELUXE',   'AVAILABLE',2),
+    (301, 1, 'SUITE',    'MAINTENANCE',2),
+    (401, 1, 'FAMILY',   'AVAILABLE',4),
 
     -- Kandy Branch
-    (101, 2, 'STANDARD', 'AVAILABLE'),
-    (102, 2, 'DELUXE',   'OCCUPIED'),
-    (201, 2, 'SUITE',    'AVAILABLE'),
-    (301, 2, 'FAMILY',   'AVAILABLE'),
+    (101, 2, 'STANDARD', 'AVAILABLE',2),
+    (102, 2, 'DELUXE',   'OCCUPIED',2),
+    (201, 2, 'SUITE',    'AVAILABLE',2),
+    (301, 2, 'FAMILY',   'AVAILABLE',4),
 
     -- Galle Branch
-    (101, 3, 'STANDARD', 'AVAILABLE'),
-    (102, 3, 'DELUXE',   'AVAILABLE'),
-    (201, 3, 'SUITE',    'OCCUPIED'),
-    (301, 3, 'FAMILY',   'AVAILABLE');
+    (101, 3, 'STANDARD', 'AVAILABLE',2),
+    (102, 3, 'DELUXE',   'AVAILABLE',2),
+    (201, 3, 'SUITE',    'OCCUPIED',2),
+    (301, 3, 'FAMILY',   'AVAILABLE',4);
 
 
 -- =====================================================================
