@@ -13,8 +13,9 @@ begin
   from room_details r
   join branches b
   on r.branch_id = b.branch_id
-  where b.branch_name = p_branch and 
-  not exists (
+  where b.branch_name = p_branch
+  and r.capacity = p_adults + p_children
+  and not exists (
     select 1 
     from booking bk
     where bk.room_number = r.room_number
