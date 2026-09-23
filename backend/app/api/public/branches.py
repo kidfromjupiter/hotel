@@ -1,13 +1,16 @@
-from fastapi import APIRouter
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends
+
+from app.api.dependencies import get_branch_service
+from app.services.branch_service import BranchService
 
 router = APIRouter()
 
 
-@router.get("/")
-def list_branches():
-    """Public customer endpoint to list available hotel branches."""
-    return [
-        {"branch_id": 1, "branch_name": "Colombo"},
-        {"branch_id": 2, "branch_name": "Kandy"},
-        {"branch_id": 3, "branch_name": "Galle"},
-    ]
+@router.get("/", response_model=List[Dict[str, Any]])
+def list_branches(
+    branch_service: BranchService = Depends(get_branch_service),
+):
+    """Public customer endpoint to list available hotel branches from database."""
+    return branch_service.list_branches()
