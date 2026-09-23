@@ -4,6 +4,7 @@ from psycopg2.extensions import connection
 from app.db import get_db
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.rooms_repo import RoomsRepo
+from app.services.booking_flow_service import BookingFlowService
 from app.services.booking_service import BookingService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
@@ -13,6 +14,10 @@ from app.services.room_service import RoomService
 report_service = ReportService()
 booking_repo = BookingRepository()
 booking_service = BookingService(booking_repo=booking_repo)
+booking_flow_service = BookingFlowService(booking_repo=booking_repo)
+
+
+otp_service = OTPService()
 
 
 def get_room_repo(db: connection = Depends(get_db)) -> RoomsRepo:
@@ -37,5 +42,11 @@ def get_booking_service() -> BookingService:
     # return BookingService(booking_repo=get_booking_repo())
 
 
+def get_booking_flow_service() -> BookingFlowService:
+    return booking_flow_service
+
+
 def get_otp_service() -> OTPService:
-    return OTPService()
+    return otp_service
+
+

@@ -9,6 +9,7 @@ from app.services.room_service import RoomService
 router = APIRouter()
 
 
+@router.get("/")
 @router.get("/rooms")
 def check_availability(
     check_in: Optional[date] = Query(
@@ -22,5 +23,5 @@ def check_availability(
     branch: Optional[str] = Query(None, description="Filter rooms by branch"),
     room_service: RoomService = Depends(get_room_service),
 ):
+    """Public customer endpoint to check room availability across branches."""
     return room_service.get_rooms(check_in, check_out, branch, children, adults)
-    # return room_service.check_availability(request=payload)
