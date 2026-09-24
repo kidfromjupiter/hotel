@@ -33,6 +33,7 @@ export interface Room {
   nights: number;
   maxCapacity: number;
   features: string[];
+  amenities: Amenity[];
   image: string;
   isBestseller?: boolean;
   /** Price per night for SkyNest members */
@@ -113,8 +114,6 @@ export interface CreateBookingPayload {
   nights: number;
   roomId: string;
   roomType: string;
-  amenityIds: string[];
-  amenities: Amenity[];
   totalPrice: number;
   phone: string;
 }
@@ -128,7 +127,7 @@ export interface CreateBookingResponse {
 // ─────────────────────────────────────────────
 //  Wizard State
 // ─────────────────────────────────────────────
-export type BookingStep = 'form' | 'rooms' | 'amenities' | 'summary' | 'phone' | 'confirmed';
+export type BookingStep = 'form' | 'rooms' | 'summary' | 'phone' | 'confirmed';
 
 export interface BookingWizardState {
   branch: string;
@@ -138,7 +137,6 @@ export interface BookingWizardState {
   children: number;
   nights: number;
   selectedRoom: Room | null;
-  selectedAmenities: Amenity[];
   phone: string;
   bookingRef: string;
   hasMembership: boolean;
