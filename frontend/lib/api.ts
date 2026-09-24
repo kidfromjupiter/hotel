@@ -45,6 +45,10 @@ export const HARDCODED_ROOMS = (nights: number): AvailabilityResponse['rooms'] =
     nights: nights || 1,
     maxCapacity: 2,
     features: ['Queen Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'En-suite Bathroom', 'Smart TV', 'Tea & Coffee Maker'],
+    amenities: [
+      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
+      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' }
+    ],
     image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
     isBestseller: false,
     membershipPrice: 18000,
@@ -61,6 +65,12 @@ export const HARDCODED_ROOMS = (nights: number): AvailabilityResponse['rooms'] =
     nights: nights || 1,
     maxCapacity: 4,
     features: ['King Bed', 'Private Balcony', 'Bathtub & Rain Shower', 'Minibar', 'Ocean / Scenic View', '24/7 Room Service'],
+    amenities: [
+      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
+      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
+      { id: 'a3', name: 'Minibar', description: 'Fully stocked minibar', price: 0, icon: '🍷' },
+      { id: 'a4', name: '24/7 Room Service', description: 'Available anytime', price: 0, icon: '🛎️' }
+    ],
     image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
     isBestseller: true,
     membershipPrice: 30000,
@@ -105,18 +115,7 @@ export async function checkAvailability(
   };
 }
 
-// ─────────────────────────────────────────────
-//  Amenities
-// ─────────────────────────────────────────────
 
-/**
- * GET /api/amenities?branch=<branch>
- * Returns the list of add-on amenities available at this branch.
- */
-export async function getAmenities(branch: string): Promise<AmenitiesResponse['amenities']> {
-  const res = await request<AmenitiesResponse>(`/api/amenities?branch=${encodeURIComponent(branch)}`);
-  return res.amenities ?? [];
-}
 
 // ─────────────────────────────────────────────
 //  OTP
