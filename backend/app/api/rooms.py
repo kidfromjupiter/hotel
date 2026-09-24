@@ -9,7 +9,7 @@ from app.services.room_service import RoomService
 router = APIRouter()
 
 
-@router.get("/rooms")
+@router.get("/")
 def check_availability(
     check_in: Optional[date] = Query(
         None, description="Filter rooms starting from YYYY-MM-DD"
