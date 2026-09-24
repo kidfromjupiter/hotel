@@ -78,7 +78,7 @@ VALUES
 -- =====================================================================
 -- 5. AMENITIES
 -- =====================================================================
-
+-- these amenities are what's included with the room. 
 INSERT INTO amenities (
     amenity_id,
     amenity_name
@@ -533,27 +533,37 @@ VALUES
 -- 14. BOOKING EXTRA AMENITIES
 -- =====================================================================
 
-INSERT INTO booking_extra_amenities (
-    booking_id,
-    amenity_id,
-    quantity
+-- Chargeable extras catalogue
+INSERT INTO extra_amenities (
+    extra_amenity_id,
+    extra_amenity_name,
+    unit_price
 )
 VALUES
-    (1001, 3, 1),
-    (1001, 5, 2),
+    (3, 'Mini Bar', 0.00),
+    (5, 'Swimming Pool Access', 0.00);
 
-    (1002, 5, 3),
-
-    (1003, 3, 1),
-
-    (1004, 5, 4),
-
-    (1005, 3, 1),
-
-    (1007, 5, 4),
-
-    (1008, 3, 1);
-
+-- Extras requested for each booking
+INSERT INTO booking_extra_amenities (
+    booking_id,
+    extra_amenity_id,
+    quantity,
+    unit_price
+)
+SELECT v.booking_id, v.extra_amenity_id, v.quantity, ea.unit_price
+FROM (
+    VALUES
+        (1001, 3, 1),
+        (1001, 5, 2),
+        (1002, 5, 3),
+        (1003, 3, 1),
+        (1004, 5, 4),
+        (1005, 3, 1),
+        (1007, 5, 4),
+        (1008, 3, 1)
+) AS v(booking_id, extra_amenity_id, quantity)
+JOIN extra_amenities AS ea
+    ON ea.extra_amenity_id = v.extra_amenity_id;
 
 -- =====================================================================
 -- 15. TRANSACTIONS

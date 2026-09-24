@@ -1,0 +1,43 @@
+Receptionist UI 
+
+The receptionist should check the OTP of the customer.
+
+Updating the checked_in_Time ,Checked_out_Time  ,Booking_status  in the booking table .
+
+The receptionist asks the user “whether they want any amenities” if then—->>>>  Booking_extra_amentities table should be updated in the database and the value should be calculated .
+{In the booking table there’s no extra amenity value option that should be included}
+
+Room_details table room_status should be updated by the receptionist.
+
+The user can request to stay for more dates but that should only be possible through querying the booked room number and seeing whether it has not been booked ,If it;s booked then the customer should make another booking .
+(AI suggested rooms transfer option -Currently not implemented )
+
+When the customer requests for services those service catalogs should be updated with the services they selected .
+
+Now when the user comes after completing their stay the booking-status should be updated.
+Service charge should be calculated for the stay .
+
+Room_fee +service_fee ,tax fees ,membership discounts  should be updated in the billing_summary .The database or the backend  should calculate this.
+
+A billing summary should be given to the customer ,the payment method ,payment_status and the billing summary table should be updated .
+
+This is all regarding a person coming , staying and leaving the hotel .
+
+Booking without updating the site 
+
+The receptionist should be able to query the database and see all the available rooms .
+(It’s better if we can have a page where all the available rooms are shown ,non available rooms are shown ..like a grid )
+
+Make the booking as the above order.
+
+Other facilities the receptionist should have 
+
+A list of the names and tables of people who are  going to visit the hotel on any day .
+
+A function call to check the status of a previous payment and  previous booking .
+
+The receptionist should be able to contact the admin in any case.
+
+The receptionist can create a sky-nest-membership for the guests who are willing to take the membership .
+
+The receptionist should be able to update the guest table and sky-nest membership table to add a new phone number.
