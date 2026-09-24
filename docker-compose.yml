@@ -46,7 +46,7 @@ services:
         "-h", "db",
         "-U", "app_user",
         "-d", "app_db",
-        "-f", "/seed/test.sql"
+        "-f", "/seed/seed.sql"
       ]
   backend:
     build: ./backend
