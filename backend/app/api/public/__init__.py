@@ -13,6 +13,9 @@ public_router.include_router(
     bookings_router, prefix="/bookings", tags=["Public - Bookings"]
 )
 public_router.include_router(
+    bookings_router, prefix="/booking", tags=["Public - Bookings"]
+)
+public_router.include_router(
     amenities_router, prefix="/amenities", tags=["Public - Amenities"]
 )
 public_router.include_router(otp_router, prefix="/otp", tags=["Public - OTP"])

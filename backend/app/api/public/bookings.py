@@ -8,6 +8,7 @@ router = APIRouter()
 
 
 @router.post("/")
+@router.post("/create")
 def create_customer_booking(
     payload: CreateBookingRequest,
     booking_service: BookingService = Depends(get_booking_service),
