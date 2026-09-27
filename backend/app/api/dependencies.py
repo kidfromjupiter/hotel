@@ -4,18 +4,22 @@ from psycopg2.extensions import connection
 
 from app.db import get_db
 from app.repositories.amenities_repo import AmenitiesRepo
+from app.repositories.billing_repo import BillingRepo
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.branches_repo import BranchesRepo
 from app.repositories.guests_repo import GuestsRepo
 from app.repositories.reports_repo import ReportsRepo
 from app.repositories.rooms_repo import RoomsRepo
+from app.repositories.services_repo import ServicesRepo
 from app.services.amenities_service import AmenitiesService
+from app.services.billing_service import BillingService
 from app.services.booking_service import BookingService
 from app.services.branch_service import BranchService
 from app.services.guest_service import GuestService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
 from app.services.room_service import RoomService
+from app.services.services_service import ServicesService
 
 otp_service = OTPService()
 
@@ -86,4 +90,25 @@ def get_guest_service(
     guests_repo: GuestsRepo = Depends(get_guests_repo),
 ) -> GuestService:
     return GuestService(repo=guests_repo)
+
+
+def get_services_repo(db: Optional[connection] = Depends(get_db)) -> ServicesRepo:
+    return ServicesRepo(db=db)
+
+
+def get_services_service(
+    services_repo: ServicesRepo = Depends(get_services_repo),
+) -> ServicesService:
+    return ServicesService(repo=services_repo)
+
+
+def get_billing_repo(db: Optional[connection] = Depends(get_db)) -> BillingRepo:
+    return BillingRepo(db=db)
+
+
+def get_billing_service(
+    billing_repo: BillingRepo = Depends(get_billing_repo),
+) -> BillingService:
+    return BillingService(repo=billing_repo)
+
 
