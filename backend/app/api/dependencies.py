@@ -6,12 +6,13 @@ from app.db import get_db
 from app.repositories.amenities_repo import AmenitiesRepo
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.branches_repo import BranchesRepo
+from app.repositories.guests_repo import GuestsRepo
 from app.repositories.reports_repo import ReportsRepo
 from app.repositories.rooms_repo import RoomsRepo
 from app.services.amenities_service import AmenitiesService
-from app.services.booking_flow_service import BookingFlowService
 from app.services.booking_service import BookingService
 from app.services.branch_service import BranchService
+from app.services.guest_service import GuestService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
 from app.services.room_service import RoomService
@@ -75,3 +76,14 @@ def get_amenities_service(
     amenities_repo: AmenitiesRepo = Depends(get_amenities_repo),
 ) -> AmenitiesService:
     return AmenitiesService(repo=amenities_repo)
+
+
+def get_guests_repo(db: Optional[connection] = Depends(get_db)) -> GuestsRepo:
+    return GuestsRepo(db=db)
+
+
+def get_guest_service(
+    guests_repo: GuestsRepo = Depends(get_guests_repo),
+) -> GuestService:
+    return GuestService(repo=guests_repo)
+
