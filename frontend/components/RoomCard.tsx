@@ -8,7 +8,6 @@ interface RoomCardProps {
   room: Room;
   nights: number;
   hasMembership: boolean;
-  loading: boolean;
   onSelect: (room: Room) => void;
 }
 
@@ -25,7 +24,6 @@ export default function RoomCard({
   room,
   nights,
   hasMembership,
-  loading,
   onSelect,
 }: RoomCardProps) {
   const pricePerNight =
@@ -141,17 +139,9 @@ export default function RoomCard({
 
           <button
             onClick={() => onSelect(room)}
-            disabled={loading}
-            className="w-full py-3 bg-skynest-navy text-white text-sm font-bold rounded-xl hover:bg-skynest-blue transition-colors duration-300 disabled:opacity-60 disabled:cursor-not-allowed tracking-wide"
+            className="w-full py-3 bg-skynest-navy text-white text-sm font-bold rounded-xl hover:bg-skynest-blue transition-colors duration-300 tracking-wide"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Loading...
-              </span>
-            ) : (
-              'Select This Room'
-            )}
+            Select This Room
           </button>
         </div>
       </div>

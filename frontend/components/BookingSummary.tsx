@@ -37,14 +37,13 @@ export default function BookingSummary({ booking, onBack, onContinue }: BookingS
   const room = booking.selectedRoom;
   const roomPricePerNight = booking.hasMembership && room?.membershipPrice ? room.membershipPrice : (room?.pricePerNight ?? 0);
   const roomTotal = roomPricePerNight * (booking.nights || 1);
-  const amenitiesTotal = booking.selectedAmenities.reduce((sum, item) => sum + item.price, 0);
-  const calculatedGrandTotal = roomTotal + amenitiesTotal;
+  const calculatedGrandTotal = roomTotal;
 
   return (
     <div className="max-w-3xl mx-auto animate-slide-up">
       {/* ── Top Header ── */}
       <div className="mb-6">
-        <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-1 uppercase">STEP 4 OF 6</p>
+        <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-1 uppercase">STEP 3 OF 5</p>
         <h2 className="text-2xl sm:text-3xl font-black text-skynest-navy">Booking Summary &amp; Review</h2>
         <p className="text-skynest-muted text-sm mt-1">
           Please review your booking details below before proceeding to confirm your reservation.
@@ -53,7 +52,7 @@ export default function BookingSummary({ booking, onBack, onContinue }: BookingS
 
       {/* ── Summary Card ── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden mb-6">
-        
+
         {/* Banner */}
         <div className="bg-skynest-navy px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-2 text-white">
@@ -71,7 +70,7 @@ export default function BookingSummary({ booking, onBack, onContinue }: BookingS
 
           {/* Dates & Guests Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2">
-            
+
             {/* Stay Dates */}
             <div className="bg-skynest-blue-pale rounded-xl p-4 border border-skynest-blue/10">
               <div className="flex items-center gap-2 text-skynest-blue mb-2">
@@ -136,52 +135,34 @@ export default function BookingSummary({ booking, onBack, onContinue }: BookingS
             </div>
           </div>
 
-          {/* Extra Selected Amenities */}
-          <div className="pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold text-gray-400 tracking-widest uppercase">ADDITIONAL AMENITIES</h4>
-              <span className="text-xs text-skynest-blue font-semibold">
-                {booking.selectedAmenities.length} selected
-              </span>
-            </div>
-
-            {booking.selectedAmenities.length === 0 ? (
-              <p className="text-xs text-gray-400 italic bg-gray-50 p-3 rounded-lg border border-dashed border-gray-200">
-                No additional amenities selected.
-              </p>
-            ) : (
+          {/* Included Amenities */}
+          {room?.amenities && room.amenities.length > 0 && (
+            <div className="pt-4">
+              <h4 className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-3">INCLUDED AMENITIES</h4>
               <div className="space-y-2">
-                {booking.selectedAmenities.map(amenity => (
-                  <div key={amenity.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg text-sm border border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{amenity.icon}</span>
-                      <div>
-                        <p className="font-semibold text-skynest-navy text-xs sm:text-sm">{amenity.name}</p>
-                        <p className="text-[11px] text-gray-400">{amenity.description}</p>
-                      </div>
+                {room.amenities.map(amenity => (
+                  <div key={amenity.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg text-sm border border-gray-100">
+                    <span className="text-lg">{amenity.icon}</span>
+                    <div>
+                      <p className="font-semibold text-skynest-navy text-xs sm:text-sm">{amenity.name}</p>
+                      <p className="text-[11px] text-gray-400">{amenity.description}</p>
                     </div>
-                    <span className="font-bold text-skynest-navy text-xs sm:text-sm">{LKR(amenity.price)}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Price Calculation Breakdown */}
           <div className="pt-4 space-y-2.5">
             <h4 className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-2">PRICE BREAKDOWN</h4>
-            
+
             <div className="flex justify-between text-sm text-gray-600">
               <span>Room charges ({booking.nights} night{booking.nights !== 1 ? 's' : ''})</span>
               <span className="font-semibold text-skynest-navy">{LKR(roomTotal)}</span>
             </div>
 
-            {amenitiesTotal > 0 && (
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Extra amenities total</span>
-                <span className="font-semibold text-skynest-navy">{LKR(amenitiesTotal)}</span>
-              </div>
-            )}
+
 
             {booking.hasMembership && (
               <div className="flex justify-between text-sm text-amber-600 font-semibold">

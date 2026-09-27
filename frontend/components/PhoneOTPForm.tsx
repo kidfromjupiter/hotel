@@ -106,7 +106,7 @@ export default function PhoneOTPForm({ bookingData, onBack, onComplete }: PhoneC
 
         {/* ── Header ── */}
         <div className="bg-skynest-navy px-8 py-6">
-          <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-1 uppercase">STEP 5 OF 6</p>
+          <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-1 uppercase">STEP 4 OF 5</p>
           <div className="flex items-center gap-3">
             {stage === 'phone' ? (
               <HiPhone className="text-skynest-blue text-2xl flex-shrink-0" />

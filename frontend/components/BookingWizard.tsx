@@ -6,12 +6,12 @@ import toast from 'react-hot-toast';
 import { HiChevronLeft } from 'react-icons/hi';
 
 import type { BookingStep, BookingWizardState, Room, Amenity } from '@/lib/types';
-import { checkAvailability, getAmenities } from '@/lib/api';
+import { checkAvailability } from '@/lib/api';
 
 import StepIndicator from './StepIndicator';
 import BookingForm from './BookingForm';
 import RoomCard from './RoomCard';
-import AmenitiesSelector from './AmenitiesSelector';
+
 import BookingSummary from './BookingSummary';
 import PhoneOTPForm from './PhoneOTPForm';
 import BookingConfirmed from './BookingConfirmed';
@@ -19,8 +19,8 @@ import BookingConfirmed from './BookingConfirmed';
 // ─────────────────────────────────────────────
 //  Constants
 // ─────────────────────────────────────────────
-const STEPS: BookingStep[] = ['form', 'rooms', 'amenities', 'summary', 'phone', 'confirmed'];
-const STEP_LABELS = ['Details', 'Select Room', 'Add-ons', 'Summary', 'Contact', 'Confirmed'];
+const STEPS: BookingStep[] = ['form', 'rooms', 'summary', 'phone', 'confirmed'];
+const STEP_LABELS = ['Details', 'Select Room', 'Summary', 'Contact', 'Confirmed'];
 
 const BRANCH_DISPLAY: Record<string, string> = {
   colombo: 'Colombo',
@@ -44,13 +44,11 @@ export default function BookingWizard({ branch }: Props) {
 
   // ── Loading & error states ───────────────────
   const [loadingAvail, setLoadingAvail] = useState(false);
-  const [loadingAmenities, setLoadingAmenities] = useState(false);
   const [availError, setAvailError] = useState<string | null>(null);
   const [noRoomMsg, setNoRoomMsg] = useState<string | null>(null);
 
   // ── Data ─────────────────────────────────────
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
-  const [amenitiesList, setAmenitiesList] = useState<Amenity[]>([]);
 
   const [state, setState] = useState<BookingWizardState>({
     branch,
@@ -60,7 +58,6 @@ export default function BookingWizard({ branch }: Props) {
     children: 0,
     nights: 1,
     selectedRoom: null,
-    selectedAmenities: [],
     phone: '',
     bookingRef: '',
     hasMembership: false,
@@ -73,7 +70,7 @@ export default function BookingWizard({ branch }: Props) {
 
   const goBack = () => {
     if (step === 'summary') {
-      setStep('amenities');
+      setStep('rooms');
     } else if (step === 'phone') {
       setStep('summary');
     } else {
@@ -109,7 +106,7 @@ export default function BookingWizard({ branch }: Props) {
         setAvailableRooms([]);
         setNoRoomMsg(
           res.message ??
-            'No rooms are available for the selected dates and guest count. Please try different dates or fewer guests.'
+          'No rooms are available for the selected dates and guest count. Please try different dates or fewer guests.'
         );
       } else {
         // Ensure totalPrice reflects the calculated nights
@@ -135,41 +132,12 @@ export default function BookingWizard({ branch }: Props) {
   // ─────────────────────────────────────────────
   //  STEP 2 → 3 : Room Selected
   // ─────────────────────────────────────────────
-  const handleRoomSelect = async (room: Room) => {
+  const handleRoomSelect = (room: Room) => {
     setState(prev => ({
       ...prev,
       selectedRoom: room,
       totalPrice: room.totalPrice,
     }));
-    setLoadingAmenities(true);
-
-    try {
-      const list = await getAmenities(branch);
-      setAmenitiesList(list);
-    } catch {
-      setAmenitiesList([]); // AmenitiesSelector has built-in fallback
-    } finally {
-      setLoadingAmenities(false);
-      setStep('amenities');
-    }
-  };
-
-  // ─────────────────────────────────────────────
-  //  STEP 3 → 4 : Amenities Confirmed → Review Summary
-  // ─────────────────────────────────────────────
-  const handleAmenitiesConfirm = (selected: Amenity[]) => {
-    const addonsTotal = selected.reduce((s, a) => s + a.price, 0);
-    const roomPricePerNight = state.hasMembership && state.selectedRoom?.membershipPrice
-      ? state.selectedRoom.membershipPrice
-      : (state.selectedRoom?.pricePerNight ?? 0);
-    const roomTotal = roomPricePerNight * (state.nights || 1);
-
-    setState(prev => ({
-      ...prev,
-      selectedAmenities: selected,
-      totalPrice: roomTotal + addonsTotal,
-    }));
-    // Goes to clear, complete booking summary step
     setStep('summary');
   };
 
@@ -266,7 +234,7 @@ export default function BookingWizard({ branch }: Props) {
 
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-5">
               <div>
-                <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-0.5 uppercase">STEP 2 OF 6</p>
+                <p className="text-skynest-blue text-xs tracking-[0.2em] font-bold mb-0.5 uppercase">STEP 2 OF 5</p>
                 <h2 className="text-2xl font-bold text-skynest-navy">Available Rooms</h2>
                 <p className="text-xs text-skynest-muted mt-0.5">
                   Select your preferred room type from the available options below.
@@ -302,7 +270,6 @@ export default function BookingWizard({ branch }: Props) {
                     room={room}
                     nights={state.nights}
                     hasMembership={state.hasMembership}
-                    loading={loadingAmenities}
                     onSelect={handleRoomSelect}
                   />
                 ))}
@@ -311,22 +278,13 @@ export default function BookingWizard({ branch }: Props) {
           </div>
         )}
 
-        {/* ── STEP 3: Extra Amenities Selection ── */}
-        {step === 'amenities' && state.selectedRoom && (
-          <AmenitiesSelector
-            amenities={amenitiesList}
-            roomName={state.selectedRoom.name}
-            roomTotal={state.selectedRoom.totalPrice}
-            nights={state.nights}
-            onConfirm={handleAmenitiesConfirm}
-          />
-        )}
+
 
         {/* ── STEP 4: Booking Summary & Review ── */}
         {step === 'summary' && (
           <BookingSummary
             booking={state}
-            onBack={() => setStep('amenities')}
+            onBack={() => setStep('rooms')}
             onContinue={handleSummaryContinue}
           />
         )}
@@ -343,8 +301,6 @@ export default function BookingWizard({ branch }: Props) {
               nights: state.nights,
               roomId: state.selectedRoom.id,
               roomType: state.selectedRoom.name,
-              amenityIds: state.selectedAmenities.map(a => a.id),
-              amenities: state.selectedAmenities,
               totalPrice: state.totalPrice,
             }}
             onBack={() => setStep('summary')}

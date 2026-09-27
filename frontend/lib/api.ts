@@ -31,61 +31,108 @@ async function request<T>(
 }
 
 // ─────────────────────────────────────────────
+//  Default / Hardcoded Room Types
+// ─────────────────────────────────────────────
+export const HARDCODED_ROOMS = (nights: number): AvailabilityResponse['rooms'] => [
+  {
+    id: 'standard-room',
+    type: 'Standard Room',
+    name: 'Standard Room',
+    description:
+      'Cozy, elegant room with contemporary furnishings, comfortable queen bed, city/garden views, and modern comforts.',
+    pricePerNight: 20000,
+    totalPrice: 20000 * (nights || 1),
+    nights: nights || 1,
+    maxCapacity: 2,
+    features: ['Queen Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'En-suite Bathroom', 'Smart TV', 'Tea & Coffee Maker'],
+    amenities: [
+      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
+      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' }
+    ],
+    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+    isBestseller: false,
+    membershipPrice: 18000,
+    membershipDiscount: 10,
+  },
+  {
+    id: 'deluxe-room',
+    type: 'Deluxe Room',
+    name: 'Deluxe Room',
+    description:
+      'Spacious sanctuary featuring a private balcony, luxury king bed, premium bath amenities, and panoramic ocean or skyline views.',
+    pricePerNight: 35000,
+    totalPrice: 35000 * (nights || 1),
+    nights: nights || 1,
+    maxCapacity: 4,
+    features: ['King Bed', 'Private Balcony', 'Bathtub & Rain Shower', 'Minibar', 'Ocean / Scenic View', '24/7 Room Service'],
+    amenities: [
+      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
+      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
+      { id: 'a3', name: 'Minibar', description: 'Fully stocked minibar', price: 0, icon: '🍷' },
+      { id: 'a4', name: '24/7 Room Service', description: 'Available anytime', price: 0, icon: '🛎️' }
+    ],
+    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+    isBestseller: true,
+    membershipPrice: 30000,
+    membershipDiscount: 15,
+  },
+];
+
+// ─────────────────────────────────────────────
+
 //  Rooms / Availability
 // ─────────────────────────────────────────────
 
 /**
- * POST /api/rooms/availability
+ * POST /api/v1/rooms/availability
  * Checks room availability for the given branch, dates, and guest count.
  * Returns real available rooms from the backend with prices and calculated totals.
  */
 export async function checkAvailability(
   data: AvailabilityPayload
 ): Promise<AvailabilityResponse> {
-  return request<AvailabilityResponse>('/api/rooms/availability', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  const params = new URLSearchParams();
+
+  if (data.checkIn != null) params.set('check_in', data.checkIn);
+  if (data.checkOut != null) params.set('check_out', data.checkOut);
+  if (data.adults != null) params.set('adults', String(data.adults));
+  if (data.children != null) params.set('children', String(data.children));
+  if (data.branch != null) params.set('branch', data.branch);
+
+  const query = params.toString();
+  const url = `/api/v1/rooms${query ? `?${query}` : ''}`;
+
+  return request<AvailabilityResponse>(url, { method: 'GET' });
 }
 
-// ─────────────────────────────────────────────
-//  Amenities
-// ─────────────────────────────────────────────
 
-/**
- * GET /api/amenities?branch=<branch>
- * Returns the list of add-on amenities available at this branch.
- */
-export async function getAmenities(branch: string): Promise<AmenitiesResponse['amenities']> {
-  const res = await request<AmenitiesResponse>(`/api/amenities?branch=${encodeURIComponent(branch)}`);
-  return res.amenities ?? [];
-}
+
 
 // ─────────────────────────────────────────────
 //  OTP
 // ─────────────────────────────────────────────
 
 /**
- * POST /api/otp/send
+ * POST /api/v1/otp/send
  * Sends an OTP SMS to the given phone number (+94 format).
  * Backend also performs a membership lookup at this stage.
  */
 export async function sendOTP(phone: string): Promise<SendOTPResponse> {
-  return request<SendOTPResponse>('/api/otp/send', {
+  return request<SendOTPResponse>('/api/v1/otp/send', {
     method: 'POST',
     body: JSON.stringify({ phone }),
   });
 }
 
 /**
- * POST /api/otp/verify
+ * POST /api/v1/otp/verify
  * Verifies the OTP entered by the user.
  */
 export async function verifyOTP(
   phone: string,
   otp: string
 ): Promise<VerifyOTPResponse> {
-  return request<VerifyOTPResponse>('/api/otp/verify', {
+  return request<VerifyOTPResponse>('/api/v1/otp/verify', {
     method: 'POST',
     body: JSON.stringify({ phone, otp }),
   });
@@ -96,14 +143,14 @@ export async function verifyOTP(
 // ─────────────────────────────────────────────
 
 /**
- * POST /api/booking/create
+ * POST /api/v1/booking/create
  * Creates the confirmed booking record in the database.
  * Returns the unique booking reference generated by the backend.
  */
 export async function createBooking(
   data: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
-  return request<CreateBookingResponse>('/api/booking/create', {
+  return request<CreateBookingResponse>('/api/v1/booking/create', {
     method: 'POST',
     body: JSON.stringify(data),
   });
