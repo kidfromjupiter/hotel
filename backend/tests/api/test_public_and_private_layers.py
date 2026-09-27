@@ -96,3 +96,26 @@ def test_private_reports_routes(client):
     res = client.get("/api/v1/private/reports/occupancy?start_date=2026-10-01&end_date=2026-10-31")
     assert res.status_code == 200
     assert "branches" in res.json()
+
+
+def test_public_rooms_availability_endpoints(client):
+    # Test GET /api/v1/public/rooms/
+    res_get = client.get("/api/v1/public/rooms/?branch=colombo&check_in=2026-10-01&check_out=2026-10-05&adults=2&children=0")
+    assert res_get.status_code == 200
+    assert isinstance(res_get.json(), list)
+
+    # Test POST /api/v1/public/rooms/availability
+    post_payload = {
+        "branch": "colombo",
+        "checkIn": "2026-10-01",
+        "checkOut": "2026-10-05",
+        "adults": 2,
+        "children": 0,
+    }
+    res_post = client.post("/api/v1/public/rooms/availability", json=post_payload)
+    assert res_post.status_code == 200
+    data = res_post.json()
+    assert "available" in data
+    assert "rooms" in data
+    assert "message" in data
+

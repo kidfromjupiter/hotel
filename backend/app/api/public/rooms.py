@@ -3,7 +3,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import get_room_service
+from app.api.dependencies import get_booking_service, get_room_service
+from app.schemas.booking_flow import AvailabilityRequest
+from app.services.booking_service import BookingService
 from app.services.room_service import RoomService
 
 router = APIRouter()
@@ -25,3 +27,13 @@ def check_availability(
 ):
     """Public customer endpoint to check room availability across branches."""
     return room_service.get_rooms(check_in, check_out, branch, children, adults)
+
+
+@router.post("/availability")
+@router.post("/")
+def check_availability_post(
+    payload: AvailabilityRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Public customer endpoint to check room availability via POST payload."""
+    return booking_service.check_availability(payload)
