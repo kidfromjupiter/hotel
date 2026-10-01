@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { label: 'OUR SPA', href: '/#spa' },
   { label: 'GALLERY', href: '/#gallery' },
   { label: 'OFFERS', href: '/#offers' },
+  { label: 'STAFF PORTAL', href: '/receptionist' },
 ];
 
 export default function Navbar() {
