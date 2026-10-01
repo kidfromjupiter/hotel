@@ -2,50 +2,45 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalendar, HiX } from 'react-icons/hi';
-import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, addAmenityToBooking, extendStay } from '@/lib/api';
-import type { StaffBooking, InvoiceSummary } from '@/lib/types';
+import { getAllBookings, getBill, checkInGuest, checkOutGuest, cancelBooking, addServiceToBooking, addAmenityToBooking, extendStay, getAmenities, getServices } from '@/lib/api';
+import type { StaffBooking, InvoiceSummary, ServiceCatalogueItem } from '@/lib/types';
 
-const MOCK_STAYS = [
-  { id: 'BKG-9921', guest: 'Kasun Perera', room: '201', checkIn: '2026-09-24', checkOut: '2026-09-26', status: 'CHECKED_IN' },
-  { id: 'BKG-9922', guest: 'Amal Silva', room: '305', checkIn: '2026-09-23', checkOut: '2026-09-25', status: 'CHECKED_IN' },
-];
-
-const MOCK_AMENITIES = [
-  { id: 1, name: 'Extra Towels', price: 500 },
-  { id: 2, name: 'Mini Bar Restock', price: 3500 },
-  { id: 3, name: 'Late Checkout', price: 5000 },
-];
-
-const MOCK_SERVICES = [
-  { id: 101, name: 'Spa Session', price: 12000 },
-  { id: 102, name: 'Airport Transfer', price: 8000 },
-  { id: 103, name: 'In-room Dining', price: 4500 },
-];
 
 export default function ActiveStaysPage() {
   const [selectedStay, setSelectedStay] = useState<StaffBooking | null>(null);
   const [activeStays, setActiveStays] = useState<StaffBooking[]>([]);
+  const [amenities, setAmenities] = useState<Array<{ id: number; name: string; price: number }>>([]);
+  const [services, setServices] = useState<ServiceCatalogueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
 
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAllBookings();
+        const [bookingsData, amenitiesData, servicesData] = await Promise.all([
+          getAllBookings(),
+          getAmenities(),
+          getServices()
+        ]);
+        
         // Backend returns all bookings, we only want those Checked-In for this specific view
-        const checkedIn = data.filter(booking => booking.status === 'Checked-In');
+        const checkedIn = bookingsData.filter(booking => booking.status === 'Checked-In');
         setActiveStays(checkedIn);
+        setAmenities(amenitiesData);
+        setServices(servicesData);
       } catch (error) {
-        console.error("Failed to fetch bookings:", error);
+        console.error("Failed to fetch data:", error);
         // Fallback to empty array if backend is down
         setActiveStays([]); 
+        setAmenities([]);
+        setServices([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchBookings();
+    fetchData();
   }, []);
   
   // Modals state
@@ -276,7 +271,7 @@ export default function ActiveStaysPage() {
               {activeModal === 'AMENITIES' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500 mb-4">Select an amenity to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">booking_extra_amenities</code>).</p>
-                  {MOCK_AMENITIES.map(a => (
+                  {amenities.map(a => (
                     <button key={a.id} onClick={() => handleAddAmenity(a)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
                       <span className="font-bold text-skynest-navy">{a.name}</span>
                       <span className="font-black text-skynest-blue">LKR {a.price}</span>
@@ -289,7 +284,7 @@ export default function ActiveStaysPage() {
               {activeModal === 'SERVICES' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500 mb-4">Select a service to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">service_charges</code>).</p>
-                  {MOCK_SERVICES.map(s => (
+                  {services.map(s => (
                     <button key={s.id} onClick={() => handleAddService(s)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
                       <span className="font-bold text-skynest-navy">{s.name}</span>
                       <span className="font-black text-skynest-blue">LKR {s.price}</span>
