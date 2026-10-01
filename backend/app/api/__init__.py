@@ -8,6 +8,7 @@ from app.api.otp import router as otp_router
 from app.api.reports import router as reports_router
 from app.api.rooms import router as rooms_router
 from app.api.services import router as services_router
+from app.api.amenities import router as amenities_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -16,6 +17,7 @@ api_router.include_router(rooms_router, prefix="/rooms", tags=["Rooms"])
 api_router.include_router(guests_router, prefix="/guests", tags=["Guests"])
 api_router.include_router(bookings_router, prefix="/bookings", tags=["Bookings"])
 api_router.include_router(services_router, prefix="/services", tags=["Services"])
+api_router.include_router(amenities_router, tags=["Amenities"])
 api_router.include_router(
     billing_router, prefix="/billing", tags=["Billing & Invoices"]
 )
