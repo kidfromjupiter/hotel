@@ -10,7 +10,7 @@ export default function ActiveStaysPage() {
   const [selectedStay, setSelectedStay] = useState<StaffBooking | null>(null);
   const [activeStays, setActiveStays] = useState<StaffBooking[]>([]);
   const [amenities, setAmenities] = useState<Array<{ id: number; name: string; price: number }>>([]);
-  const [services, setServices] = useState<ServiceCatalogueItem[]>([]);
+  const [services, setServices] = useState<Array<{ id: number; name: string; price: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -80,7 +80,7 @@ export default function ActiveStaysPage() {
     }
   };
 
-  const handleAddAmenity = async (amenity: any) => {
+  const handleAddAmenity = async (amenity: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
       const result = await addAmenityToBooking(selectedStay.bookingId, amenity.id);
@@ -95,7 +95,7 @@ export default function ActiveStaysPage() {
     }
   };
 
-  const handleAddService = async (service: any) => {
+  const handleAddService = async (service: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
       const result = await addServiceToBooking(selectedStay.bookingId, service.id);
@@ -132,15 +132,15 @@ export default function ActiveStaysPage() {
 
   return (
     <div className="animate-slide-up relative">
-      <div className="mb-8 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-sm">
+      <div className="mb-8 bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-md">
         <h1 className="text-xl font-bold text-skynest-navy">Active Stays & Checkout</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage currently checked-in guests, add services, and process checkouts.</p>
+        <p className="text-sm text-gray-600 mt-1">Manage currently checked-in guests, add services, and process checkouts.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Stays List */}
         <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-xs font-semibold tracking-widest text-gray-500 uppercase">Currently Checked-In</h2>
+          <h2 className="text-xs font-semibold tracking-widest text-slate-600 uppercase">Currently Checked-In</h2>
           {isLoading ? (
             <div className="p-5 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-bold animate-pulse">
               Loading active stays...
@@ -154,10 +154,10 @@ export default function ActiveStaysPage() {
               <div 
                 key={stay.bookingId}
                 onClick={() => setSelectedStay(stay)}
-                className={`p-5 rounded-2xl border cursor-pointer transition-all duration-300 backdrop-blur-md ${
+                className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
                   selectedStay?.bookingId === stay.bookingId 
-                    ? 'bg-skynest-navy border-skynest-navy text-white shadow-xl scale-105' 
-                    : 'bg-white/80 border-white/50 hover:border-skynest-blue/50 text-skynest-navy shadow-sm'
+                    ? 'bg-skynest-navy border-skynest-blue text-white shadow-xl scale-105' 
+                    : 'bg-white border-slate-200 hover:border-skynest-blue text-skynest-navy shadow-sm hover:shadow-md'
                 }`}
               >
                 <div className="flex justify-between items-center mb-2">
@@ -178,7 +178,7 @@ export default function ActiveStaysPage() {
         {/* Stay Management Panel */}
         <div className="lg:col-span-2">
           {selectedStay ? (
-            <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-white/50 overflow-hidden animate-slide-up">
+            <div className="bg-white rounded-3xl shadow-xl border-2 border-slate-200 overflow-hidden animate-slide-up">
               <div className="bg-gradient-to-r from-skynest-blue to-cyan-500 p-8">
                 <div className="flex justify-between items-start">
                   <div>
@@ -197,15 +197,15 @@ export default function ActiveStaysPage() {
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 tracking-widest uppercase mb-4">Add to Tab</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Services
                     </button>
-                    <button onClick={() => setActiveModal('AMENITIES')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('AMENITIES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Amenities
                     </button>
-                    <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlineCalendar size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Extend Stay
                     </button>
@@ -222,7 +222,7 @@ export default function ActiveStaysPage() {
               </div>
             </div>
           ) : (
-            <div className="h-full bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl flex flex-col items-center justify-center text-gray-500 p-12 min-h-[400px] shadow-sm">
+            <div className="h-full bg-white border-2 border-slate-200 rounded-3xl flex flex-col items-center justify-center text-gray-500 p-12 min-h-[400px] shadow-md">
               <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                 <HiOutlineUserGroup size={48} className="opacity-50" />
               </div>
