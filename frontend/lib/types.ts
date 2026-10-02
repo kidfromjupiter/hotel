@@ -42,6 +42,16 @@ export interface Room {
   membershipDiscount?: number;
 }
 
+/** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */
+export interface HotelRoom {
+  room_number: number;
+  branch_id: number;
+  room_type_id: string;
+  room_status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
+  type_name?: string;
+  capacity: number | null;
+}
+
 // ─────────────────────────────────────────────
 //  Availability API
 // ─────────────────────────────────────────────
@@ -189,4 +199,48 @@ export interface InvoiceSummary {
   grandTotal: number;
   amountPaid: number;
   paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+}
+
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI (ADMIN) TYPES
+// ─────────────────────────────────────────────
+
+export interface AdminBranch {
+  id: number;
+  name: string;
+  location: string;
+  phone: string;
+  email: string;
+  rooms: number;
+  status: string;
+}
+
+export interface BranchItem {
+  branch_id: number;
+  branch_name: string;
+}
+
+export interface AdminRoom {
+  id: number;
+  type: string;
+  branch: string;
+  price: string;
+  status: string;
+}
+
+export interface FormattedService {
+  id: number;
+  name: string;
+  category: string;
+  price: string;
+  status: string;
+}
+
+export interface ExpectedGuest {
+  id: string;
+  guest: string;
+  checkInDate: string;
+  status: string;
+  phone: string;
+  isMember: boolean;
 }

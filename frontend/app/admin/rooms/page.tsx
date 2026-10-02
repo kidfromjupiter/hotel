@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineFilter, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import { getAllRooms, getBranches } from '@/lib/api';
+import type { AdminRoom, BranchItem } from '@/lib/types';
 
 export default function AdminRoomsPage() {
   const [activeTab, setActiveTab] = useState<'rooms' | 'types'>('rooms');
@@ -10,14 +11,14 @@ export default function AdminRoomsPage() {
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
   const [showAddTypeModal, setShowAddTypeModal] = useState(false);
 
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<AdminRoom[]>([]);
+  const [branches, setBranches] = useState<BranchItem[]>([]);
 
   useEffect(() => {
     Promise.all([getAllRooms(), getBranches()]).then(([roomsData, branchesData]) => {
       setBranches(branchesData);
       
-      const branchMap = new Map(branchesData.map((b: any) => [b.branch_id, b.branch_name]));
+      const branchMap = new Map(branchesData.map((b: BranchItem) => [b.branch_id, b.branch_name]));
       
       const formattedRooms = roomsData.map(r => ({
         id: r.room_number,

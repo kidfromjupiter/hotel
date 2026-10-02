@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineLocationMarker, HiOutlinePhone, HiOutlineMail, HiOutlinePlus, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { getBranches } from '@/lib/api';
+import type { AdminBranch } from '@/lib/types';
 
 const BRANCH_METADATA: Record<number, { location: string; phone: string; email: string; rooms: number; status: string }> = {
   1: { location: 'Colombo 03', phone: '+94 11 234 5678', email: 'colombo@skynest.com', rooms: 120, status: 'Active' },
@@ -12,7 +13,7 @@ const BRANCH_METADATA: Record<number, { location: string; phone: string; email: 
 
 export default function AdminBranchesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [branches, setBranches] = useState<Array<any>>([]);
+  const [branches, setBranches] = useState<AdminBranch[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

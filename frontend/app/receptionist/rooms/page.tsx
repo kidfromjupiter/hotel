@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineSearch, HiCheckCircle, HiXCircle, HiOutlineClock } from 'react-icons/hi';
 import { getAllRooms } from '@/lib/api';
-import type { Room } from '@/lib/types';
+import type { HotelRoom } from '@/lib/types';
 
 export default function RoomAvailabilityPage() {
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [rooms, setRooms] = useState<HotelRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,11 +27,11 @@ export default function RoomAvailabilityPage() {
 
   const filteredRooms = rooms.filter(room => {
     if (filter !== 'ALL' && room.room_status !== filter) return false;
-    if (search && !room.room_number.includes(search)) return false;
+    if (search && !String(room.room_number).includes(search)) return false;
     return true;
   });
 
-  const handleWalkInBooking = (roomNumber: string) => {
+  const handleWalkInBooking = (roomNumber: number) => {
     alert(`Initiating walk-in booking flow for Room ${roomNumber}. This would open the booking form in real implementation.`);
   };
 
@@ -81,14 +81,14 @@ export default function RoomAvailabilityPage() {
 
           return (
             <div 
-              key={room.room_id}
+              key={`${room.branch_id}-${room.room_number}`}
               onClick={() => isAvailable && handleWalkInBooking(room.room_number)}
-              className={`relative overflow-hidden p-6 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 backdrop-blur-md border ${
+              className={`relative overflow-hidden p-5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 border-2 ${
                 isAvailable 
-                  ? 'bg-white/80 border-white/60 shadow-sm hover:shadow-xl hover:border-skynest-blue/50 hover:-translate-y-1 cursor-pointer group' 
+                  ? 'bg-white border-slate-200 shadow-sm hover:shadow-lg hover:border-skynest-blue hover:-translate-y-1 cursor-pointer group' 
                   : isOccupied
-                  ? 'bg-skynest-navy/90 border-transparent shadow-lg text-white'
-                  : 'bg-white/40 border-dashed border-gray-300 text-gray-500'
+                  ? 'bg-skynest-navy border-skynest-navy shadow-lg text-white'
+                  : 'bg-slate-100 border-dashed border-slate-300 text-slate-400'
               }`}
             >
               {isAvailable && (
