@@ -15,10 +15,20 @@ export default function ReceptionistLayout({ children }: { children: React.React
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div 
+      className="flex h-screen pt-16 overflow-hidden font-sans relative"
+      style={{
+        backgroundImage: 'url("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       
+      {/* Background Overlay for the entire receptionist portal */}
+      <div className="absolute inset-0 z-0 bg-white/20" />
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-skynest-navy text-white flex flex-col shadow-2xl">
+      <aside className="w-64 bg-skynest-navy text-white flex flex-col shadow-2xl relative z-10">
         <div className="p-6">
           <h1 className="text-2xl font-black tracking-widest text-skynest-blue">SKYNEST</h1>
           <p className="text-xs text-skynest-blue-light font-semibold tracking-wider mt-1 uppercase">Reception Desk</p>
@@ -48,9 +58,9 @@ export default function ReceptionistLayout({ children }: { children: React.React
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-0">
         {/* Header bar */}
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8 flex-shrink-0 z-10">
+        <header className="bg-white/60 backdrop-blur-md border-b border-white/20 h-16 flex items-center justify-between px-8 flex-shrink-0 z-10 shadow-sm">
           <h2 className="text-lg font-bold text-skynest-navy">
             {NAV_LINKS.find(l => l.href === pathname)?.name || 'Dashboard'}
           </h2>
@@ -63,7 +73,7 @@ export default function ReceptionistLayout({ children }: { children: React.React
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>
