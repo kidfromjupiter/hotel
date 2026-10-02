@@ -42,6 +42,16 @@ export interface Room {
   membershipDiscount?: number;
 }
 
+/** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */
+export interface HotelRoom {
+  room_number: number;
+  branch_id: number;
+  room_type_id: string;
+  room_status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
+  type_name?: string;
+  capacity: number | null;
+}
+
 // ─────────────────────────────────────────────
 //  Availability API
 // ─────────────────────────────────────────────
@@ -141,4 +151,96 @@ export interface BookingWizardState {
   bookingRef: string;
   hasMembership: boolean;
   totalPrice: number;
+}
+
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI (RECEPTIONIST) TYPES
+//  Based on Database ER Diagram
+// ─────────────────────────────────────────────
+
+export interface GuestProfile {
+  guestId: number;
+  name: string;
+  phone: string;
+  nationalId?: string;
+  membershipId?: number;
+}
+
+export type BookingStatus = 'Booked' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
+
+export interface StaffBooking {
+  bookingId: number;
+  guestName: string;
+  phone: string;
+  branchId: number;
+  bookingReference: string;
+  roomNumber: number;
+  roomType: string;
+  checkIn: string; // YYYY-MM-DD
+  checkOut: string; // YYYY-MM-DD
+  status: BookingStatus;
+  adults: number;
+  children: number;
+}
+
+export interface ServiceCatalogueItem {
+  serviceId: number;
+  serviceName: string;
+  dayRate: number;
+}
+
+export interface InvoiceSummary {
+  invoiceId: string; // UUID
+  bookingId: number;
+  totalRoomCharges: number;
+  totalAmenityCharges: number;
+  totalServiceCharges: number;
+  totalTaxAmount: number;
+  grandTotal: number;
+  amountPaid: number;
+  paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+}
+
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI (ADMIN) TYPES
+// ─────────────────────────────────────────────
+
+export interface AdminBranch {
+  id: number;
+  name: string;
+  location: string;
+  phone: string;
+  email: string;
+  rooms: number;
+  status: string;
+}
+
+export interface BranchItem {
+  branch_id: number;
+  branch_name: string;
+}
+
+export interface AdminRoom {
+  id: number;
+  type: string;
+  branch: string;
+  price: string;
+  status: string;
+}
+
+export interface FormattedService {
+  id: number;
+  name: string;
+  category: string;
+  price: string;
+  status: string;
+}
+
+export interface ExpectedGuest {
+  id: string;
+  guest: string;
+  checkInDate: string;
+  status: string;
+  phone: string;
+  isMember: boolean;
 }

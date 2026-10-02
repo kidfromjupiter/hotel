@@ -23,4 +23,8 @@ def check_availability(
     room_service: RoomService = Depends(get_room_service),
 ):
     return room_service.get_rooms(check_in, check_out, branch, children, adults)
-    # return room_service.check_availability(request=payload)
+
+@router.get("/all")
+def get_all_rooms(room_service: RoomService = Depends(get_room_service)):
+    return room_service.get_all_rooms()
+

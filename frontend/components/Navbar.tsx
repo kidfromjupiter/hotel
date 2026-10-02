@@ -11,12 +11,18 @@ const NAV_LINKS = [
   { label: 'OUR SPA', href: '/#spa' },
   { label: 'GALLERY', href: '/#gallery' },
   { label: 'OFFERS', href: '/#offers' },
+  { label: 'STAFF PORTAL', href: '/receptionist' },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const isBookingPage = pathname.startsWith('/booking');
+  const isDashboardPage = pathname.startsWith('/admin') || pathname.startsWith('/receptionist');
+
+  if (isDashboardPage) {
+    return null;
+  }
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 bg-skynest-navy/95 backdrop-blur-sm border-b border-skynest-navy-light">
