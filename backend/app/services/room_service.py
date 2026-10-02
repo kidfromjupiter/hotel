@@ -11,6 +11,10 @@ class RoomService:
         self, check_in: date, check_out: date, branch: str, children: int, adults: int
     ):
 
+        branch_lower = branch.lower() if branch else None
         return self.repo.get_rooms(
-            check_in, check_out, branch.lower(), children, adults
+            check_in, check_out, branch_lower, children, adults
         )
+
+    def get_all_rooms(self):
+        return self.repo.get_all_rooms()

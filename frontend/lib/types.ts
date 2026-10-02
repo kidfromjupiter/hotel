@@ -142,3 +142,51 @@ export interface BookingWizardState {
   hasMembership: boolean;
   totalPrice: number;
 }
+
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI (RECEPTIONIST) TYPES
+//  Based on Database ER Diagram
+// ─────────────────────────────────────────────
+
+export interface GuestProfile {
+  guestId: number;
+  name: string;
+  phone: string;
+  nationalId?: string;
+  membershipId?: number;
+}
+
+export type BookingStatus = 'Booked' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
+
+export interface StaffBooking {
+  bookingId: number;
+  guestName: string;
+  phone: string;
+  branchId: number;
+  bookingReference: string;
+  roomNumber: number;
+  roomType: string;
+  checkIn: string; // YYYY-MM-DD
+  checkOut: string; // YYYY-MM-DD
+  status: BookingStatus;
+  adults: number;
+  children: number;
+}
+
+export interface ServiceCatalogueItem {
+  serviceId: number;
+  serviceName: string;
+  dayRate: number;
+}
+
+export interface InvoiceSummary {
+  invoiceId: string; // UUID
+  bookingId: number;
+  totalRoomCharges: number;
+  totalAmenityCharges: number;
+  totalServiceCharges: number;
+  totalTaxAmount: number;
+  grandTotal: number;
+  amountPaid: number;
+  paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+}

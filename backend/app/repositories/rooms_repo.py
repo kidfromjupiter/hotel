@@ -17,3 +17,9 @@ class RoomsRepo:
                 (check_in, check_out, branch, children, adults),
             )
             return cursor.fetchone().get("get_available_rooms", [])
+
+    def get_all_rooms(self):
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT * FROM room_details")
+            return cursor.fetchall()
+
