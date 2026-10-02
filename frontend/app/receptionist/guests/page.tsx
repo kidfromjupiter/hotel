@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineUserAdd, HiOutlineStar, HiOutlinePencilAlt, HiOutlineSearch, HiX, HiOutlineMail, HiOutlinePhone, HiOutlineUser } from 'react-icons/hi';
 import { createMembership, getAllBookings } from '../../../lib/api';
+import type { ExpectedGuest } from '../../../lib/types';
 
 export default function GuestManagementPage() {
   const [activeTab, setActiveTab] = useState<'expected' | 'members'>('expected');
@@ -12,8 +13,7 @@ export default function GuestManagementPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE');
-  
-  const [expectedGuests, setExpectedGuests] = useState<any[]>([]);
+  const [expectedGuests, setExpectedGuests] = useState<ExpectedGuest[]>([]);
 
   useEffect(() => {
     getAllBookings().then(data => {

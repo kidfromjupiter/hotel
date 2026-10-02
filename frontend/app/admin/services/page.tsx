@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineSparkles, HiOutlinePlus, HiOutlinePencilAlt, HiOutlineTrash } from 'react-icons/hi';
 import { getServices } from '@/lib/api';
+import type { FormattedService } from '@/lib/types';
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<FormattedService[]>([]);
   const [filterCategory, setFilterCategory] = useState('All Categories');
   const [showAddModal, setShowAddModal] = useState(false);
 
