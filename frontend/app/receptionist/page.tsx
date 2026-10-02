@@ -69,14 +69,20 @@ export default function CheckInPage() {
 
       <div className="relative z-10 w-full max-w-xl flex flex-col items-center animate-slide-up">
         
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-white border-2 border-slate-100 text-skynest-blue rounded-2xl mx-auto flex items-center justify-center mb-5 shadow-lg shadow-skynest-blue/10">
+        <div className="text-center mb-8 flex flex-col items-center gap-3">
+          <div className="w-14 h-14 bg-white border-2 border-slate-100 text-skynest-blue rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg shadow-skynest-blue/10">
             <HiOutlineKey size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-skynest-navy tracking-tight">Guest Check-In</h1>
-          <p className="text-gray-500 mt-2 text-sm">
-            Enter the booking reference or OTP to retrieve guest details.
-          </p>
+          
+          <div className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-100 via-white to-sky-100 animate-pulse border-2 border-white shadow-lg shadow-blue-900/10">
+            <h1 className="text-2xl font-black text-black tracking-tight">Guest Check-In</h1>
+          </div>
+          
+          <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-white via-blue-50 to-white animate-pulse border border-white shadow-md shadow-blue-900/10">
+            <p className="text-black font-bold text-sm">
+              Enter the booking reference or OTP to retrieve guest details.
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border-2 border-slate-200 p-8 w-full relative overflow-hidden">
