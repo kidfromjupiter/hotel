@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends
-from psycopg2.extensions import connection
-from psycopg2.extras import RealDictCursor
-from app.db import get_db
+
+from app.api.dependencies import get_service_service
+from app.services.service_service import ServiceService
 
 router = APIRouter()
 
+
 @router.get("/")
-def list_services(db: connection = Depends(get_db)):
-    with db.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute("SELECT service_id as id, service_name as name, day_rate as price FROM service_catalogue")
-        return cursor.fetchall()
+def list_services(service: ServiceService = Depends(get_service_service)):
+    return service.get_all_services()
