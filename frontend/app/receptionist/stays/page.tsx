@@ -139,15 +139,17 @@ export default function ActiveStaysPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Stays List */}
-        <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-xs font-semibold tracking-widest text-slate-600 uppercase">Currently Checked-In</h2>
+        <div className="lg:col-span-1 space-y-4 flex flex-col items-start">
+          <div className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-100 via-white to-sky-100 border border-white shadow-md shadow-blue-900/10">
+            <h2 className="text-xs font-black tracking-widest text-black uppercase">Currently Checked-In</h2>
+          </div>
           {isLoading ? (
-            <div className="p-5 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-bold animate-pulse">
-              Loading active stays...
+            <div className="p-5 rounded-2xl text-center bg-gradient-to-r from-white via-blue-50 to-white border border-white shadow-md shadow-blue-900/10 w-full">
+              <span className="text-black font-bold">Loading active stays...</span>
             </div>
           ) : activeStays.length === 0 ? (
-            <div className="p-5 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-bold">
-              No active stays right now.
+            <div className="p-5 rounded-2xl text-center bg-gradient-to-r from-white via-blue-50 to-white border border-white shadow-md shadow-blue-900/10 w-full">
+              <span className="text-black font-bold">No active stays right now.</span>
             </div>
           ) : (
             activeStays.map(stay => (
