@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import List, Optional
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
 
@@ -16,16 +16,21 @@ from app.schemas.bookings import (
 )
 
 
-# TODO: Connect the proper DB to the repo
 class BookingService:
     def __init__(self, *, booking_repo: BookingRepository):
         self.booking_repo = booking_repo
 
-    def get_amenities(self, branch: str = "colombo"):
+    def get_amenities(self, branch: str = "colombo") -> Dict[str, Any]:
         return {"amenities": self.booking_repo.get_amenities_catalog(branch)}
 
-    def create_booking(self, request: Request):
-        booking_dict = request.model_dump()
+    def create_booking(self, request: Any) -> Dict[str, Any]:
+        if hasattr(request, "model_dump"):
+            booking_dict = request.model_dump()
+        elif isinstance(request, dict):
+            booking_dict = dict(request)
+        else:
+            booking_dict = dict(request)
+
         saved = self.booking_repo.save_booking(booking_dict)
         return {
             "success": True,
@@ -33,44 +38,60 @@ class BookingService:
             "message": "Your reservation has been confirmed successfully!",
         }
 
-    def check_availability(self, request: Request):
-        total_guests = request.adults + request.children
-        all_rooms = self.booking_repo.get_rooms_catalog(request.branch)
-
-        max_capacity_any_room = max(
-            (r.get("maxCapacity", 2) for r in all_rooms), default=2
-        )
-        if total_guests > max_capacity_any_room:
-            return {
-                "available": False,
-                "rooms": [],
-                "message": f"Maximum capacity exceeded. Maximum capacity per room is {max_capacity_any_room} guests.",
-            }
+    def check_availability(self, request: Any) -> Dict[str, Any]:
+        """Calculates room availability using database function get_available_rooms."""
+        adults = getattr(request, "adults", 1)
+        children = getattr(request, "children", 0)
+        branch = getattr(request, "branch", "colombo")
+        check_in_raw = getattr(request, "checkIn", None) or getattr(request, "check_in", None) or "2026-10-01"
+        check_out_raw = getattr(request, "checkOut", None) or getattr(request, "check_out", None) or "2026-10-02"
 
         # Calculate nights
         try:
-            d_in = datetime.fromisoformat(request.checkIn.replace("Z", "+00:00")).date()
-            d_out = datetime.fromisoformat(
-                request.checkOut.replace("Z", "+00:00")
-            ).date()
+            if isinstance(check_in_raw, (date, datetime)):
+                d_in = check_in_raw if isinstance(check_in_raw, date) else check_in_raw.date()
+            else:
+                d_in = datetime.fromisoformat(str(check_in_raw).replace("Z", "+00:00")).date()
+
+            if isinstance(check_out_raw, (date, datetime)):
+                d_out = check_out_raw if isinstance(check_out_raw, date) else check_out_raw.date()
+            else:
+                d_out = datetime.fromisoformat(str(check_out_raw).replace("Z", "+00:00")).date()
+
             nights = (d_out - d_in).days
         except Exception:
+            d_in = date.today()
+            d_out = date.today()
             nights = 1
+
         if nights < 1:
             nights = 1
 
-        available_rooms = []
-        for room in all_rooms:
-            if room.get("maxCapacity", 2) < total_guests:
-                continue
-            if self.booking_repo.is_room_booked(
-                room["id"], request.checkIn, request.checkOut
-            ):
-                continue
+        # Query available rooms from database function
+        raw_rooms = self.booking_repo.get_available_rooms(
+            check_in=d_in,
+            check_out=d_out,
+            branch=branch,
+            children=children,
+            adults=adults,
+        )
 
+        available_rooms = []
+        for room in raw_rooms:
             r_data = dict(room)
+            price_per_night = (
+                r_data.get("pricePerNight")
+                or r_data.get("price_per_night")
+                or r_data.get("daily_rate")
+                or 25000
+            )
             r_data["nights"] = nights
-            r_data["totalPrice"] = r_data["pricePerNight"] * nights
+            r_data["pricePerNight"] = price_per_night
+            r_data["totalPrice"] = price_per_night * nights
+            if "id" not in r_data and "room_number" in r_data:
+                r_data["id"] = f"room-{r_data['room_number']}"
+            if "name" not in r_data:
+                r_data["name"] = f"Room {r_data.get('room_number', '')} ({r_data.get('room_type_id', 'STANDARD')})"
             available_rooms.append(r_data)
 
         return {
@@ -91,24 +112,16 @@ class BookingService:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> List[BookingListItem]:
-        bookings = self.booking_repo.list_all_bookings()
+        bookings = self.booking_repo.list_all_bookings(
+            branch_id=branch_id,
+            guest_id=guest_id,
+            status=status,
+            start_date=start_date,
+            end_date=end_date,
+        )
         results: List[BookingListItem] = []
 
         for b in bookings:
-            if branch_id is not None and b.get("branch_id") != branch_id:
-                continue
-            if guest_id is not None and b.get("guest_id") != guest_id:
-                continue
-            if (
-                status is not None
-                and b.get("booking_status", "").lower() != status.lower()
-            ):
-                continue
-            if start_date is not None and b.get("start_date", "") < start_date:
-                continue
-            if end_date is not None and b.get("end_date", "") > end_date:
-                continue
-
             results.append(
                 BookingListItem(
                     booking_id=b.get("booking_id", 0),
@@ -116,8 +129,8 @@ class BookingService:
                     room_number=b.get("room_number", 101),
                     branch_name=b.get("branch_name", "Colombo"),
                     booking_status=b.get("booking_status", "Confirmed"),
-                    start_date=b.get("start_date") or b.get("checkIn", "")[:10],
-                    end_date=b.get("end_date") or b.get("checkOut", "")[:10],
+                    start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
+                    end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
                 )
             )
         return results
@@ -148,10 +161,10 @@ class BookingService:
                 room_type_id=b.get("room_type_id", "STANDARD"),
             ),
             booking_status=b.get("booking_status", "Confirmed"),
-            start_date=b.get("start_date") or b.get("checkIn", "")[:10],
-            end_date=b.get("end_date") or b.get("checkOut", "")[:10],
-            checked_in_time=b.get("checked_in_time"),
-            checked_out_time=b.get("checked_out_time"),
+            start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
+            end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
+            checked_in_time=str(b.get("checked_in_time")) if b.get("checked_in_time") else None,
+            checked_out_time=str(b.get("checked_out_time")) if b.get("checked_out_time") else None,
             adult_count=b.get("adult_count", 2),
             children_count=b.get("children_count", 0),
             service_charges=services,

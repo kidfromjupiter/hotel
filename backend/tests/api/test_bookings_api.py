@@ -87,6 +87,26 @@ def test_create_booking_success(client, booking_repo):
     assert saved["roomId"] == "deluxe-101"
 
 
+def test_create_booking_frontend_alias(client):
+    booking_payload = {
+        "branch": "colombo",
+        "checkIn": "2026-10-15T00:00:00.000Z",
+        "checkOut": "2026-10-18T00:00:00.000Z",
+        "adults": 2,
+        "children": 0,
+        "nights": 3,
+        "roomId": "deluxe-101",
+        "roomType": "Deluxe Room",
+        "phone": "+94771234567",
+        "totalPrice": 105000,
+        "amenityIds": [],
+        "amenities": [],
+    }
+    response = client.post("/api/v1/booking/create", json=booking_payload)
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+
 def test_list_bookings_all(client, sample_bookings):
     res = client.get("/api/v1/bookings/")
     assert res.status_code == 200

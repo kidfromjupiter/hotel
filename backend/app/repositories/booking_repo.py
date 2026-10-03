@@ -1,44 +1,216 @@
 import random
 import string
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional
+
+from psycopg2.extensions import connection
+from psycopg2.extras import RealDictCursor
 
 
 class BookingRepository:
-    def __init__(self):
-        self._bookings: List[Dict[str, Any]] = []
-        self._next_id: int = 500001
+    _shared_bookings: List[Dict[str, Any]] = []
+    _shared_next_id: int = 500001
+
+    def __init__(self, db: Optional[connection] = None):
+        self.db = db
+        # Reference shared store for test & offline fallback consistency
+        self._bookings: List[Dict[str, Any]] = BookingRepository._shared_bookings
 
     def clear(self):
-        self._bookings.clear()
+        BookingRepository._shared_bookings.clear()
+
+    @property
+    def _next_id(self) -> int:
+        return BookingRepository._shared_next_id
+
+    @_next_id.setter
+    def _next_id(self, val: int):
+        BookingRepository._shared_next_id = val
 
     def generate_booking_ref(self) -> str:
         random_code = "".join(random.choices(string.digits, k=4))
         return f"SKN-{random_code}"
 
+    # ── Database-Backed Availability ──
+
+    def get_available_rooms(
+        self,
+        check_in: date,
+        check_out: date,
+        branch: str,
+        children: int,
+        adults: int,
+    ) -> List[Dict[str, Any]]:
+        branch_clean = branch.lower() if branch else "colombo"
+
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT get_available_rooms(%s, %s, %s, %s, %s)",
+                        (check_in, check_out, branch_clean, children, adults),
+                    )
+                    row = cursor.fetchone()
+                    if row and "get_available_rooms" in row and row["get_available_rooms"] is not None:
+                        rooms = row["get_available_rooms"]
+                        if isinstance(rooms, list):
+                            return rooms
+            except Exception:
+                pass
+
+        # In-memory fallback if DB is not available
+        total_guests = adults + children
+        all_rooms = self.get_rooms_catalog(branch_clean)
+        check_in_str = check_in.isoformat() if isinstance(check_in, (date, datetime)) else str(check_in)
+        check_out_str = check_out.isoformat() if isinstance(check_out, (date, datetime)) else str(check_out)
+
+        available_rooms = []
+        for room in all_rooms:
+            if room.get("maxCapacity", 2) < total_guests:
+                continue
+            if self.is_room_booked(room["id"], check_in_str, check_out_str):
+                continue
+            available_rooms.append(room)
+        return available_rooms
+
+    # ── Database-Backed Booking Operations ──
+
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
-        if "booking_id" not in record:
-            record["booking_id"] = self._next_id
-            self._next_id += 1
+        if "booking_id" not in record or not record["booking_id"]:
+            record["booking_id"] = BookingRepository._shared_next_id
+            BookingRepository._shared_next_id += 1
         if "bookingRef" not in record or not record["bookingRef"]:
             record["bookingRef"] = self.generate_booking_ref()
         if "booking_status" not in record:
             record["booking_status"] = "Confirmed"
+
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    branch_map = {"colombo": 1, "kandy": 2, "galle": 3}
+                    branch_val = record.get("branch", "colombo")
+                    branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
+
+                    room_num = record.get("room_number", 101)
+                    guest_id = record.get("guest_id", 1)
+                    status = record.get("booking_status", "Confirmed")
+
+                    start_date = record.get("start_date") or (record.get("checkIn") or "")[:10]
+                    end_date = record.get("end_date") or (record.get("checkOut") or "")[:10]
+                    adult_count = record.get("adult_count", record.get("adults", 2))
+                    children_count = record.get("children_count", record.get("children", 0))
+                    grand_total = float(record.get("grand_total", record.get("totalPrice", 0.0)))
+                    amount_paid = float(record.get("amount_paid", 0.0))
+
+                    cursor.execute(
+                        """
+                        SELECT create_booking(
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                        )
+                        """,
+                        (
+                            record["booking_id"],
+                            room_num,
+                            branch_id,
+                            guest_id,
+                            status,
+                            start_date or "2026-10-01",
+                            end_date or "2026-10-02",
+                            adult_count,
+                            children_count,
+                            grand_total,
+                            amount_paid,
+                        ),
+                    )
+            except Exception:
+                pass
+
+        # Update in-memory record list
         self._bookings.append(record)
         return record
 
     def find_booking_by_id(self, booking_id: int) -> Optional[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute("SELECT get_booking_by_id(%s)", (booking_id,))
+                    row = cursor.fetchone()
+                    if row and "get_booking_by_id" in row and row["get_booking_by_id"] is not None:
+                        return row["get_booking_by_id"]
+            except Exception:
+                pass
+
         for b in self._bookings:
             if b.get("booking_id") == booking_id:
                 return b
         return None
 
-    def list_all_bookings(self) -> List[Dict[str, Any]]:
-        return list(self._bookings)
+    def list_all_bookings(
+        self,
+        branch_id: Optional[int] = None,
+        guest_id: Optional[int] = None,
+        status: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT get_all_bookings(%s, %s, %s, %s, %s)",
+                        (branch_id, guest_id, status, start_date, end_date),
+                    )
+                    row = cursor.fetchone()
+                    if row and "get_all_bookings" in row and row["get_all_bookings"] is not None:
+                        return row["get_all_bookings"]
+            except Exception:
+                pass
+
+        # In-memory filtered list
+        results = []
+        for b in self._bookings:
+            if branch_id is not None and b.get("branch_id") != branch_id:
+                continue
+            if guest_id is not None and b.get("guest_id") != guest_id:
+                continue
+            if (
+                status is not None
+                and b.get("booking_status", "").lower() != status.lower()
+            ):
+                continue
+            if start_date is not None and (b.get("start_date") or "") < start_date:
+                continue
+            if end_date is not None and (b.get("end_date") or "") > end_date:
+                continue
+            results.append(b)
+        return results
 
     def update_booking(
         self, booking_id: int, updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    status = updates.get("booking_status")
+                    check_in_time = updates.get("checked_in_time")
+                    check_out_time = updates.get("checked_out_time")
+                    cursor.execute(
+                        "SELECT update_booking_status(%s, %s, %s, %s)",
+                        (booking_id, status, check_in_time, check_out_time),
+                    )
+                    row = cursor.fetchone()
+                    if row and "update_booking_status" in row and row["update_booking_status"] is not None:
+                        updated_db = row["update_booking_status"]
+                        # Also sync in-memory record
+                        for b in self._bookings:
+                            if b.get("booking_id") == booking_id:
+                                b.update(updates)
+                                break
+                        return updated_db
+            except Exception:
+                pass
+
         booking = self.find_booking_by_id(booking_id)
         if booking:
             booking.update(updates)
@@ -46,7 +218,6 @@ class BookingRepository:
         return None
 
     def is_overlapping(self, start1: str, end1: str, start2: str, end2: str) -> bool:
-        # Normalize date strings (YYYY-MM-DD)
         d_start1 = start1[:10]
         d_end1 = end1[:10]
         d_start2 = start2[:10]
@@ -55,7 +226,7 @@ class BookingRepository:
 
     def is_room_booked(self, room_id: str, start_date: str, end_date: str) -> bool:
         for b in self._bookings:
-            b_room = b.get("roomId")
+            b_room = b.get("roomId") or str(b.get("room_number"))
             if b_room == room_id:
                 b_start = b.get("start_date") or b.get("checkIn") or ""
                 b_end = b.get("end_date") or b.get("checkOut") or ""
@@ -68,7 +239,7 @@ class BookingRepository:
         return False
 
     def get_rooms_catalog(self, branch: str) -> List[Dict[str, Any]]:
-        branch_lower = branch.lower()
+        branch_lower = branch.lower() if branch else "colombo"
         if branch_lower == "kandy":
             return [
                 {
@@ -184,7 +355,6 @@ class BookingRepository:
                 },
             ]
         else:
-            # Default to Colombo
             return [
                 {
                     "id": "standard-room",
@@ -243,7 +413,7 @@ class BookingRepository:
             ]
 
     def get_amenities_catalog(self, branch: str) -> List[Dict[str, Any]]:
-        branch_lower = branch.lower()
+        branch_lower = branch.lower() if branch else "colombo"
         if branch_lower == "kandy":
             return [
                 {

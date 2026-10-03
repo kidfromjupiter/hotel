@@ -1,21 +1,30 @@
+from typing import Optional
 from fastapi import Depends
 from psycopg2.extensions import connection
 
 from app.db import get_db
+from app.repositories.amenities_repo import AmenitiesRepo
+from app.repositories.billing_repo import BillingRepo
 from app.repositories.booking_repo import BookingRepository
+from app.repositories.branches_repo import BranchesRepo
+from app.repositories.guests_repo import GuestsRepo
+from app.repositories.reports_repo import ReportsRepo
 from app.repositories.rooms_repo import RoomsRepo
+from app.repositories.services_repo import ServicesRepo
+from app.services.amenities_service import AmenitiesService
+from app.services.billing_service import BillingService
 from app.services.booking_service import BookingService
+from app.services.branch_service import BranchService
+from app.services.guest_service import GuestService
 from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
 from app.services.room_service import RoomService
+from app.services.services_service import ServicesService
 
-# TODO: Make these stateless. That means removing the singleton pattern
-report_service = ReportService()
-booking_repo = BookingRepository()
-booking_service = BookingService(booking_repo=booking_repo)
+otp_service = OTPService()
 
 
-def get_room_repo(db: connection = Depends(get_db)) -> RoomsRepo:
+def get_room_repo(db: Optional[connection] = Depends(get_db)) -> RoomsRepo:
     return RoomsRepo(db=db)
 
 
@@ -23,19 +32,83 @@ def get_room_service(room_repo: RoomsRepo = Depends(get_room_repo)) -> RoomServi
     return RoomService(repo=room_repo)
 
 
-def get_report_service() -> ReportService:
-    return report_service
+def get_report_repo(db: Optional[connection] = Depends(get_db)) -> ReportsRepo:
+    return ReportsRepo(db=db)
 
 
-def get_booking_repo() -> BookingRepository:
-    return booking_repo
-    # return BookingRepository()
+def get_report_service(
+    report_repo: ReportsRepo = Depends(get_report_repo),
+) -> ReportService:
+    return ReportService(repo=report_repo)
 
 
-def get_booking_service() -> BookingService:
+def get_booking_repo(db: Optional[connection] = Depends(get_db)) -> BookingRepository:
+    return BookingRepository(db=db)
+
+
+def get_booking_service(
+    booking_repo: BookingRepository = Depends(get_booking_repo),
+) -> BookingService:
+    return BookingService(booking_repo=booking_repo)
+
+
+def get_booking_flow_service(
+    booking_service: BookingService = Depends(get_booking_service),
+) -> BookingService:
     return booking_service
-    # return BookingService(booking_repo=get_booking_repo())
 
 
 def get_otp_service() -> OTPService:
-    return OTPService()
+    return otp_service
+
+
+def get_branches_repo(db: Optional[connection] = Depends(get_db)) -> BranchesRepo:
+    return BranchesRepo(db=db)
+
+
+def get_branch_service(
+    branches_repo: BranchesRepo = Depends(get_branches_repo),
+) -> BranchService:
+    return BranchService(repo=branches_repo)
+
+
+def get_amenities_repo(db: Optional[connection] = Depends(get_db)) -> AmenitiesRepo:
+    return AmenitiesRepo(db=db)
+
+
+def get_amenities_service(
+    amenities_repo: AmenitiesRepo = Depends(get_amenities_repo),
+) -> AmenitiesService:
+    return AmenitiesService(repo=amenities_repo)
+
+
+def get_guests_repo(db: Optional[connection] = Depends(get_db)) -> GuestsRepo:
+    return GuestsRepo(db=db)
+
+
+def get_guest_service(
+    guests_repo: GuestsRepo = Depends(get_guests_repo),
+) -> GuestService:
+    return GuestService(repo=guests_repo)
+
+
+def get_services_repo(db: Optional[connection] = Depends(get_db)) -> ServicesRepo:
+    return ServicesRepo(db=db)
+
+
+def get_services_service(
+    services_repo: ServicesRepo = Depends(get_services_repo),
+) -> ServicesService:
+    return ServicesService(repo=services_repo)
+
+
+def get_billing_repo(db: Optional[connection] = Depends(get_db)) -> BillingRepo:
+    return BillingRepo(db=db)
+
+
+def get_billing_service(
+    billing_repo: BillingRepo = Depends(get_billing_repo),
+) -> BillingService:
+    return BillingService(repo=billing_repo)
+
+
