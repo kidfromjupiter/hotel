@@ -6,6 +6,10 @@ import type {
   VerifyOTPResponse,
   CreateBookingPayload,
   CreateBookingResponse,
+  StaffBooking,
+  GuestProfile,
+  ServiceCatalogueItem,
+  InvoiceSummary
 } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -156,4 +160,110 @@ export async function createBooking(
   });
 }
 
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI / RECEPTIONIST API
+// ─────────────────────────────────────────────
 
+/**
+ * GET /api/v1/management/bookings
+ * Retrieves all bookings for the active stays and booking management pages.
+ */
+export async function getAllBookings(): Promise<StaffBooking[]> {
+  // Mock data since backend doesn't have management routes yet
+  return [
+    {
+      bookingId: 1002,
+      guestName: 'Test Guest',
+      phone: '+94771234567',
+      branchId: 1,
+      bookingReference: 'BKG-1002',
+      roomNumber: 101,
+      roomType: 'Deluxe',
+      checkIn: '2026-10-01',
+      checkOut: '2026-10-05',
+      status: 'Booked',
+      adults: 2,
+      children: 0
+    },
+    {
+      bookingId: 1003,
+      guestName: 'Kasun Perera',
+      phone: '+94711112222',
+      branchId: 1,
+      bookingReference: 'BKG-1003',
+      roomNumber: 205,
+      roomType: 'Executive Suite',
+      checkIn: '2026-09-28',
+      checkOut: '2026-10-02',
+      status: 'Checked-In',
+      adults: 1,
+      children: 0
+    }
+  ];
+}
+
+/**
+ * POST /api/v1/management/bookings/:id/checkin
+ * Checks in a guest (changes booking to Checked-In, Room to Occupied)
+ */
+export async function checkInGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Checked in' }), 500));
+}
+
+/**
+ * POST /api/v1/management/bookings/:id/checkout
+ * Checks out a guest (changes booking to Checked-Out). Fails if balance > 0.
+ */
+export async function checkOutGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Checked out' }), 500));
+}
+
+/**
+ * GET /api/v1/management/bookings/:id/bill
+ * Gets the current calculated bill for a booking.
+ */
+export async function getBill(bookingId: number): Promise<InvoiceSummary> {
+  return new Promise(resolve => setTimeout(() => resolve({
+    invoiceId: 'INV-001',
+    bookingId,
+    totalRoomCharges: 25000,
+    totalAmenityCharges: 1500,
+    totalServiceCharges: 5000,
+    totalTaxAmount: 3000,
+    grandTotal: 34500,
+    amountPaid: 0,
+    paymentStatus: 'Unpaid'
+  }), 1000));
+}
+
+/**
+ * POST /api/v1/management/bookings/:id/services
+ * Adds a service to the guest's tab.
+ */
+export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
+}
+
+/**
+ * POST /api/v1/management/bookings/:id/amenities
+ * Adds an extra amenity to the guest's tab.
+ */
+export async function addAmenityToBooking(bookingId: number, amenityId: number): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Amenity added' }), 500));
+}
+
+/**
+ * POST /api/v1/management/bookings/:id/extend
+ * Extends the checkout date for a booking.
+ */
+export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Stay extended' }), 500));
+}
+
+/**
+ * POST /api/v1/management/memberships
+ * Creates a new SkyNest Membership
+ */
+export async function createMembership(data: { name: string; phone: string; email: string }): Promise<{ success: boolean; message: string }> {
+  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Membership created successfully' }), 800));
+}
