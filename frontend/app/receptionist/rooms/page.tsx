@@ -1,37 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiOutlineSearch, HiCheckCircle, HiXCircle, HiOutlineClock } from 'react-icons/hi';
-
-// Mock data for rooms grid
-const MOCK_ROOMS = Array.from({ length: 24 }, (_, i) => {
-  const roomNumber = `${Math.floor(i / 8) + 1}0${(i % 8) + 1}`;
-  const isSuite = i % 5 === 0;
-  
-  // Use deterministic logic instead of Math.random() to prevent hydration errors
-  let status = 'AVAILABLE';
-  if (i % 3 === 1) status = 'OCCUPIED';
-  else if (i % 7 === 0 && i !== 0) status = 'MAINTENANCE';
-  
-  return {
-    roomNumber,
-    type: isSuite ? 'Deluxe Suite' : 'Standard Room',
-    status,
-    price: isSuite ? 25000 : 15000
-  };
-});
+import { getAllRooms } from '@/lib/api';
+import type { HotelRoom } from '@/lib/types';
 
 export default function RoomAvailabilityPage() {
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [rooms, setRooms] = useState<HotelRoom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredRooms = MOCK_ROOMS.filter(room => {
-    if (filter !== 'ALL' && room.status !== filter) return false;
-    if (search && !room.roomNumber.includes(search)) return false;
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const data = await getAllRooms();
+        setRooms(data);
+      } catch (error) {
+        console.error("Failed to fetch rooms:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRooms();
+  }, []);
+
+  const filteredRooms = rooms.filter(room => {
+    if (filter !== 'ALL' && room.room_status !== filter) return false;
+    if (search && !String(room.room_number).includes(search)) return false;
     return true;
   });
 
-  const handleWalkInBooking = (roomNumber: string) => {
+  const handleWalkInBooking = (roomNumber: number) => {
     alert(`Initiating walk-in booking flow for Room ${roomNumber}. This would open the booking form in real implementation.`);
   };
 
@@ -68,22 +68,27 @@ export default function RoomAvailabilityPage() {
         </div>
       </div>
 
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-skynest-blue"></div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {filteredRooms.map(room => {
-          const isAvailable = room.status === 'AVAILABLE';
-          const isOccupied = room.status === 'OCCUPIED';
-          const isMaintenance = room.status === 'MAINTENANCE';
+          const isAvailable = room.room_status === 'AVAILABLE';
+          const isOccupied = room.room_status === 'OCCUPIED';
+          const isMaintenance = room.room_status === 'MAINTENANCE';
 
           return (
             <div 
-              key={room.roomNumber}
-              onClick={() => isAvailable && handleWalkInBooking(room.roomNumber)}
-              className={`relative overflow-hidden p-6 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 backdrop-blur-md border ${
+              key={`${room.branch_id}-${room.room_number}`}
+              onClick={() => isAvailable && handleWalkInBooking(room.room_number)}
+              className={`relative overflow-hidden p-5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 border-2 ${
                 isAvailable 
-                  ? 'bg-white/80 border-white/60 shadow-sm hover:shadow-xl hover:border-skynest-blue/50 hover:-translate-y-1 cursor-pointer group' 
+                  ? 'bg-white border-slate-200 shadow-sm hover:shadow-lg hover:border-skynest-blue hover:-translate-y-1 cursor-pointer group' 
                   : isOccupied
-                  ? 'bg-skynest-navy/90 border-transparent shadow-lg text-white'
-                  : 'bg-white/40 border-dashed border-gray-300 text-gray-500'
+                  ? 'bg-skynest-navy border-skynest-navy shadow-lg text-white'
+                  : 'bg-slate-100 border-dashed border-slate-300 text-slate-400'
               }`}
             >
               {isAvailable && (
@@ -91,13 +96,13 @@ export default function RoomAvailabilityPage() {
               )}
               
               <h3 className={`text-3xl font-bold mb-1 tracking-tight ${isAvailable ? 'text-skynest-navy' : isOccupied ? 'text-white' : 'text-gray-500'}`}>
-                {room.roomNumber}
+                {room.room_number}
               </h3>
               
               <p className={`text-[10px] font-semibold tracking-widest uppercase mb-6 ${
                 isAvailable ? 'text-skynest-blue' : isOccupied ? 'text-gray-300' : 'text-gray-400'
               }`}>
-                {room.type}
+                {room.type_name}
               </p>
               
               <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5 ${
@@ -108,12 +113,13 @@ export default function RoomAvailabilityPage() {
                 {isAvailable && <HiCheckCircle size={14} />}
                 {isOccupied && <HiXCircle size={14} />}
                 {isMaintenance && <HiOutlineClock size={14} />}
-                {room.status}
+                {room.room_status}
               </div>
             </div>
           );
         })}
       </div>
+      )}
     </div>
   );
 }

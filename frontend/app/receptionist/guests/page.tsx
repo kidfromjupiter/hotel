@@ -1,13 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiOutlineUserAdd, HiOutlineStar, HiOutlinePencilAlt, HiOutlineSearch, HiX, HiOutlineMail, HiOutlinePhone, HiOutlineUser } from 'react-icons/hi';
-import { createMembership } from '../../../lib/api';
-
-const MOCK_EXPECTED_GUESTS = [
-  { id: 'BKG-9930', guest: 'Nimal Fernando', checkInDate: 'Today', status: 'EXPECTED', phone: '+94711122334', isMember: false },
-  { id: 'BKG-9931', guest: 'Sarah Connor', checkInDate: 'Today', status: 'EXPECTED', phone: '+94779988776', isMember: true },
-];
+import { createMembership, getAllBookings } from '../../../lib/api';
+import type { ExpectedGuest } from '../../../lib/types';
 
 export default function GuestManagementPage() {
   const [activeTab, setActiveTab] = useState<'expected' | 'members'>('expected');
@@ -17,6 +13,24 @@ export default function GuestManagementPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE');
+  const [expectedGuests, setExpectedGuests] = useState<ExpectedGuest[]>([]);
+
+  useEffect(() => {
+    getAllBookings().then(data => {
+      // Filter for expected arrivals
+      const expected = data
+        .filter(b => b.status === 'Booked')
+        .map(b => ({
+          id: b.bookingReference,
+          guest: b.guestName,
+          checkInDate: b.checkIn,
+          status: 'EXPECTED',
+          phone: b.phone,
+          isMember: false // simplified for now
+        }));
+      setExpectedGuests(expected);
+    });
+  }, []);
   
   // Handlers for mock APIs
   const handleUpdatePhone = () => {
@@ -80,17 +94,17 @@ export default function GuestManagementPage() {
       {activeTab === 'expected' && (
         <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-white/50 overflow-hidden">
           <div className="p-6 bg-white/40 border-b border-white/50 flex justify-between items-center">
-            <h3 className="font-semibold text-skynest-navy">Today's Expected Guests</h3>
+            <h3 className="font-semibold text-skynest-navy">Expected Guests</h3>
           </div>
           <div className="divide-y divide-gray-100">
-            {MOCK_EXPECTED_GUESTS.map(guest => (
+            {expectedGuests.map(guest => (
               <div key={guest.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-lg font-semibold text-skynest-navy">{guest.guest}</h4>
                     {guest.isMember && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><HiOutlineStar /> MEMBER</span>}
                   </div>
-                  <p className="text-sm text-gray-500">Booking Ref: {guest.id} • Phone: {guest.phone}</p>
+                  <p className="text-sm text-gray-500">Booking Ref: {guest.id} • Phone: {guest.phone} • Check-In: {guest.checkInDate}</p>
                 </div>
                 
                 <div className="flex gap-3">
@@ -103,6 +117,11 @@ export default function GuestManagementPage() {
                 </div>
               </div>
             ))}
+            {expectedGuests.length === 0 && (
+              <div className="p-6 text-center text-gray-500 text-sm">
+                No expected arrivals right now.
+              </div>
+            )}
           </div>
         </div>
       )}

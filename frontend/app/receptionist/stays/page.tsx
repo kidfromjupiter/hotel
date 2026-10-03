@@ -2,50 +2,45 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalendar, HiX } from 'react-icons/hi';
-import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, addAmenityToBooking, extendStay } from '@/lib/api';
-import type { StaffBooking, InvoiceSummary } from '@/lib/types';
+import { getAllBookings, getBill, checkInGuest, checkOutGuest, cancelBooking, addServiceToBooking, addAmenityToBooking, extendStay, getAmenities, getServices } from '@/lib/api';
+import type { StaffBooking, InvoiceSummary, ServiceCatalogueItem } from '@/lib/types';
 
-const MOCK_STAYS = [
-  { id: 'BKG-9921', guest: 'Kasun Perera', room: '201', checkIn: '2026-09-24', checkOut: '2026-09-26', status: 'CHECKED_IN' },
-  { id: 'BKG-9922', guest: 'Amal Silva', room: '305', checkIn: '2026-09-23', checkOut: '2026-09-25', status: 'CHECKED_IN' },
-];
-
-const MOCK_AMENITIES = [
-  { id: 1, name: 'Extra Towels', price: 500 },
-  { id: 2, name: 'Mini Bar Restock', price: 3500 },
-  { id: 3, name: 'Late Checkout', price: 5000 },
-];
-
-const MOCK_SERVICES = [
-  { id: 101, name: 'Spa Session', price: 12000 },
-  { id: 102, name: 'Airport Transfer', price: 8000 },
-  { id: 103, name: 'In-room Dining', price: 4500 },
-];
 
 export default function ActiveStaysPage() {
   const [selectedStay, setSelectedStay] = useState<StaffBooking | null>(null);
   const [activeStays, setActiveStays] = useState<StaffBooking[]>([]);
+  const [amenities, setAmenities] = useState<Array<{ id: number; name: string; price: number }>>([]);
+  const [services, setServices] = useState<Array<{ id: number; name: string; price: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
 
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAllBookings();
+        const [bookingsData, amenitiesData, servicesData] = await Promise.all([
+          getAllBookings(),
+          getAmenities(),
+          getServices()
+        ]);
+        
         // Backend returns all bookings, we only want those Checked-In for this specific view
-        const checkedIn = data.filter(booking => booking.status === 'Checked-In');
+        const checkedIn = bookingsData.filter(booking => booking.status === 'Checked-In');
         setActiveStays(checkedIn);
+        setAmenities(amenitiesData);
+        setServices(servicesData);
       } catch (error) {
-        console.error("Failed to fetch bookings:", error);
+        console.error("Failed to fetch data:", error);
         // Fallback to empty array if backend is down
         setActiveStays([]); 
+        setAmenities([]);
+        setServices([]);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchBookings();
+    fetchData();
   }, []);
   
   // Modals state
@@ -85,7 +80,7 @@ export default function ActiveStaysPage() {
     }
   };
 
-  const handleAddAmenity = async (amenity: any) => {
+  const handleAddAmenity = async (amenity: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
       const result = await addAmenityToBooking(selectedStay.bookingId, amenity.id);
@@ -100,7 +95,7 @@ export default function ActiveStaysPage() {
     }
   };
 
-  const handleAddService = async (service: any) => {
+  const handleAddService = async (service: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
       const result = await addServiceToBooking(selectedStay.bookingId, service.id);
@@ -137,32 +132,34 @@ export default function ActiveStaysPage() {
 
   return (
     <div className="animate-slide-up relative">
-      <div className="mb-8 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-sm">
+      <div className="mb-8 bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-md">
         <h1 className="text-xl font-bold text-skynest-navy">Active Stays & Checkout</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage currently checked-in guests, add services, and process checkouts.</p>
+        <p className="text-sm text-gray-600 mt-1">Manage currently checked-in guests, add services, and process checkouts.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Active Stays List */}
-        <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-xs font-semibold tracking-widest text-gray-500 uppercase">Currently Checked-In</h2>
+        <div className="lg:col-span-1 space-y-4 flex flex-col items-start">
+          <div className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-100 via-white to-sky-100 border border-white shadow-md shadow-blue-900/10">
+            <h2 className="text-xs font-black tracking-widest text-black uppercase">Currently Checked-In</h2>
+          </div>
           {isLoading ? (
-            <div className="p-5 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-bold animate-pulse">
-              Loading active stays...
+            <div className="p-5 rounded-2xl text-center bg-gradient-to-r from-white via-blue-50 to-white border border-white shadow-md shadow-blue-900/10 w-full">
+              <span className="text-black font-bold">Loading active stays...</span>
             </div>
           ) : activeStays.length === 0 ? (
-            <div className="p-5 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-bold">
-              No active stays right now.
+            <div className="p-5 rounded-2xl text-center bg-gradient-to-r from-white via-blue-50 to-white border border-white shadow-md shadow-blue-900/10 w-full">
+              <span className="text-black font-bold">No active stays right now.</span>
             </div>
           ) : (
             activeStays.map(stay => (
               <div 
                 key={stay.bookingId}
                 onClick={() => setSelectedStay(stay)}
-                className={`p-5 rounded-2xl border cursor-pointer transition-all duration-300 backdrop-blur-md ${
+                className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
                   selectedStay?.bookingId === stay.bookingId 
-                    ? 'bg-skynest-navy border-skynest-navy text-white shadow-xl scale-105' 
-                    : 'bg-white/80 border-white/50 hover:border-skynest-blue/50 text-skynest-navy shadow-sm'
+                    ? 'bg-skynest-navy border-skynest-blue text-white shadow-xl scale-105' 
+                    : 'bg-white border-slate-200 hover:border-skynest-blue text-skynest-navy shadow-sm hover:shadow-md'
                 }`}
               >
                 <div className="flex justify-between items-center mb-2">
@@ -183,7 +180,7 @@ export default function ActiveStaysPage() {
         {/* Stay Management Panel */}
         <div className="lg:col-span-2">
           {selectedStay ? (
-            <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-white/50 overflow-hidden animate-slide-up">
+            <div className="bg-white rounded-3xl shadow-xl border-2 border-slate-200 overflow-hidden animate-slide-up">
               <div className="bg-gradient-to-r from-skynest-blue to-cyan-500 p-8">
                 <div className="flex justify-between items-start">
                   <div>
@@ -202,15 +199,15 @@ export default function ActiveStaysPage() {
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 tracking-widest uppercase mb-4">Add to Tab</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Services
                     </button>
-                    <button onClick={() => setActiveModal('AMENITIES')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('AMENITIES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Amenities
                     </button>
-                    <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-white/50 border border-white/80 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group backdrop-blur-sm">
+                    <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlineCalendar size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Extend Stay
                     </button>
@@ -227,7 +224,7 @@ export default function ActiveStaysPage() {
               </div>
             </div>
           ) : (
-            <div className="h-full bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl flex flex-col items-center justify-center text-gray-500 p-12 min-h-[400px] shadow-sm">
+            <div className="h-full bg-white border-2 border-slate-200 rounded-3xl flex flex-col items-center justify-center text-gray-500 p-12 min-h-[400px] shadow-md">
               <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                 <HiOutlineUserGroup size={48} className="opacity-50" />
               </div>
@@ -276,7 +273,7 @@ export default function ActiveStaysPage() {
               {activeModal === 'AMENITIES' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500 mb-4">Select an amenity to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">booking_extra_amenities</code>).</p>
-                  {MOCK_AMENITIES.map(a => (
+                  {amenities.map(a => (
                     <button key={a.id} onClick={() => handleAddAmenity(a)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
                       <span className="font-bold text-skynest-navy">{a.name}</span>
                       <span className="font-black text-skynest-blue">LKR {a.price}</span>
@@ -289,7 +286,7 @@ export default function ActiveStaysPage() {
               {activeModal === 'SERVICES' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500 mb-4">Select a service to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">service_charges</code>).</p>
-                  {MOCK_SERVICES.map(s => (
+                  {services.map(s => (
                     <button key={s.id} onClick={() => handleAddService(s)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
                       <span className="font-bold text-skynest-navy">{s.name}</span>
                       <span className="font-black text-skynest-blue">LKR {s.price}</span>
