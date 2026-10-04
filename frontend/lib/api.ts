@@ -150,7 +150,7 @@ export async function verifyOTP(
 export async function createBooking(
   data: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
-  return request<CreateBookingResponse>('/api/v1/booking/create', {
+  return request<CreateBookingResponse>('/api/v1/bookings/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
