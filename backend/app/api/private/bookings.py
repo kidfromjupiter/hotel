@@ -4,7 +4,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 
 from app.api.dependencies import get_booking_service
-from app.schemas.booking_flow import CreateBookingRequest
 from app.schemas.bookings import (
     BookingDetailResponse,
     BookingListItem,
@@ -32,7 +31,7 @@ def list_bookings(
     ),
     booking_service: BookingService = Depends(get_booking_service),
 ):
-    """Search and filter bookings."""
+    """Staff/Internal endpoint to search and filter bookings."""
     return booking_service.list_bookings(
         branch_id=branch_id,
         guest_id=guest_id,
@@ -42,20 +41,12 @@ def list_bookings(
     )
 
 
-@router.post("/")
-def create_booking(
-    payload: CreateBookingRequest,
-    booking_service: BookingService = Depends(get_booking_service),
-):
-    return booking_service.create_booking(payload)
-
-
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
 def get_booking(
     booking_id: int,
     booking_service: BookingService = Depends(get_booking_service),
 ):
-    """Get full booking details including room, guest, and invoice status."""
+    """Staff/Internal endpoint to view full booking details."""
     return booking_service.get_booking_by_id(booking_id)
 
 
@@ -65,7 +56,7 @@ def check_in(
     payload: Optional[CheckInRequest] = None,
     booking_service: BookingService = Depends(get_booking_service),
 ):
-    """Check a guest in, setting status to Checked-In and marking room occupied."""
+    """Staff/Receptionist endpoint to check a guest in."""
     check_in_time = payload.check_in_time if payload else None
     return booking_service.check_in(booking_id, check_in_time=check_in_time)
 
@@ -76,7 +67,7 @@ def check_out(
     payload: Optional[CheckOutRequest] = None,
     booking_service: BookingService = Depends(get_booking_service),
 ):
-    """Check a guest out. Enforces full invoice payment before checkout."""
+    """Staff/Receptionist endpoint to check a guest out (enforces full payment)."""
     check_out_time = payload.check_out_time if payload else None
     return booking_service.check_out(booking_id, check_out_time=check_out_time)
 
@@ -86,5 +77,5 @@ def cancel_booking(
     booking_id: int,
     booking_service: BookingService = Depends(get_booking_service),
 ):
-    """Cancel a booking. Rejects if booking is already Checked-In or Checked-Out."""
+    """Staff endpoint to cancel a booking."""
     return booking_service.cancel_booking(booking_id)
