@@ -200,6 +200,11 @@ export default function LandingPage() {
               <li>+94 11 XXX XXXX</li>
               <li>+94 81 XXX XXXX (Kandy)</li>
             </ul>
+            <div className="mt-6">
+              <Link href="/receptionist" className="text-[10px] font-bold text-skynest-blue hover:text-white transition-colors tracking-widest">
+                → STAFF PORTAL
+              </Link>
+            </div>
           </div>
         </div>
         <div className="mt-10 border-t border-skynest-navy-light pt-6 text-center text-[10px] tracking-widest">
