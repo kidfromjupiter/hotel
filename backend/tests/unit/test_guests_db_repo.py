@@ -86,22 +86,11 @@ def test_guests_repo_calls_db_functions():
     assert "enroll_guest_membership" in mock_cursor.execute.call_args[0][0]
 
 
-def test_guests_repo_fallback_mode():
+def test_guests_repo_without_db():
     repo = GuestsRepo(db=None)
-
-    # List all fallback
-    all_g = repo.get_all_guests()
-    assert len(all_g) >= 2
-
-    # Search filter
-    sarah = repo.get_all_guests(search="sarah")
-    assert len(sarah) == 1
-    assert sarah[0]["name"] == "Sarah Connor"
-
-    # Lookup phone
-    member_by_phone = repo.get_guest_by_phone("0771234567")
-    assert member_by_phone is not None
-    assert member_by_phone["has_membership"] is True
+    assert repo.get_all_guests() == []
+    assert repo.get_guest_by_id(1) is None
+    assert repo.get_guest_by_phone("0771234567") is None
 
 
 def test_guest_service_delegates_to_repo():
@@ -116,7 +105,35 @@ def test_guest_service_delegates_to_repo():
     assert svc.lookup_by_phone("0771234567")["has_membership"] is True
 
 
-def test_guests_api_endpoints():
+def test_guests_api_endpoints(monkeypatch):
+    test_guests = [
+        {
+            "guest_id": 1,
+            "name": "Nimal Fernando",
+            "national_id": "198512345678",
+            "phone_number": "771234567",
+            "membership_id": 1,
+            "membership_name": "Gold",
+            "room_discount_percentage": 10.0,
+            "service_discount_percentage": 5.0,
+            "has_membership": True,
+        },
+        {
+            "guest_id": 2,
+            "name": "Sarah Connor",
+            "national_id": "199098765432",
+            "phone_number": "719988776",
+            "membership_id": None,
+            "membership_name": "None",
+            "room_discount_percentage": 0.0,
+            "service_discount_percentage": 0.0,
+            "has_membership": False,
+        },
+    ]
+    monkeypatch.setattr(GuestsRepo, "get_all_guests", lambda self, search=None: test_guests)
+    monkeypatch.setattr(GuestsRepo, "get_guest_by_id", lambda self, gid: next((g for g in test_guests if g["guest_id"] == gid), None))
+    monkeypatch.setattr(GuestsRepo, "get_guest_by_phone", lambda self, phone: test_guests[0])
+
     client = TestClient(app)
 
     # 1. GET /api/v1/private/guests/

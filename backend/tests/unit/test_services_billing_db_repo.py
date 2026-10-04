@@ -117,7 +117,56 @@ def test_services_and_billing_service_delegation():
     assert len(b_service.list_active_stays()) == 1
 
 
-def test_services_and_billing_endpoints():
+def test_services_and_billing_endpoints(monkeypatch):
+    monkeypatch.setattr(
+        ServicesRepo,
+        "get_services",
+        lambda self: [{"service_id": 1, "service_name": "Spa"}],
+    )
+    monkeypatch.setattr(
+        ServicesRepo,
+        "charge_service",
+        lambda self, booking_id, service_id, service_dates=1: {
+            "success": True,
+            "message": "Service charged successfully",
+            "service_log_id": 1,
+            "service_total": 10000.0,
+        },
+    )
+    monkeypatch.setattr(
+        ServicesRepo,
+        "add_extra_amenity",
+        lambda self, booking_id, amenity_id, quantity=1: {
+            "success": True,
+            "message": "Extra amenity added successfully",
+            "booking_id": booking_id,
+            "amenity_id": amenity_id,
+            "quantity": quantity,
+        },
+    )
+    monkeypatch.setattr(
+        BillingRepo,
+        "get_all_invoices",
+        lambda self, payment_status=None: [{"invoice_id": "inv-001", "payment_status": "PAID"}],
+    )
+    monkeypatch.setattr(
+        BillingRepo,
+        "get_active_stays",
+        lambda self: [{"booking_id": 9921, "room_number": 201}],
+    )
+    monkeypatch.setattr(
+        BillingRepo,
+        "checkout_booking",
+        lambda self, booking_id, payment_method="CREDIT_CARD": {
+            "success": True,
+            "message": "Booking checked out successfully",
+            "booking_id": booking_id,
+            "invoice_id": "a0000000-0000-0000-0000-000000000099",
+            "payment_status": "PAID",
+            "grand_total": 55000.0,
+            "amount_paid": 55000.0,
+        },
+    )
     client = TestClient(app)
 
     # 1. GET /api/v1/private/services/
