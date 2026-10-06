@@ -13,6 +13,7 @@ from app.schemas.bookings import (
     CheckInResponse,
     CheckOutRequest,
     CheckOutResponse,
+    AddServiceRequest,
 )
 from app.services.booking_service import BookingService
 
@@ -88,3 +89,14 @@ def cancel_booking(
 ):
     """Cancel a booking. Rejects if booking is already Checked-In or Checked-Out."""
     return booking_service.cancel_booking(booking_id)
+
+
+
+@router.post("/{booking_id}/services")
+def add_service_to_booking(
+    booking_id: int,
+    payload: AddServiceRequest, # <--- FastAPI will automatically validate the incoming JSON against your schema!
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    # Pass it down to the service layer
+    return booking_service.add_service_to_booking(booking_id, payload)

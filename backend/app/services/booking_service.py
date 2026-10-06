@@ -236,3 +236,14 @@ class BookingService:
             booking_id=booking_id,
             booking_status="Cancelled",
         )
+    def add_service_to_booking(self, booking_id: int, payload):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+            
+        current_status = b.get("booking_status", "")
+        if current_status not in ("Confirmed", "Checked-In"):
+            raise HTTPException(status_code=400, detail="Can only add services to active stays.")
+            
+        self.booking_repo.add_service_to_booking(booking_id, payload)
+        return self.get_booking_by_id(booking_id)
