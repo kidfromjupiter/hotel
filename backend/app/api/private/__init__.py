@@ -1,13 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.dependencies import get_current_user
 from app.api.private.billing import router as billing_router
 from app.api.private.bookings import router as bookings_router
 from app.api.private.guests import router as guests_router
 from app.api.private.reports import router as reports_router
 from app.api.private.services import router as services_router
 
-private_router = APIRouter()
 
+# Adding dependencies=[Depends(get_current_user)] locks ALL private routes!
+private_router = APIRouter(dependencies=[Depends(get_current_user)])
 private_router.include_router(
     bookings_router, prefix="/bookings", tags=["Staff - Bookings"]
 )

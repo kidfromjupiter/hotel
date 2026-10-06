@@ -3,7 +3,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import get_booking_service
+from app.api.dependencies import (
+    get_booking_service,
+    get_current_user,
+    enforce_branch_access,
+)
+from app.schemas.auth import StaffUser
 from app.schemas.bookings import (
     BookingDetailResponse,
     BookingListItem,
@@ -30,10 +35,12 @@ def list_bookings(
         None, description="Filter bookings ending before YYYY-MM-DD"
     ),
     booking_service: BookingService = Depends(get_booking_service),
+    current_user: StaffUser = Depends(get_current_user),
 ):
     """Staff/Internal endpoint to search and filter bookings."""
+    effective_branch = enforce_branch_access(branch_id, current_user)
     return booking_service.list_bookings(
-        branch_id=branch_id,
+        branch_id=effective_branch,
         guest_id=guest_id,
         status=status,
         start_date=start_date,

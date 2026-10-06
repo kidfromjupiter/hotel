@@ -1,5 +1,6 @@
-from typing import Optional
-from fastapi import Depends
+from typing import Optional, List
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from psycopg2.extensions import connection
 
 from app.db import get_db
@@ -20,6 +21,12 @@ from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
 from app.services.room_service import RoomService
 from app.services.services_service import ServicesService
+from app.config import get_settings
+from app.config import get_settings
+from app.schemas.auth import StaffUser
+from app.repositories.staff_repo import StaffRepo
+from app.services.auth_service import AuthService
+
 
 otp_service = OTPService()
 
@@ -111,4 +118,103 @@ def get_billing_service(
 ) -> BillingService:
     return BillingService(repo=billing_repo)
 
+def get_staff_repo(db: Optional[connection] = Depends(get_db)) -> StaffRepo:
+    return StaffRepo(db=db)
+
+
+def get_auth_service(
+    staff_repo: StaffRepo = Depends(get_staff_repo),
+) -> AuthService:
+    settings = get_settings()
+    return AuthService(
+        repo=staff_repo,
+        secret_key=settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+        expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
+
+# HTTPBearer adds the "Authorize" button and Bearer token parsing
+http_bearer = HTTPBearer(auto_error=False)
+
+
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    auth_service: AuthService = Depends(get_auth_service),
+    staff_repo: StaffRepo = Depends(get_staff_repo),
+) -> StaffUser:
+    """
+    Extracts Bearer token from header, verifies signature,
+    and returns the active StaffUser object.
+    """
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token. Please log in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = credentials.credentials
+    payload = auth_service.decode_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    staff_id = payload.get("staff_id")
+    if not staff_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    user = staff_repo.get_by_id(int(staff_id))
+    if not user or not user.get("is_active"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is inactive or no longer exists.",
+        )
+
+    return StaffUser(
+        staff_id=user["staff_id"],
+        branch_id=user.get("branch_id"),
+        username=user["username"],
+        full_name=user["full_name"],
+        role=user["role"],
+        is_active=user["is_active"],
+    )
+
+
+def require_admin(
+    current_user: StaffUser = Depends(get_current_user),
+) -> StaffUser:
+    """Ensures only staff with the 'admin' role can access the endpoint."""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Administrator privileges required.",
+        )
+    return current_user
+
+
+def enforce_branch_access(
+    requested_branch_id: Optional[int],
+    current_user: StaffUser,
+) -> Optional[int]:
+    """
+    Branch scoping rule:
+    - Admin: can view all branches (None) or filter by any branch.
+    - Receptionist: strictly restricted to their own assigned branch.
+    """
+    if current_user.role == "admin":
+        return requested_branch_id
+
+    # For receptionists:
+    if requested_branch_id is not None and requested_branch_id != current_user.branch_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access denied: You only have access to branch {current_user.branch_id}.",
+        )
+    return current_user.branch_id
 
