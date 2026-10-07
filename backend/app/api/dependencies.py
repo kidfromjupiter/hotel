@@ -1,6 +1,10 @@
-from typing import Optional
-from fastapi import Depends
+from typing import Optional, Dict, Any
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from psycopg2.extensions import connection
+
+from app.core.security import decode_access_token
+
 
 from app.db import get_db
 from app.repositories.amenities_repo import AmenitiesRepo
@@ -112,3 +116,16 @@ def get_billing_service(
     return BillingService(repo=billing_repo)
 
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/public/otp/verify")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/v1/public/otp/verify", auto_error=False)
+
+def get_current_guest(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload
+
+def get_current_guest_optional(token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[Dict[str, Any]]:
+    if not token:
+        return None
+    return decode_access_token(token)

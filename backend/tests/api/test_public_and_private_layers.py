@@ -52,18 +52,21 @@ def test_private_booking_staff_operations(client, booking_repo):
         {
             "booking_id": 99901,
             "bookingRef": "SKN-99901",
+            "guest_id": 1,
             "guest_name": "Test Guest",
-            "room_number": 101,
+            "room_number": 103,
             "branch_id": 1,
             "branch_name": "Colombo",
             "booking_status": "Confirmed",
-            "start_date": "2026-10-01",
-            "end_date": "2026-10-05",
+            "start_date": "2027-10-01",
+            "end_date": "2027-10-05",
             "grand_total": 50000.0,
             "amount_paid": 50000.0,
             "invoice_status": "PAID",
         }
     )
+    if booking_repo.db:
+        booking_repo.db.commit()
 
     # 1. Staff search/list
     res_list = client.get("/api/v1/private/bookings/")

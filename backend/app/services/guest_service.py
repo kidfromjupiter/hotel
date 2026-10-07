@@ -16,6 +16,9 @@ class GuestService:
     def lookup_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
         return self.repo.get_guest_by_phone(phone)
 
+    def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
+        return self.repo.create_guest(phone, name)
+
     def update_phone(self, guest_id: int, phone: str) -> Dict[str, Any]:
         return self.repo.update_guest_phone(guest_id, phone)
 
