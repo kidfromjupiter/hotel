@@ -266,7 +266,7 @@ export default function BookingWizard({ branch }: Props) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {availableRooms.map(room => (
                   <RoomCard
-                    key={room.id}
+                    key={room.roomNumber}
                     room={room}
                     nights={state.nights}
                     hasMembership={state.hasMembership}

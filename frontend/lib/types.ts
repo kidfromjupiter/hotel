@@ -25,6 +25,8 @@ export interface BookingFormData {
 // ─────────────────────────────────────────────
 export interface Room {
   id: string;
+  /** Room number from the database (used as key in lists) */
+  roomNumber?: number;
   type: string;
   name: string;
   description: string;
@@ -166,7 +168,7 @@ export interface GuestProfile {
   membershipId?: number;
 }
 
-export type BookingStatus = 'Booked' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
+export type BookingStatus = 'Confirmed' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
 
 export interface StaffBooking {
   bookingId: number;

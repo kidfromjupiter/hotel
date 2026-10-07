@@ -13,7 +13,7 @@ import type {
   InvoiceSummary
 } from './types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const BASE_URL = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : (process.env.INTERNAL_API_URL ?? 'http://backend:8000');
 
 // ─────────────────────────────────────────────
 //  Generic request helper
@@ -22,8 +22,17 @@ async function request<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('guest_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...headers, ...(options?.headers || {}) },
     ...options,
   });
 
@@ -107,9 +116,54 @@ export async function checkAvailability(
   const query = params.toString();
   const url = `/api/v1/rooms${query ? `?${query}` : ''}`;
 
-  return request<AvailabilityResponse>(url, { method: 'GET' });
-}
+  // Backend returns a raw array of rooms; transform it into AvailabilityResponse shape
+  const raw = await request<Array<{
+    room_number: number;
+    room_type_id: string;
+    branch_id: number;
+    branch_name: string;
+    daily_rate: number;
+    price_per_night: number;
+    capacity: number;
+    room_status: string;
+  }>>(url, { method: 'GET' });
 
+  const hasMembership = typeof window !== 'undefined' ? !!localStorage.getItem('guest_token') : false;
+
+  const rooms: AvailabilityResponse['rooms'] = raw.map(r => {
+    const pricePerNight = r.price_per_night ?? r.daily_rate;
+    const membershipDiscount = 15; // 15% off for members
+    const membershipPrice = Math.round(pricePerNight * (1 - membershipDiscount / 100));
+    
+    return {
+      id:              String(r.room_number),
+      roomNumber:      r.room_number,
+      type:            r.room_type_id,
+      name:            r.room_type_id,
+      description:     '',
+      branchId:        r.branch_id,
+      branchName:      r.branch_name,
+      pricePerNight,
+      membershipPrice,
+      membershipDiscount,
+      capacity:        r.capacity,
+      maxCapacity:     r.capacity,
+      status:          r.room_status,
+      totalPrice:      0,
+      nights:          0,
+      features:        [],
+      amenities:       [],
+      image:           '',
+    };
+  });
+
+  return {
+    available:     rooms.length > 0,
+    rooms,
+    hasMembership,
+    message:       rooms.length === 0 ? 'No rooms available for the selected dates.' : undefined,
+  };
+}
 
 
 
@@ -159,6 +213,37 @@ export async function createBooking(
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+/**
+ * GET /api/v1/booking/
+ * Gets the reservations for the authenticated guest
+ */
+export async function getMyBookings(): Promise<StaffBooking[]> {
+  const raw = await request<Array<{
+    booking_id: number;
+    guest_name: string;
+    room_number: number;
+    branch_name: string;
+    booking_status: string;
+    start_date: string;
+    end_date: string;
+  }>>('/api/v1/booking/');
+
+  return raw.map(b => ({
+    bookingId: b.booking_id,
+    guestName: b.guest_name,
+    phone: '',
+    branchId: 0,
+    bookingReference: `BKG-${b.booking_id}`,
+    roomNumber: b.room_number,
+    roomType: '',
+    checkIn: b.start_date,
+    checkOut: b.end_date,
+    status: b.booking_status as BookingStatus,
+    adults: 0,
+    children: 0,
+  }));
 }
 
 // ─────────────────────────────────────────────

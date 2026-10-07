@@ -19,7 +19,7 @@ export default function GuestManagementPage() {
     getAllBookings().then(data => {
       // Filter for expected arrivals
       const expected = data
-        .filter(b => b.status === 'Booked')
+        .filter(b => b.status === 'Confirmed')
         .map(b => ({
           id: b.bookingReference,
           guest: b.guestName,
