@@ -92,8 +92,31 @@ class BookingRepository:
                     branch_val = record.get("branch", "colombo")
                     branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
 
-                    room_num = record.get("room_number", 101)
-                    guest_id = record.get("guest_id", 1)
+                    room_num = record.get("room_number")
+                    if not room_num and "roomId" in record:
+                        try:
+                            room_num = int(str(record["roomId"]).replace("room-", ""))
+                        except Exception:
+                            room_num = 101
+                    if not room_num:
+                        room_num = 101
+
+                    guest_id = record.get("guest_id")
+                    if not guest_id and record.get("phone"):
+                        try:
+                            raw_phone = str(record["phone"]).replace("+94", "").replace(" ", "").strip()
+                            if raw_phone.startswith("0"):
+                                raw_phone = raw_phone[1:]
+                            if raw_phone.isdigit():
+                                cursor.execute("SELECT guest_id FROM guests WHERE phone_number = %s LIMIT 1", (int(raw_phone),))
+                                grow = cursor.fetchone()
+                                if grow and grow.get("guest_id"):
+                                    guest_id = grow["guest_id"]
+                        except Exception:
+                            pass
+                    if not guest_id:
+                        guest_id = 1
+
                     status = record.get("booking_status", "Confirmed")
 
                     start_date = record.get("start_date") or (record.get("checkIn") or "")[:10]

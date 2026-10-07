@@ -76,6 +76,42 @@ class BookingService:
             adults=adults,
         )
 
+        ROOM_META = {
+            "STANDARD": {
+                "type": "Standard Room",
+                "name": "Standard Room",
+                "description": "Cozy, elegant room with contemporary furnishings, comfortable queen bed, city/garden views, and modern comforts.",
+                "features": ["Queen Bed", "Air Conditioning", "Free High-Speed Wi-Fi", "En-suite Bathroom", "Smart TV", "Tea & Coffee Maker"],
+                "image": "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80",
+                "membershipDiscount": 10,
+            },
+            "DELUXE": {
+                "type": "Deluxe Room",
+                "name": "Deluxe Room",
+                "description": "Spacious sanctuary featuring a private balcony, luxury king bed, premium bath amenities, and panoramic ocean or scenic views.",
+                "features": ["King Bed", "Private Balcony", "Bathtub & Rain Shower", "Minibar", "Scenic View", "24/7 Room Service"],
+                "image": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80",
+                "membershipDiscount": 15,
+                "isBestseller": True,
+            },
+            "SUITE": {
+                "type": "Executive Suite",
+                "name": "Executive Suite",
+                "description": "Elevated luxury with a private lounge, panoramic ocean views, luxury king bed, and dedicated butler service.",
+                "features": ["King Bed", "Private Lounge", "Luxury Jacuzzi & Bath", "Panoramic View", "Complimentary Minibar", "24/7 Butler Service"],
+                "image": "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80",
+                "membershipDiscount": 20,
+            },
+            "FAMILY": {
+                "type": "Family Suite",
+                "name": "Family Suite",
+                "description": "Spacious accommodation designed for families with interconnecting sleeping zones, kid amenities, and large living area.",
+                "features": ["1 King + 2 Twin Beds", "Living Area", "2 En-suite Bathrooms", "Kid-friendly Amenities", "Smart TV & Console"],
+                "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80",
+                "membershipDiscount": 15,
+            },
+        }
+
         available_rooms = []
         for room in raw_rooms:
             r_data = dict(room)
@@ -88,10 +124,23 @@ class BookingService:
             r_data["nights"] = nights
             r_data["pricePerNight"] = price_per_night
             r_data["totalPrice"] = price_per_night * nights
+
+            room_type = str(r_data.get("room_type_id") or "STANDARD").upper()
+            meta = ROOM_META.get(room_type, ROOM_META["STANDARD"])
+            r_data["type"] = meta["type"]
+            r_data["description"] = r_data.get("description") or meta["description"]
+            r_data["features"] = r_data.get("features") or meta["features"]
+            r_data["image"] = r_data.get("image") or meta["image"]
+            r_data["maxCapacity"] = r_data.get("capacity") or r_data.get("maxCapacity") or 2
+            r_data["isBestseller"] = meta.get("isBestseller", False)
+            disc = meta["membershipDiscount"]
+            r_data["membershipDiscount"] = disc
+            r_data["membershipPrice"] = int(price_per_night * (1 - disc / 100))
+
             if "id" not in r_data and "room_number" in r_data:
                 r_data["id"] = f"room-{r_data['room_number']}"
             if "name" not in r_data:
-                r_data["name"] = f"Room {r_data.get('room_number', '')} ({r_data.get('room_type_id', 'STANDARD')})"
+                r_data["name"] = f"{meta['type']} - Room {r_data.get('room_number', '')}"
             available_rooms.append(r_data)
 
         return {
