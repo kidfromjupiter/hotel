@@ -31,7 +31,7 @@ class BookingRepository:
         random_code = "".join(random.choices(string.digits, k=4))
         return f"SKN-{random_code}"
 
-    # ── Database-Backed Availability ──
+    # â”€â”€ Database-Backed Availability â”€â”€
 
     def get_available_rooms(
         self,
@@ -73,7 +73,7 @@ class BookingRepository:
             available_rooms.append(room)
         return available_rooms
 
-    # ── Database-Backed Booking Operations ──
+    # â”€â”€ Database-Backed Booking Operations â”€â”€
 
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)

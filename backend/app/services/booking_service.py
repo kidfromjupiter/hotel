@@ -264,24 +264,22 @@ class BookingService:
         return self.get_booking_by_id(booking_id)
 
     def get_pending_booking_by_phone(self, phone: str):
-        bookings = self.booking_repo.list_all_bookings()
-        for b in bookings:
-            # We are using .get() because b is a dictionary
-            if b.get("guest_phone") == phone and b.get("booking_status") == "Confirmed":
-                # Returning the exact structure the frontend expects
-                return {
-                    "success": True,
-                    "booking": {
-                        "id": b.get("booking_id", "TBD"),
-                        "guestName": b.get("guest_name", "Guest"),
-                        "phone": b.get("guest_phone", phone),
-                        "roomType": b.get("room_type_id", "Standard Room"),
-                        "roomNumber": b.get("room_number", "TBD"),
-                        "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
-                        "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
-                        "status": b.get("booking_status", "Confirmed")
-                    }
-                }
+        # Now we hit the database directly! Much faster!
+        b = self.booking_repo.find_pending_booking_by_phone(phone)
         
-        # If the loop finishes without finding a match:
+        if b:
+            return {
+                "success": True,
+                "booking": {
+                    "id": b.get("booking_id", "TBD"),
+                    "guestName": b.get("guest_name", "Guest"),
+                    "phone": b.get("guest_phone", phone),
+                    "roomType": b.get("room_type_id", "Standard Room"),
+                    "roomNumber": b.get("room_number", "TBD"),
+                    "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
+                    "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
+                    "status": b.get("booking_status", "Confirmed")
+                }
+            }
+            
         return {"success": False, "message": "Invalid OTP or booking not found."}
