@@ -209,9 +209,34 @@ export async function verifyOTP(
 export async function createBooking(
   data: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
-  return request<CreateBookingResponse>('/api/v1/booking/create', {
+  return request<CreateBookingResponse>('/api/v1/bookings/', {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+/**
+ * GET /api/v1/bookings/?status=Checked-In
+ * Fetches all guests who are currently checked in (Active Stays).
+ */
+export async function getActiveStays(): Promise<any[]> {
+  return request<any[]>('/api/v1/bookings/?status=Checked-In', {
+    method: 'GET',
+  });
+}
+
+/**
+ * POST /api/v1/bookings/{booking_id}/services
+ * Adds a service to the guest's tab.
+ */
+export async function addServiceToTab(bookingId: number, serviceName: string, serviceTotal: number): Promise<any> {
+  return request<any>(`/api/v1/bookings/${bookingId}/services`, {
+    method: 'POST',
+    body: JSON.stringify({
+      service_name: serviceName,
+      service_total: serviceTotal,
+      service_dates: 1
+    }),
   });
 }
 

@@ -3,7 +3,9 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import get_booking_service
+from app.api.dependencies import get_booking_service, get_otp_service
+from app.schemas.booking_flow import CheckInOTPRequest
+from app.services.otp_service import OTPService
 from app.schemas.bookings import (
     BookingDetailResponse,
     BookingListItem,
@@ -79,3 +81,17 @@ def cancel_booking(
 ):
     """Staff endpoint to cancel a booking."""
     return booking_service.cancel_booking(booking_id)
+
+
+@router.post("/verify-otp")
+def verify_otp(
+    payload: CheckInOTPRequest,
+    otp_service: OTPService = Depends(get_otp_service),
+    booking_service: BookingService = Depends(get_booking_service)
+):
+    """Receptionist endpoint to look up pending bookings by OTP."""
+    phone = otp_service.find_phone_by_otp(payload.otp)
+    if phone is None:
+        return {"success": False, "message": "Invalid OTP or booking not found."}
+    
+    return booking_service.get_pending_booking_by_phone(phone)

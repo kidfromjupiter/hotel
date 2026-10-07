@@ -501,3 +501,22 @@ class BookingRepository:
                     "icon": "spa",
                 },
             ]
+
+    def add_service_to_booking(self, booking_id: int, payload):
+        b = self.find_booking_by_id(booking_id)
+        if b:
+            if "service_charges" not in b:
+                b["service_charges"] = []
+                
+            new_service = {
+                "service_name": payload.service_name,
+                "service_total": payload.service_total,
+                "service_dates": payload.service_dates
+            }
+            b["service_charges"].append(new_service)
+            
+            # Update grand total
+            current_total = b.get("grand_total", 0.0)
+            b["grand_total"] = current_total + payload.service_total
+            return True
+        return False

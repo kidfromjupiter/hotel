@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiOutlineKey, HiCheckCircle, HiXCircle } from 'react-icons/hi';
-
-import { getAllBookings, checkInGuest } from '@/lib/api';
+import { checkInGuest } from '@/lib/api';
 import type { StaffBooking } from '@/lib/types';
 
 export default function CheckInPage() {
@@ -23,20 +22,34 @@ export default function CheckInPage() {
     setBookingData(null);
 
     try {
-      const allBookings = await getAllBookings();
-      const match = allBookings.find(b => 
-        b.bookingReference.toLowerCase() === otp.toLowerCase() && 
-        b.status === 'Confirmed' // Only allow checkin for 'Confirmed' status bookings
-      );
+      const res = await fetch('http://localhost:8000/api/v1/bookings/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
       
-      if (match) {
-        setBookingData(match);
+      const result = await res.json();
+      if (result.success) {
+        setBookingData({
+          bookingId: result.booking.id,
+          guestName: result.booking.guestName,
+          phone: result.booking.phone,
+          branchId: 0,
+          bookingReference: `BKG-${result.booking.id}`,
+          roomNumber: result.booking.roomNumber,
+          roomType: result.booking.roomType,
+          checkIn: result.booking.checkIn,
+          checkOut: result.booking.checkOut,
+          status: result.booking.status,
+          adults: 0,
+          children: 0,
+        });
       } else {
-        setError('Invalid Reference/OTP or booking is not in Confirmed status.');
+        setError(result.message || 'Invalid OTP or booking not found.');
       }
     } catch (err) {
-      console.error(err);
-      setError('Could not connect to database.');
+      console.error("Failed to verify OTP:", err);
+      setError("Failed to connect to the server.");
     } finally {
       setLoading(false);
     }
