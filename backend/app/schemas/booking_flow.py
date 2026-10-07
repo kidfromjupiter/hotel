@@ -11,7 +11,10 @@ class VerifyOTPRequest(BaseModel):
     phone: str
     otp: str
 
+class CheckInOTPRequest(BaseModel):
+    otp: str
 
+    
 class AvailabilityRequest(BaseModel):
     branch: str
     checkIn: str

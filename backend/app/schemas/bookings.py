@@ -11,6 +11,8 @@ class BookingListItem(BaseModel):
     booking_status: str
     start_date: str
     end_date: str
+    guest_phone: Optional[str] = None 
+    is_member: bool = False
 
 
 class CheckInRequest(BaseModel):

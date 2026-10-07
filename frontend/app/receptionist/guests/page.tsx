@@ -1,15 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiOutlineUserAdd, HiOutlineStar, HiOutlinePencilAlt, HiOutlineSearch } from 'react-icons/hi';
-
-const MOCK_EXPECTED_GUESTS = [
-  { id: 'BKG-9930', guest: 'Nimal Fernando', checkInDate: 'Today', status: 'EXPECTED', phone: '+94711122334', isMember: false },
-  { id: 'BKG-9931', guest: 'Sarah Connor', checkInDate: 'Today', status: 'EXPECTED', phone: '+94779988776', isMember: true },
-];
 
 export default function GuestManagementPage() {
   const [activeTab, setActiveTab] = useState<'expected' | 'members'>('expected');
+  const [expectedGuests, setExpectedGuests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadExpectedGuests() {
+      try {
+        setLoading(true);
+        // Note: Using the exact backend port which should be 8000 by default, 
+        // or using the lib/api.ts helper if it existed for this. We will use fetch directly.
+        const res = await fetch('http://localhost:8000/api/v1/bookings/?status=Confirmed');
+        if (res.ok) {
+          const data = await res.json();
+          setExpectedGuests(data);
+        }
+      } catch (err) {
+        console.error("Failed to load expected guests:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (activeTab === 'expected') {
+      loadExpectedGuests();
+    }
+  }, [activeTab]);
   
   // Handlers for mock APIs
   const handleUpdatePhone = () => {
@@ -55,26 +75,32 @@ export default function GuestManagementPage() {
             <h3 className="font-bold text-skynest-navy">Today's Expected Guests</h3>
           </div>
           <div className="divide-y divide-gray-100">
-            {MOCK_EXPECTED_GUESTS.map(guest => (
-              <div key={guest.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-lg font-bold text-skynest-navy">{guest.guest}</h4>
-                    {guest.isMember && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><HiOutlineStar /> MEMBER</span>}
+            {loading ? (
+              <div className="p-8 text-center text-gray-500 font-bold">Loading expected guests...</div>
+            ) : expectedGuests.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 font-bold">No expected arrivals found.</div>
+            ) : (
+              expectedGuests.map((guest: any) => (
+                <div key={guest.booking_id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="text-lg font-bold text-skynest-navy">{guest.guest_name}</h4>
+                      {guest.is_member && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><HiOutlineStar /> MEMBER</span>}
+                    </div>
+                    <p className="text-sm text-gray-500">Booking Ref: {guest.booking_id} • Phone: {guest.guest_phone || 'N/A'}</p>
                   </div>
-                  <p className="text-sm text-gray-500">Booking Ref: {guest.id} • Phone: {guest.phone}</p>
+                  
+                  <div className="flex gap-3">
+                    <button onClick={handleCheckPaymentStatus} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-skynest-navy text-xs font-bold rounded-lg transition-colors">
+                      Check Payment Status
+                    </button>
+                    <button onClick={handleUpdatePhone} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-skynest-navy text-xs font-bold rounded-lg transition-colors flex items-center gap-1">
+                      <HiOutlinePencilAlt /> Edit Details
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="flex gap-3">
-                  <button onClick={handleCheckPaymentStatus} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-skynest-navy text-xs font-bold rounded-lg transition-colors">
-                    Check Payment Status
-                  </button>
-                  <button onClick={handleUpdatePhone} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-skynest-navy text-xs font-bold rounded-lg transition-colors flex items-center gap-1">
-                    <HiOutlinePencilAlt /> Edit Details
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}

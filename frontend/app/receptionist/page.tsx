@@ -4,29 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiOutlineKey, HiCheckCircle, HiXCircle } from 'react-icons/hi';
 
-const mockVerifyOTP = async (otp: string) => {
-  return new Promise<any>((resolve) => {
-    setTimeout(() => {
-      if (otp === '123456') {
-        resolve({
-          success: true,
-          booking: {
-            id: 'BKG-9921',
-            guestName: 'Kasun Perera',
-            phone: '+94771234567',
-            roomType: 'Deluxe Suite',
-            roomNumber: '201',
-            checkIn: '2026-09-24',
-            checkOut: '2026-09-26',
-            status: 'PENDING',
-          }
-        });
-      } else {
-        resolve({ success: false, message: 'Invalid OTP or booking not found.' });
-      }
-    }, 800);
-  });
-};
+
 
 export default function CheckInPage() {
   const router = useRouter();
@@ -43,19 +21,43 @@ export default function CheckInPage() {
     setError(null);
     setBookingData(null);
 
-    const result = await mockVerifyOTP(otp);
-    if (result.success) {
-      setBookingData(result.booking);
-    } else {
-      setError(result.message);
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/bookings/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      
+      const result = await res.json();
+      if (result.success) {
+        setBookingData(result.booking);
+      } else {
+        setError(result.message || 'Invalid OTP or booking not found.');
+      }
+    } catch (err) {
+      console.error("Failed to verify OTP:", err);
+      setError("Failed to connect to the server.");
     }
     setLoading(false);
   };
 
-  const handleCheckIn = () => {
-    alert('Database Updated:\n- checked_in_time = NOW()\n- booking_status = CHECKED_IN\n- room_status = OCCUPIED');
-    // Transition to active stays
-    router.push('/receptionist/stays');
+  const handleCheckIn = async () => {
+    if (!bookingData) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/bookings/${bookingData.id}/check-in`, {
+        method: 'POST',
+      });
+      
+      if (res.ok) {
+        router.push('/receptionist/stays');
+      } else {
+        const errorData = await res.json();
+        alert(`Check-in failed: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error("Check-in error:", err);
+      alert("Failed to connect to the server.");
+    }
   };
 
   return (
