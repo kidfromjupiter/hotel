@@ -255,7 +255,7 @@ BEGIN
     v_invoice_id := gen_random_uuid();
     v_room_charges := 50000.0;
     SELECT COALESCE(SUM(service_total), 0.0) INTO v_service_charges FROM service_charges WHERE booking_id = p_booking_id;
-    v_tax := ROUND((v_room_charges + v_service_charges) * 0.12, 2);
+    v_tax := ROUND((v_room_charges + v_service_charges) * 0.10, 2);
     v_grand_total := v_room_charges + v_service_charges + v_tax;
 
     INSERT INTO billing_summary (
