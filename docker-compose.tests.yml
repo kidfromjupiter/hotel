@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: app_test_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d app_test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrations:
+    image: flyway/flyway:11
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - -url=jdbc:postgresql://db:5432/app_test_db
+      - -user=app_user
+      - -password=app_password
+      - -connectRetries=10
+      - -validateMigrationNaming=true
+      - migrate
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+
+  tests:
+    build: ./backend
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://app_user:app_password@db:5432/app_test_db
+    volumes:
+      - ./backend:/app:ro
+    command: ["python", "-m", "pytest", "-q", "tests/db"]

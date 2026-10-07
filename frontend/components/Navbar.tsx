@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiMenu, HiX } from 'react-icons/hi';
 
 const NAV_LINKS = [
@@ -11,12 +11,25 @@ const NAV_LINKS = [
   { label: 'OUR SPA', href: '/#spa' },
   { label: 'GALLERY', href: '/#gallery' },
   { label: 'OFFERS', href: '/#offers' },
+  { label: 'STAFF PORTAL', href: '/receptionist' },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
   const pathname = usePathname();
   const isBookingPage = pathname.startsWith('/booking');
+  const isDashboardPage = pathname.startsWith('/admin') || pathname.startsWith('/receptionist');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setHasToken(!!localStorage.getItem('guest_token'));
+    }
+  }, [pathname]); // Re-check token when path changes
+
+  if (isDashboardPage) {
+    return null;
+  }
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 bg-skynest-navy/95 backdrop-blur-sm border-b border-skynest-navy-light">
@@ -50,6 +63,21 @@ export default function Navbar() {
 
           {/* ── CTA + Mobile toggle ── */}
           <div className="flex items-center gap-3">
+            {hasToken ? (
+              <Link
+                href="/dashboard"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-[10px] text-skynest-blue font-bold tracking-[0.15em] border border-skynest-blue/30 rounded-sm hover:bg-skynest-blue/10 transition-all duration-200"
+              >
+                MY ACCOUNT
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-[10px] text-gray-300 font-bold tracking-[0.15em] hover:text-white transition-all duration-200"
+              >
+                GUEST LOGIN
+              </Link>
+            )}
             <Link
               href="/booking"
               className={`hidden sm:inline-flex items-center gap-1.5 px-5 py-2 text-[11px] font-bold tracking-[0.15em] rounded-sm transition-all duration-200 ${
@@ -84,6 +112,15 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          
+          <Link
+            href={hasToken ? '/dashboard' : '/login'}
+            className="block py-2.5 text-[11px] tracking-[0.15em] text-gray-400 hover:text-white font-bold"
+            onClick={() => setMobileOpen(false)}
+          >
+            {hasToken ? 'MY ACCOUNT' : 'GUEST LOGIN'}
+          </Link>
+
           <div className="pt-3">
             <Link
               href="/booking"

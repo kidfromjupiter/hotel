@@ -101,16 +101,17 @@ VALUES
 INSERT INTO service_catalogue (
     service_id,
     service_name,
-    day_rate
+    day_rate,
+    description
 )
 VALUES
-    (1, 'Airport Transfer', 5000.00),
-    (2, 'Laundry',          1500.00),
-    (3, 'Room Service',     2500.00),
-    (4, 'Spa',              7500.00),
-    (5, 'Breakfast',        3000.00),
-    (6, 'Dinner',           4500.00),
-    (7, 'Extra Bed',        4000.00);
+    (1, 'Airport Transfer', 5000.00, 'Airport pickup and luxury chauffeur transfer.'),
+    (2, 'Laundry',          1500.00, 'Professional same-day laundry and pressing service.'),
+    (3, 'Room Service',     2500.00, '24/7 in-room dining and beverage delivery.'),
+    (4, 'Spa',              7500.00, 'Full-day access to sauna, steam rooms, and spa.'),
+    (5, 'Breakfast',        3000.00, 'Daily gourmet oceanview buffet breakfast.'),
+    (6, 'Dinner',           4500.00, 'Lavish evening dining experience.'),
+    (7, 'Extra Bed',        4000.00, 'Additional rollaway bed with premium linens.');
 
 
 -- =====================================================================
