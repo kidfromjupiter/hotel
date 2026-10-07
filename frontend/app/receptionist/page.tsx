@@ -26,13 +26,13 @@ export default function CheckInPage() {
       const allBookings = await getAllBookings();
       const match = allBookings.find(b => 
         b.bookingReference.toLowerCase() === otp.toLowerCase() && 
-        b.status === 'Booked' // Only allow checkin for 'Booked' status bookings
+        b.status === 'Confirmed' // Only allow checkin for 'Confirmed' status bookings
       );
       
       if (match) {
         setBookingData(match);
       } else {
-        setError('Invalid Reference/OTP or booking is not in Booked status.');
+        setError('Invalid Reference/OTP or booking is not in Confirmed status.');
       }
     } catch (err) {
       console.error(err);
