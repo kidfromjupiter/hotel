@@ -78,224 +78,27 @@ async function request<T>(
 // ─────────────────────────────────────────────
 //  Default / Hardcoded Room Types
 // ─────────────────────────────────────────────
-export const ROOM_TYPE_DEFAULTS: Record<
-  string,
-  {
-    type: string;
-    name: string;
-    description: string;
-    features: string[];
-    amenities: { id: string; name: string; description: string; price: number; icon: string }[];
-    image: string;
-    isBestseller: boolean;
-    membershipDiscount: number;
-    maxCapacity: number;
-  }
-> = {
-  STANDARD: {
-    type: 'Standard Room',
-    name: 'Standard Room',
-    description:
-      'Cozy, elegant room with contemporary furnishings, comfortable queen bed, city/garden views, and modern comforts.',
-    features: ['Queen Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'En-suite Bathroom', 'Smart TV', 'Tea & Coffee Maker'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
-    ],
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-    isBestseller: false,
-    membershipDiscount: 10,
-    maxCapacity: 2,
-  },
-  DELUXE: {
-    type: 'Deluxe Room',
-    name: 'Deluxe Room',
-    description:
-      'Spacious sanctuary featuring a private balcony, luxury king bed, premium bath amenities, and panoramic ocean or skyline views.',
-    features: ['King Bed', 'Private Balcony', 'Bathtub & Rain Shower', 'Minibar', 'Ocean / Scenic View', '24/7 Room Service'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
-      { id: 'a3', name: 'Minibar', description: 'Fully stocked minibar', price: 0, icon: '🍷' },
-      { id: 'a4', name: '24/7 Room Service', description: 'Available anytime', price: 0, icon: '🛎️' },
-    ],
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-    isBestseller: true,
-    membershipDiscount: 15,
-    maxCapacity: 4,
-  },
-  SUITE: {
-    type: 'Executive Suite',
-    name: 'Executive Suite',
-    description:
-      'Elevated luxury with a private lounge, panoramic ocean views, luxury king bed, and dedicated butler service.',
-    features: ['King Bed', 'Private Lounge', 'Luxury Jacuzzi & Bath', 'Panoramic View', 'Complimentary Minibar', '24/7 Butler Service'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
-      { id: 'a3', name: 'Minibar', description: 'Fully stocked minibar', price: 0, icon: '🍷' },
-      { id: 'a4', name: 'Butler Service', description: 'Dedicated personal butler', price: 0, icon: '🛎️' },
-    ],
-    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
-    isBestseller: false,
-    membershipDiscount: 20,
-    maxCapacity: 2,
-  },
-  FAMILY: {
-    type: 'Family Suite',
-    name: 'Family Suite',
-    description:
-      'Spacious accommodation designed for families with interconnecting sleeping zones, kid amenities, and large living area.',
-    features: ['1 King + 2 Twin Beds', 'Living Area', '2 En-suite Bathrooms', 'Kid-friendly Amenities', 'Smart TV & Console'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
-      { id: 'a3', name: 'Kid-friendly Setup', description: 'Games & cribs available', price: 0, icon: '🧸' },
-      { id: 'a4', name: '24/7 Room Service', description: 'Family dining service', price: 0, icon: '🛎️' },
-    ],
-    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
-    isBestseller: false,
-    membershipDiscount: 15,
-    maxCapacity: 4,
-  },
-};
-
-export const HARDCODED_ROOMS = (nights: number): AvailabilityResponse['rooms'] => [
-  {
-    id: 'standard-room',
-    type: 'Standard Room',
-    name: 'Standard Room',
-    description: ROOM_TYPE_DEFAULTS.STANDARD.description,
-    pricePerNight: 20000,
-    totalPrice: 20000 * (nights || 1),
-    nights: nights || 1,
-    maxCapacity: 2,
-    features: ROOM_TYPE_DEFAULTS.STANDARD.features,
-    amenities: ROOM_TYPE_DEFAULTS.STANDARD.amenities,
-    image: ROOM_TYPE_DEFAULTS.STANDARD.image,
-    isBestseller: false,
-    membershipPrice: 18000,
-    membershipDiscount: 10,
-  },
-  {
-    id: 'deluxe-room',
-    type: 'Deluxe Room',
-    name: 'Deluxe Room',
-    description: ROOM_TYPE_DEFAULTS.DELUXE.description,
-    pricePerNight: 35000,
-    totalPrice: 35000 * (nights || 1),
-    nights: nights || 1,
-    maxCapacity: 4,
-    features: ROOM_TYPE_DEFAULTS.DELUXE.features,
-    amenities: ROOM_TYPE_DEFAULTS.DELUXE.amenities,
-    image: ROOM_TYPE_DEFAULTS.DELUXE.image,
-    isBestseller: true,
-    membershipPrice: 30000,
-    membershipDiscount: 15,
-  },
-];
-
 // ─────────────────────────────────────────────
 //  Rooms / Availability
 // ─────────────────────────────────────────────
 
 /**
  * Checks room availability for the given branch, dates, and guest count.
- * Calls backend POST /api/v1/rooms/availability (with fallback to GET /api/v1/rooms)
- * and normalizes the room objects with full frontend-ready fields.
+ * Calls backend POST /api/v1/rooms/availability directly.
  */
 export async function checkAvailability(
   data: AvailabilityPayload
 ): Promise<AvailabilityResponse> {
-  const checkInDate = data.checkIn ? new Date(data.checkIn) : new Date();
-  const checkOutDate = data.checkOut ? new Date(data.checkOut) : new Date();
-  const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-  const nights = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) || 1);
-
-  let rawResult: any = null;
-
-  try {
-    // 1. Primary: POST /api/v1/rooms/availability
-    rawResult = await request<any>('/api/v1/rooms/availability', {
-      method: 'POST',
-      body: JSON.stringify({
-        branch: data.branch,
-        checkIn: data.checkIn,
-        checkOut: data.checkOut,
-        adults: data.adults,
-        children: data.children,
-      }),
-    });
-  } catch {
-    // 2. Fallback: GET /api/v1/rooms
-    try {
-      const params = new URLSearchParams();
-      if (data.checkIn != null) params.set('check_in', data.checkIn);
-      if (data.checkOut != null) params.set('check_out', data.checkOut);
-      if (data.adults != null) params.set('adults', String(data.adults));
-      if (data.children != null) params.set('children', String(data.children));
-      if (data.branch != null) params.set('branch', data.branch);
-      rawResult = await request<any>(`/api/v1/rooms?${params.toString()}`, {
-        method: 'GET',
-      });
-    } catch {
-      rawResult = null;
-    }
-  }
-
-  // Extract raw room list whether backend returned { available, rooms } or a plain Array [...]
-  let rawRooms: any[] = [];
-  if (Array.isArray(rawResult)) {
-    rawRooms = rawResult;
-  } else if (rawResult && Array.isArray(rawResult.rooms)) {
-    rawRooms = rawResult.rooms;
-  }
-
-  // If no rooms returned, return clean empty response
-  if (rawRooms.length === 0) {
-    return {
-      available: false,
-      rooms: [],
-      message:
-        rawResult?.message ??
-        'No rooms are available for the selected dates and guest count. Please try different dates or fewer guests.',
-      hasMembership: rawResult?.hasMembership ?? false,
-    };
-  }
-
-  // Map and enrich each room with complete frontend Room fields
-  const rooms: Room[] = rawRooms.map((r: any) => {
-    const typeKey = String(r.room_type_id || r.type || 'STANDARD').toUpperCase();
-    const meta = ROOM_TYPE_DEFAULTS[typeKey] || ROOM_TYPE_DEFAULTS.STANDARD;
-    const pricePerNight = Number(r.pricePerNight || r.daily_rate || r.price_per_night || 20000);
-    const totalPrice = Number(r.totalPrice || pricePerNight * nights);
-    const membershipDiscount = Number(r.membershipDiscount ?? meta.membershipDiscount);
-    const membershipPrice = Number(r.membershipPrice ?? Math.round(pricePerNight * (1 - membershipDiscount / 100)));
-
-    return {
-      id: String(r.id || `room-${r.room_number || Math.random()}`),
-      type: r.type || meta.type,
-      name: r.name || (r.room_number ? `${meta.type} - Room ${r.room_number}` : meta.name),
-      description: r.description || meta.description,
-      pricePerNight,
-      totalPrice,
-      nights,
-      maxCapacity: Number(r.capacity || r.maxCapacity || meta.maxCapacity),
-      features: Array.isArray(r.features) && r.features.length ? r.features : meta.features,
-      amenities: Array.isArray(r.amenities) && r.amenities.length ? r.amenities : meta.amenities,
-      image: r.image || meta.image,
-      isBestseller: r.isBestseller ?? meta.isBestseller,
-      membershipPrice,
-      membershipDiscount,
-    };
+  return request<AvailabilityResponse>('/api/v1/rooms/availability', {
+    method: 'POST',
+    body: JSON.stringify({
+      branch: data.branch,
+      checkIn: data.checkIn,
+      checkOut: data.checkOut,
+      adults: data.adults,
+      children: data.children,
+    }),
   });
-
-  return {
-    available: rooms.length > 0,
-    rooms,
-    message: rawResult?.message ?? 'Rooms available',
-    hasMembership: rawResult?.hasMembership ?? false,
-  };
 }
 
 
