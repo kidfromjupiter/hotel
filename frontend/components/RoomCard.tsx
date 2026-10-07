@@ -96,18 +96,18 @@ export default function RoomCard({
 
         {/* Description */}
         <p className="text-sm text-skynest-muted leading-relaxed mb-3 line-clamp-2">
-          {room.description}
+          {room.description || 'Comfortable and elegant room equipped with modern amenities and scenic views.'}
         </p>
 
         {/* Capacity */}
         <div className="flex items-center gap-1 text-xs text-skynest-muted mb-3">
           <HiUserGroup className="text-skynest-blue" />
-          <span>Up to {room.maxCapacity} guests</span>
+          <span>Up to {room.maxCapacity ?? (room as any).capacity ?? 2} guests</span>
         </div>
 
         {/* Features grid */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
-          {room.features.slice(0, 6).map(f => (
+          {(room.features || []).slice(0, 6).map(f => (
             <div key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
               <HiCheckCircle className="text-skynest-blue flex-shrink-0" size={13} />
               <span className="truncate">{f}</span>
