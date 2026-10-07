@@ -189,3 +189,21 @@ export interface InvoiceSummary {
   amountPaid: number;
   paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
 }
+
+// ─────────────────────────────────────────────
+//  Staff Authentication
+// ─────────────────────────────────────────────
+export interface StaffUser {
+  staff_id: number;
+  branch_id: number | null;
+  username: string;
+  full_name: string;
+  role: 'admin' | 'receptionist';
+  is_active: boolean;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: StaffUser;
+}
