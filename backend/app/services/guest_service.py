@@ -21,3 +21,6 @@ class GuestService:
 
     def enroll_membership(self, guest_id: int, membership_id: int = 1) -> Dict[str, Any]:
         return self.repo.enroll_guest_membership(guest_id, membership_id)
+
+    def enroll_by_phone(self, name: str, phone: str, email: str) -> Dict[str, Any]:
+        return self.repo.enroll_by_phone(name, phone)

@@ -102,7 +102,7 @@ class BookingService:
             else "No rooms available for the selected dates.",
         }
 
-    # ── Booking Lifecycle & Management Methods ──
+    # â”€â”€ Booking Lifecycle & Management Methods â”€â”€
 
     def list_bookings(
         self,
@@ -283,3 +283,15 @@ class BookingService:
             }
             
         return {"success": False, "message": "Invalid OTP or booking not found."}
+
+    def extend_stay(self, booking_id: int, new_checkout_date: str):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+            
+        current_status = b.get("booking_status", "")
+        if current_status not in ("Confirmed", "Checked-In"):
+            raise HTTPException(status_code=400, detail="Can only extend active stays.")
+            
+        self.booking_repo.extending_stay(booking_id, new_checkout_date)
+        return self.get_booking_by_id(booking_id)

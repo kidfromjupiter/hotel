@@ -58,3 +58,27 @@ class GuestsRepo:
                     val = row["enroll_guest_membership"]
                     return json.loads(val) if isinstance(val, str) else val
         return {"success": False, "message": "Guest not found"}
+
+    def enroll_by_phone(self, name: str, phone: str) -> Dict[str, Any]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # Look up guest
+                    cursor.execute("SELECT guest_id FROM guests WHERE phone_number = %s", (phone,))
+                    row = cursor.fetchone()
+                    
+                    if row:
+                        guest_id = row['guest_id']
+                        # Set membership_id = 1
+                        cursor.execute("UPDATE guests SET membership_id = 1 WHERE guest_id = %s", (guest_id,))
+                    else:
+                        # Create new guest with membership
+                        cursor.execute(
+                            "INSERT INTO guests (guest_id, membership_id, name, national_id, phone_number) VALUES ((SELECT COALESCE(MAX(guest_id),0)+1 FROM guests), 1, %s, 'PENDING', %s)",
+                            (name, phone)
+                        )
+                    return {"success": True, "message": f"Successfully enrolled {name} in SkyNest Membership!"}
+            except Exception as e:
+                print(f"Database error in enroll_by_phone: {e}")
+                return {"success": False, "message": "Database error enrolling member."}
+        return {"success": True, "message": "In-memory success."}
