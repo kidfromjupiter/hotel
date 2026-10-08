@@ -1,4 +1,4 @@
-CREATE TABLE staff (
+CREATE TABLE IF NOT EXISTS staff (
     staff_id SERIAL PRIMARY KEY,
     branch_id INT,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -11,4 +11,4 @@ CREATE TABLE staff (
         REFERENCES branches(branch_id)
 );
 
-CREATE INDEX idx_staff_username ON staff (username);
+CREATE INDEX IF NOT EXISTS idx_staff_username ON staff (username);
