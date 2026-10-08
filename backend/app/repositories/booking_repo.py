@@ -77,17 +77,19 @@ class BookingRepository:
 
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
-        if "booking_id" not in record or not record["booking_id"]:
-            record["booking_id"] = BookingRepository._shared_next_id
-            BookingRepository._shared_next_id += 1
-        if "bookingRef" not in record or not record["bookingRef"]:
-            record["bookingRef"] = self.generate_booking_ref()
-        if "booking_status" not in record:
-            record["booking_status"] = "Confirmed"
-
+        
         if self.db is not None:
             try:
                 with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    if "booking_id" not in record or not record["booking_id"]:
+                        cursor.execute("SELECT COALESCE(MAX(booking_id), 0) + 1 FROM booking")
+                        record["booking_id"] = cursor.fetchone()["?column?"]
+                        
+                    if "bookingRef" not in record or not record["bookingRef"]:
+                        record["bookingRef"] = self.generate_booking_ref()
+                    if "booking_status" not in record:
+                        record["booking_status"] = "Confirmed"
+
                     branch_map = {"colombo": 1, "kandy": 2, "galle": 3}
                     branch_val = record.get("branch", "colombo")
                     branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
@@ -129,7 +131,7 @@ class BookingRepository:
                     cursor.execute(
                         """
                         SELECT create_booking(
-                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                            %s::BIGINT, %s::SMALLINT, %s::INT, %s::INT, %s::VARCHAR, %s::DATE, %s::DATE, %s::INT, %s::INT, %s::NUMERIC, %s::NUMERIC
                         )
                         """,
                         (
@@ -146,8 +148,21 @@ class BookingRepository:
                             amount_paid,
                         ),
                     )
-            except Exception:
-                pass
+                self.db.commit()
+            except Exception as e:
+                print(f"Exception in save_booking: {e}")
+                import traceback
+                traceback.print_exc()
+                if self.db:
+                    self.db.rollback()
+        else:
+            if "booking_id" not in record or not record["booking_id"]:
+                record["booking_id"] = BookingRepository._shared_next_id
+                BookingRepository._shared_next_id += 1
+            if "bookingRef" not in record or not record["bookingRef"]:
+                record["bookingRef"] = self.generate_booking_ref()
+            if "booking_status" not in record:
+                record["booking_status"] = "Confirmed"
 
         # Update in-memory record list
         self._bookings.append(record)
@@ -509,3 +524,22 @@ class BookingRepository:
                     "icon": "spa",
                 },
             ]
+
+    def add_service_to_booking(self, booking_id: int, payload):
+        b = self.find_booking_by_id(booking_id)
+        if b:
+            if "service_charges" not in b:
+                b["service_charges"] = []
+                
+            new_service = {
+                "service_name": payload.service_name,
+                "service_total": payload.service_total,
+                "service_dates": payload.service_dates
+            }
+            b["service_charges"].append(new_service)
+            
+            # Update grand total
+            current_total = b.get("grand_total", 0.0)
+            b["grand_total"] = current_total + payload.service_total
+            return True
+        return False

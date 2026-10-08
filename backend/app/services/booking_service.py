@@ -23,13 +23,24 @@ class BookingService:
     def get_amenities(self, branch: str = "colombo") -> Dict[str, Any]:
         return {"amenities": self.booking_repo.get_amenities_catalog(branch)}
 
-    def create_booking(self, request: Any) -> Dict[str, Any]:
+    def create_booking(self, request: Any, guest_token: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if hasattr(request, "model_dump"):
             booking_dict = request.model_dump()
         elif isinstance(request, dict):
             booking_dict = dict(request)
         else:
             booking_dict = dict(request)
+
+        # Apply membership discounts if token is present
+        if guest_token:
+            discount = guest_token.get("discount_percent", 0)
+            if discount > 0:
+                original_price = booking_dict.get("totalPrice", 0.0)
+                booking_dict["totalPrice"] = round(original_price * (1 - (discount / 100.0)), 2)
+            
+            # Auto-assign guest_id if they are logged in
+            if guest_token.get("guest_id") and not booking_dict.get("guest_id"):
+                booking_dict["guest_id"] = guest_token.get("guest_id")
 
         saved = self.booking_repo.save_booking(booking_dict)
         return {
@@ -135,6 +146,8 @@ class BookingService:
                     booking_status=b.get("booking_status", "Confirmed"),
                     start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
                     end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
+                    guest_phone=b.get("guest_phone", "N/A"),
+                    is_member=b.get("is_member", False),
                 )
             )
         return results
@@ -253,3 +266,37 @@ class BookingService:
             booking_id=booking_id,
             booking_status="Cancelled",
         )
+    def add_service_to_booking(self, booking_id: int, payload):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+            
+        current_status = b.get("booking_status", "")
+        if current_status not in ("Confirmed", "Checked-In"):
+            raise HTTPException(status_code=400, detail="Can only add services to active stays.")
+            
+        self.booking_repo.add_service_to_booking(booking_id, payload)
+        return self.get_booking_by_id(booking_id)
+
+    def get_pending_booking_by_phone(self, phone: str):
+        bookings = self.booking_repo.list_all_bookings()
+        for b in bookings:
+            # We are using .get() because b is a dictionary
+            if b.get("guest_phone") == phone and b.get("booking_status") == "Confirmed":
+                # Returning the exact structure the frontend expects
+                return {
+                    "success": True,
+                    "booking": {
+                        "id": b.get("booking_id", "TBD"),
+                        "guestName": b.get("guest_name", "Guest"),
+                        "phone": b.get("guest_phone", phone),
+                        "roomType": b.get("room_type_id", "Standard Room"),
+                        "roomNumber": b.get("room_number", "TBD"),
+                        "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
+                        "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
+                        "status": b.get("booking_status", "Confirmed")
+                    }
+                }
+        
+        # If the loop finishes without finding a match:
+        return {"success": False, "message": "Invalid OTP or booking not found."}

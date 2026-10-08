@@ -52,4 +52,3 @@ watchfiles==1.2.0
 websockets==17.1
 bcrypt==4.2.1
 PyJWT==2.10.1
-

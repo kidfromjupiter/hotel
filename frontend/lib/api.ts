@@ -7,6 +7,7 @@ import type {
   CreateBookingPayload,
   CreateBookingResponse,
   StaffBooking,
+  BookingStatus,
   GuestProfile,
   ServiceCatalogueItem,
   InvoiceSummary,
@@ -14,7 +15,7 @@ import type {
   LoginResponse,
 } from './types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+const BASE_URL = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : (process.env.INTERNAL_API_URL ?? 'http://backend:8000');
 
 // ─────────────────────────────────────────────
 //  Auth Token Helpers (Client-side)
@@ -52,7 +53,10 @@ async function request<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
-  const token = getAuthToken();
+  const staffToken = getAuthToken();
+  const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guest_token') : null;
+  const token = staffToken || guestToken;
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options?.headers as Record<string, string>) || {}),
@@ -89,7 +93,7 @@ async function request<T>(
 export async function checkAvailability(
   data: AvailabilityPayload
 ): Promise<AvailabilityResponse> {
-  return request<AvailabilityResponse>('/api/v1/rooms/availability', {
+  const res = await request<AvailabilityResponse>('/api/v1/rooms/availability', {
     method: 'POST',
     body: JSON.stringify({
       branch: data.branch,
@@ -99,8 +103,12 @@ export async function checkAvailability(
       children: data.children,
     }),
   });
+  const hasMembership = typeof window !== 'undefined' ? !!localStorage.getItem('guest_token') : false;
+  return {
+    ...res,
+    hasMembership: res.hasMembership ?? hasMembership,
+  };
 }
-
 
 
 
@@ -146,10 +154,66 @@ export async function verifyOTP(
 export async function createBooking(
   data: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
-  return request<CreateBookingResponse>('/api/v1/booking/create', {
+  return request<CreateBookingResponse>('/api/v1/bookings/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+/**
+ * GET /api/v1/bookings/?status=Checked-In
+ * Fetches all guests who are currently checked in (Active Stays).
+ */
+export async function getActiveStays(): Promise<any[]> {
+  return request<any[]>('/api/v1/bookings/?status=Checked-In', {
+    method: 'GET',
+  });
+}
+
+/**
+ * POST /api/v1/bookings/{booking_id}/services
+ * Adds a service to the guest's tab.
+ */
+export async function addServiceToTab(bookingId: number, serviceName: string, serviceTotal: number): Promise<any> {
+  return request<any>(`/api/v1/bookings/${bookingId}/services`, {
+    method: 'POST',
+    body: JSON.stringify({
+      service_name: serviceName,
+      service_total: serviceTotal,
+      service_dates: 1
+    }),
+  });
+}
+
+/**
+ * GET /api/v1/booking/
+ * Gets the reservations for the authenticated guest
+ */
+export async function getMyBookings(): Promise<StaffBooking[]> {
+  const raw = await request<Array<{
+    booking_id: number;
+    guest_name: string;
+    room_number: number;
+    branch_name: string;
+    booking_status: string;
+    start_date: string;
+    end_date: string;
+  }>>('/api/v1/booking/');
+
+  return raw.map(b => ({
+    bookingId: b.booking_id,
+    guestName: b.guest_name,
+    phone: '',
+    branchId: 0,
+    bookingReference: `BKG-${b.booking_id}`,
+    roomNumber: b.room_number,
+    roomType: '',
+    checkIn: b.start_date,
+    checkOut: b.end_date,
+    status: b.booking_status as BookingStatus,
+    adults: 0,
+    children: 0,
+  }));
 }
 
 // ─────────────────────────────────────────────
@@ -157,104 +221,126 @@ export async function createBooking(
 // ─────────────────────────────────────────────
 
 /**
- * GET /api/v1/management/bookings
- * Retrieves all bookings for the active stays and booking management pages.
+ * GET /api/v1/bookings/
+ * Retrieves all bookings. Maps backend BookingListItem → frontend StaffBooking.
  */
 export async function getAllBookings(): Promise<StaffBooking[]> {
-  // Mock data since backend doesn't have management routes yet
-  return [
-    {
-      bookingId: 1002,
-      guestName: 'Test Guest',
-      phone: '+94771234567',
-      branchId: 1,
-      bookingReference: 'BKG-1002',
-      roomNumber: 101,
-      roomType: 'Deluxe',
-      checkIn: '2026-10-01',
-      checkOut: '2026-10-05',
-      status: 'Booked',
-      adults: 2,
-      children: 0
-    },
-    {
-      bookingId: 1003,
-      guestName: 'Kasun Perera',
-      phone: '+94711112222',
-      branchId: 1,
-      bookingReference: 'BKG-1003',
-      roomNumber: 205,
-      roomType: 'Executive Suite',
-      checkIn: '2026-09-28',
-      checkOut: '2026-10-02',
-      status: 'Checked-In',
-      adults: 1,
-      children: 0
-    }
-  ];
+  const raw = await request<Array<{
+    booking_id: number;
+    guest_name: string;
+    room_number: number;
+    branch_name: string;
+    booking_status: string;
+    start_date: string;
+    end_date: string;
+  }>>('/api/v1/bookings/');
+
+  return raw.map(b => ({
+    bookingId: b.booking_id,
+    guestName: b.guest_name,
+    phone: '',
+    branchId: 0,
+    bookingReference: `BKG-${b.booking_id}`,
+    roomNumber: b.room_number,
+    roomType: '',
+    checkIn: b.start_date,
+    checkOut: b.end_date,
+    status: b.booking_status as BookingStatus,
+    adults: 0,
+    children: 0,
+  }));
 }
 
 /**
- * POST /api/v1/management/bookings/:id/checkin
+ * GET /api/v1/bookings/{id}
+ * Gets full booking details including services and invoice.
+ */
+export async function getBookingDetail(bookingId: number): Promise<InvoiceSummary> {
+  const b = await request<{
+    booking_id: number;
+    booking_status: string;
+    service_charges: Array<{ service_name: string; service_total: number }>;
+    invoice_status: string;
+    grand_total: number;
+    amount_paid: number;
+  }>(`/api/v1/bookings/${bookingId}`);
+
+  const totalServiceCharges = b.service_charges.reduce((sum, s) => sum + s.service_total, 0);
+
+  return {
+    invoiceId: `INV-${bookingId}`,
+    bookingId: b.booking_id,
+    totalRoomCharges: b.grand_total - totalServiceCharges,
+    totalAmenityCharges: 0,
+    totalServiceCharges,
+    totalTaxAmount: 0,
+    grandTotal: b.grand_total,
+    amountPaid: b.amount_paid,
+    paymentStatus: b.invoice_status as 'Paid' | 'Partial' | 'Unpaid',
+  };
+}
+
+/**
+ * POST /api/v1/bookings/{id}/check-in
  * Checks in a guest (changes booking to Checked-In, Room to Occupied)
  */
 export async function checkInGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Checked in' }), 500));
+  try {
+    await request(`/api/v1/bookings/${bookingId}/check-in`, { method: 'POST' });
+    return { success: true, message: 'Guest checked in successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Check-in failed' };
+  }
 }
 
 /**
- * POST /api/v1/management/bookings/:id/checkout
- * Checks out a guest (changes booking to Checked-Out). Fails if balance > 0.
+ * POST /api/v1/bookings/{id}/check-out
+ * Checks out a guest. Enforces full invoice payment before checkout.
  */
 export async function checkOutGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Checked out' }), 500));
+  try {
+    await request(`/api/v1/bookings/${bookingId}/check-out`, { method: 'POST' });
+    return { success: true, message: 'Guest checked out successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Check-out failed' };
+  }
 }
 
 /**
- * GET /api/v1/management/bookings/:id/bill
- * Gets the current calculated bill for a booking.
+ * GET /api/v1/bookings/{id}/bill  (uses getBookingDetail internally)
  */
 export async function getBill(bookingId: number): Promise<InvoiceSummary> {
-  return new Promise(resolve => setTimeout(() => resolve({
-    invoiceId: 'INV-001',
-    bookingId,
-    totalRoomCharges: 25000,
-    totalAmenityCharges: 1500,
-    totalServiceCharges: 5000,
-    totalTaxAmount: 3000,
-    grandTotal: 34500,
-    amountPaid: 0,
-    paymentStatus: 'Unpaid'
-  }), 1000));
+  return getBookingDetail(bookingId);
 }
 
 /**
- * POST /api/v1/management/bookings/:id/services
- * Adds a service to the guest's tab.
+ * POST /api/v1/bookings/{id}/cancel
  */
+export async function cancelBooking(bookingId: number): Promise<{ success: boolean; message: string }> {
+  try {
+    await request(`/api/v1/bookings/${bookingId}/cancel`, { method: 'POST' });
+    return { success: true, message: 'Booking cancelled' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Cancellation failed' };
+  }
+}
+
+// These endpoints are not yet implemented in the backend — kept as stubs
 export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
 }
 
-/**
- * POST /api/v1/management/bookings/:id/amenities
- * Adds an extra amenity to the guest's tab.
- */
 export async function addAmenityToBooking(bookingId: number, amenityId: number): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Amenity added' }), 500));
 }
 
-/**
- * POST /api/v1/management/bookings/:id/extend
- * Extends the checkout date for a booking.
- */
 export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Stay extended' }), 500));
 }
 
 /**
  * POST /api/v1/management/memberships
- * Creates a new SkyNest Membership
+ * Creates a new SkyNest Membership (stub — backend not yet implemented)
  */
 export async function createMembership(data: { name: string; phone: string; email: string }): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Membership created successfully' }), 800));
@@ -274,4 +360,70 @@ export async function loginStaff(username: string, password: string): Promise<Lo
 
 export async function fetchCurrentStaff(): Promise<StaffUser> {
   return request<StaffUser>('/api/v1/auth/me');
+}
+
+// ─────────────────────────────────────────────
+//  ADMIN API
+// ─────────────────────────────────────────────
+
+/**
+ * GET /api/v1/rooms/all
+ * Returns all rooms in the hotel.
+ */
+export async function getAllRooms(): Promise<any[]> {
+  return request('/api/v1/rooms/all');
+}
+
+/**
+ * GET /api/v1/branches/
+ * Returns all hotel branches.
+ */
+export async function getBranches(): Promise<Array<{ branch_id: number; branch_name: string }>> {
+  return request('/api/v1/branches/');
+}
+
+/**
+ * GET /api/v1/reports/monthly-revenue?year=YYYY
+ * Returns monthly revenue breakdown per branch for a given year.
+ */
+export async function getMonthlyRevenue(year: number): Promise<{
+  year: number;
+  data: Array<{ branch_name: string; month: string; room_revenue: number; service_revenue: number; total_revenue: number }>;
+}> {
+  return request(`/api/v1/reports/monthly-revenue?year=${year}`);
+}
+
+/**
+ * GET /api/v1/reports/occupancy?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+ * Returns occupancy rate per branch for a given period.
+ */
+export async function getOccupancyReport(startDate: string, endDate: string): Promise<{
+  period: { start_date: string; end_date: string };
+  branches: Array<{ branch_name: string; total_rooms: number; occupied_nights: number; total_possible_nights: number; occupancy_rate_percent: number }>;
+}> {
+  return request(`/api/v1/reports/occupancy?start_date=${startDate}&end_date=${endDate}`);
+}
+
+/**
+ * GET /api/v1/services/
+ * Returns all services.
+ */
+export async function getServices(): Promise<Array<{ id: number; name: string; price: number }>> {
+  return request('/api/v1/services/');
+}
+
+/**
+ * GET /api/v1/guests/
+ * Returns all guests.
+ */
+export async function getGuests(): Promise<Array<{ guest_id: number; name: string; national_id: string; phone_number: string; membership_id: number | null }>> {
+  return request('/api/v1/guests/');
+}
+
+/**
+ * GET /api/v1/amenities
+ * Returns all amenities.
+ */
+export async function getAmenities(): Promise<Array<{ id: number; name: string; price: number }>> {
+  return request('/api/v1/amenities');
 }

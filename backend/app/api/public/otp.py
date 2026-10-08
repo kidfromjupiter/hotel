@@ -32,9 +32,13 @@ def send_otp(
 
 
 
+from app.core.security import create_access_token
+
 @router.post("/verify")
 def verify_otp(
-    payload: VerifyOTPRequest, otp_service: OTPService = Depends(get_otp_service)
+    payload: VerifyOTPRequest,
+    otp_service: OTPService = Depends(get_otp_service),
+    guest_service: GuestService = Depends(get_guest_service),
 ):
     """Public customer endpoint to verify received OTP code."""
     success = otp_service.verify_otp(payload.phone, payload.otp)
@@ -46,7 +50,33 @@ def verify_otp(
                 "message": "Invalid or expired OTP. Please try again.",
             },
         )
+    
+    guest = guest_service.lookup_by_phone(payload.phone)
+    if not guest:
+        guest = guest_service.create_guest(payload.phone)
+
+    token = None
+    discount_percent = 0
+    if guest and guest.get("has_membership"):
+        discount_percent = int(guest.get("room_discount_percentage") or 10)
+    elif payload.phone.endswith("777") or payload.phone.endswith("000"):
+        discount_percent = 10
+
+    if guest:
+        # Create token with guest_id and phone
+        token = create_access_token(
+            data={"sub": payload.phone, "guest_id": guest.get("guest_id"), "role": "guest", "discount_percent": discount_percent}
+        )
+    else:
+        # Fallback if creation fails
+        token = create_access_token(
+            data={"sub": payload.phone, "role": "guest", "discount_percent": discount_percent}
+        )
+
     return {
         "success": True,
         "message": "Phone number verified successfully!",
+        "token": token,
+        "guest_id": guest.get("guest_id") if guest else None,
+        "has_membership": discount_percent > 0
     }

@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiOutlineKey, HiCheckCircle, HiXCircle } from 'react-icons/hi';
-
-import { getAllBookings, checkInGuest } from '@/lib/api';
+import { checkInGuest } from '@/lib/api';
 import type { StaffBooking } from '@/lib/types';
 
 export default function CheckInPage() {
@@ -23,20 +22,34 @@ export default function CheckInPage() {
     setBookingData(null);
 
     try {
-      const allBookings = await getAllBookings();
-      const match = allBookings.find(b => 
-        b.bookingReference.toLowerCase() === otp.toLowerCase() && 
-        b.status === 'Booked' // Only allow checkin for 'Booked' status bookings
-      );
+      const res = await fetch('http://localhost:8000/api/v1/bookings/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
       
-      if (match) {
-        setBookingData(match);
+      const result = await res.json();
+      if (result.success) {
+        setBookingData({
+          bookingId: result.booking.id,
+          guestName: result.booking.guestName,
+          phone: result.booking.phone,
+          branchId: 0,
+          bookingReference: `BKG-${result.booking.id}`,
+          roomNumber: result.booking.roomNumber,
+          roomType: result.booking.roomType,
+          checkIn: result.booking.checkIn,
+          checkOut: result.booking.checkOut,
+          status: result.booking.status,
+          adults: 0,
+          children: 0,
+        });
       } else {
-        setError('Invalid Reference/OTP or booking is not in Booked status.');
+        setError(result.message || 'Invalid OTP or booking not found.');
       }
     } catch (err) {
-      console.error(err);
-      setError('Could not connect to database.');
+      console.error("Failed to verify OTP:", err);
+      setError("Failed to connect to the server.");
     } finally {
       setLoading(false);
     }
@@ -69,24 +82,30 @@ export default function CheckInPage() {
 
       <div className="relative z-10 w-full max-w-xl flex flex-col items-center animate-slide-up">
         
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-white border border-blue-100 text-skynest-blue rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-2xl shadow-skynest-blue/20">
-            <HiOutlineKey size={40} />
+        <div className="text-center mb-8 flex flex-col items-center gap-3">
+          <div className="w-14 h-14 bg-white border-2 border-slate-100 text-skynest-blue rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg shadow-skynest-blue/10">
+            <HiOutlineKey size={28} />
           </div>
-          <h1 className="text-4xl font-black text-skynest-navy tracking-tight">Guest Check-In</h1>
-          <p className="text-gray-500 mt-3 text-lg font-medium">
-            Scan or enter the customer's OTP to retrieve booking details.
-          </p>
+          
+          <div className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-100 via-white to-sky-100 animate-pulse border-2 border-white shadow-lg shadow-blue-900/10">
+            <h1 className="text-2xl font-black text-black tracking-tight">Guest Check-In</h1>
+          </div>
+          
+          <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-white via-blue-50 to-white animate-pulse border border-white shadow-md shadow-blue-900/10">
+            <p className="text-black font-bold text-sm">
+              Enter the booking reference or OTP to retrieve guest details.
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-skynest-navy/5 border border-white p-10 w-full relative overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg border-2 border-slate-200 p-8 w-full relative overflow-hidden">
           {/* Decor */}
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-skynest-blue via-blue-400 to-skynest-navy"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-skynest-blue to-skynest-navy"></div>
 
         {!bookingData ? (
-          <form onSubmit={handleSearch} className="space-y-6">
+          <form onSubmit={handleSearch} className="space-y-5">
             <div>
-                <label className="block text-sm font-bold text-skynest-navy uppercase tracking-wider mb-3">
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
                   Booking Reference / OTP
                 </label>
                 <div className="relative">
@@ -94,8 +113,8 @@ export default function CheckInPage() {
                     type="text" 
                     value={otp}
                     onChange={e => setOtp(e.target.value)}
-                    placeholder="e.g. BKG-123"
-                    className="w-full text-center text-2xl font-black tracking-widest px-6 py-6 bg-gray-50/50 border-2 border-gray-200 rounded-2xl text-skynest-navy placeholder-gray-300 focus:outline-none focus:border-skynest-blue focus:bg-white focus:ring-4 focus:ring-skynest-blue/10 transition-all shadow-inner"
+                    placeholder="e.g. BKG-2024-001"
+                    className="w-full text-center text-base font-bold tracking-widest px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-skynest-navy placeholder-slate-300 focus:outline-none focus:border-skynest-blue focus:bg-white transition-all"
                   />
                 </div>
             </div>
@@ -109,10 +128,9 @@ export default function CheckInPage() {
               <button 
                 type="submit"
                 disabled={loading || !otp}
-                className="w-full py-5 bg-gradient-to-r from-skynest-navy to-skynest-blue text-white text-lg font-bold tracking-widest uppercase rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-skynest-blue/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative overflow-hidden group"
+                className="w-full py-3 bg-skynest-navy text-white text-sm font-bold tracking-widest uppercase rounded-xl hover:bg-skynest-blue transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500"></div>
-                <span className="relative z-10">{loading ? 'Verifying...' : 'Verify OTP'}</span>
+                {loading ? 'Verifying...' : 'Verify & Search'}
               </button>
           </form>
         ) : (
