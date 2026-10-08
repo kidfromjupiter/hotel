@@ -74,3 +74,67 @@ input[type='date']::-webkit-calendar-picker-indicator {
   font-size: 1.5rem;
   font-weight: 700;
 }
+
+/* ──────────────────────────────────────
+   Single-Page PDF & Print Styling
+────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 12mm;
+  }
+
+  /* 1. Hide all non-printable UI elements */
+  nav,
+  footer,
+  header:not(.print-header),
+  button,
+  .no-print,
+  .print-hidden,
+  .action-buttons {
+    display: none !important;
+  }
+
+  /* 2. Base page sizing and clean background */
+  html,
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 3. Reset wrapper heights and offsets */
+  .min-h-screen {
+    min-height: 0 !important;
+    height: auto !important;
+    padding-top: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* 4. Prevent page breaks inside voucher container */
+  .booking-print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 5. Keep elements tightly aligned for single-page guarantee */
+  .print-compact {
+    padding: 8px !important;
+    margin: 4px 0 !important;
+  }
+}
+

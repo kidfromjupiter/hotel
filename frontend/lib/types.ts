@@ -42,6 +42,10 @@ export interface Room {
   membershipPrice?: number;
   /** Discount percentage for members */
   membershipDiscount?: number;
+  /** Number of physical rooms of this type currently available */
+  roomsLeft?: number;
+  /** List of specific available rooms of this type */
+  availableRooms?: Room[];
 }
 
 /** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */

@@ -130,6 +130,38 @@ export default function RoomCard({
 
         {/* Total + CTA */}
         <div className="mt-auto">
+          {/* Inventory Count Banner */}
+          {room.roomsLeft != null && (
+            <div className={`mb-3 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between border ${
+              room.roomsLeft <= 2
+                ? 'bg-amber-500/10 text-amber-900 border-amber-300'
+                : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+            }`}>
+              <div className="flex items-center gap-1.5">
+                {room.roomsLeft <= 2 ? (
+                  <>
+                    <span className="text-amber-600 font-bold">⚡</span>
+                    <span className="font-bold">
+                      Only {room.roomsLeft} room{room.roomsLeft !== 1 ? 's' : ''} left at this rate!
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-600 font-bold">✓</span>
+                    <span>{room.roomsLeft} rooms available for selected dates</span>
+                  </>
+                )}
+              </div>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                room.roomsLeft <= 2
+                  ? 'bg-amber-200 text-amber-900'
+                  : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {room.roomsLeft} Left
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between px-4 py-3 bg-skynest-blue-pale rounded-xl mb-3">
             <span className="text-sm text-skynest-navy font-medium">
               Total — {nights} night{nights !== 1 ? 's' : ''}
@@ -139,7 +171,7 @@ export default function RoomCard({
 
           <button
             onClick={() => onSelect(room)}
-            className="w-full py-3 bg-skynest-navy text-white text-sm font-bold rounded-xl hover:bg-skynest-blue transition-colors duration-300 tracking-wide"
+            className="w-full py-3 bg-skynest-navy text-white text-sm font-bold rounded-xl hover:bg-skynest-blue transition-colors duration-300 tracking-wide cursor-pointer"
           >
             Select This Room
           </button>
