@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/login');
@@ -26,7 +26,7 @@ test('rejects a short phone number without calling the API', async ({ page }) =>
       requests.push(request.url());
     }
   });
-  await page.pause();
+
   await page.getByPlaceholder('+94 77 123 4567').fill('123');
   await page.getByRole('button', { name: 'SEND OTP', exact: true }).click();
 
