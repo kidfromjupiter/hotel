@@ -94,7 +94,14 @@ class BookingRepository:
                     branch_val = record.get("branch", "colombo")
                     branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
 
-                    room_num = record.get("room_number", 101)
+                    room_num = record.get("room_number")
+                    if room_num is None:
+                        room_id = str(record.get("roomId", ""))
+                        if not room_id.isdigit():
+                            raise ValueError("A valid roomId or room_number is required")
+                        room_num = int(room_id)
+                    record["room_number"] = room_num
+
                     guest_id = record.get("guest_id", 1)
                     status = record.get("booking_status", "Confirmed")
 
@@ -126,12 +133,9 @@ class BookingRepository:
                         ),
                     )
                 self.db.commit()
-            except Exception as e:
-                print(f"Exception in save_booking: {e}")
-                import traceback
-                traceback.print_exc()
-                if self.db:
-                    self.db.rollback()
+            except Exception:
+                self.db.rollback()
+                raise
         else:
             if "booking_id" not in record or not record["booking_id"]:
                 record["booking_id"] = BookingRepository._shared_next_id
