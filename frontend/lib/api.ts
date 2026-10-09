@@ -276,6 +276,16 @@ export async function getMyBookings(): Promise<StaffBooking[]> {
 // ─────────────────────────────────────────────
 
 /**
+ * GET /api/v1/private/bookings/admin-reservations
+ */
+export async function getAdminReservationsList(status?: string): Promise<any[]> {
+  const url = status 
+    ? `/api/v1/private/bookings/admin-reservations?status=${encodeURIComponent(status)}`
+    : '/api/v1/private/bookings/admin-reservations';
+  return request<any[]>(url, { method: 'GET' });
+}
+
+/**
  * GET /api/v1/bookings/
  * Retrieves all bookings. Maps backend BookingListItem → frontend StaffBooking.
  */
@@ -447,7 +457,7 @@ export async function getOccupancyReport(startDate: string, endDate: string): Pr
  * GET /api/v1/services/
  * Returns all services.
  */
-export async function getServices(): Promise<Array<{ id: number; name: string; price: number }>> {
+export async function getServices(): Promise<Array<{ service_id: number; service_name: string; day_rate: number; description: string }>> {
   return request('/api/v1/services/');
 }
 
