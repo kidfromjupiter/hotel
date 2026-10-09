@@ -47,9 +47,6 @@ def login(
         user=user_data,
     )
 
-from app.api.dependencies import get_auth_service, get_current_user
-
-
 @auth_router.get("/me", response_model=StaffUser)
 def get_current_staff_profile(
     current_user: StaffUser = Depends(get_current_user),
