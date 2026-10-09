@@ -219,3 +219,42 @@ def test_cancel_booking_already_checked_in_error(client, sample_bookings):
     res = client.post("/api/v1/bookings/500102/cancel")
     assert res.status_code == 400
     assert "Cannot cancel a booking that is already Checked-In" in res.json()["detail"]
+
+
+def test_calculate_bill_with_services_preview(client):
+    payload = {
+        "branch": "Colombo",
+        "room_type": "Deluxe Room",
+        "room_number": 201,
+        "nights": 3,
+        "daily_rate": 22000.0,
+        "guest_phone": "0771234567",
+        "services": [
+            {
+                "service_id": 4,
+                "service_name": "Spa",
+                "quantity": 1,
+                "days": 1,
+            },
+            {
+                "service_id": 5,
+                "service_name": "Breakfast",
+                "quantity": 2,
+                "days": 3,
+            },
+        ],
+    }
+    res = client.post("/api/v1/bookings/calculate-bill", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "PREVIEW_CALCULATED"
+    assert data["is_updated"] is False
+    assert "room_charges" in data
+    assert "services_charges" in data
+    assert "taxes" in data
+    assert data["room_charges"]["nights"] == 3
+    assert data["room_charges"]["daily_rate"] == 22000.0
+    assert len(data["services_charges"]["items"]) == 2
+    assert data["grand_total"] > 0
+    assert data["grand_total"] == round(data["subtotal"] + data["total_tax"], 2)
+

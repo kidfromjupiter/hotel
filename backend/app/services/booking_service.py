@@ -300,3 +300,171 @@ class BookingService:
         
         # If the loop finishes without finding a match:
         return {"success": False, "message": "Invalid OTP or booking not found."}
+
+    def calculate_bill(self, request: Any) -> Dict[str, Any]:
+        """
+        Calculates whole bill preview after room selection with desired guest services.
+        NOTE: This does NOT update or modify any database record (read-only calculation).
+        Allows inspecting whole bill preview so issues can be resolved/committed later.
+        """
+        if hasattr(request, "model_dump"):
+            data = request.model_dump()
+        elif isinstance(request, dict):
+            data = dict(request)
+        else:
+            data = dict(request)
+
+        booking_id = data.get("booking_id")
+        existing_booking = None
+        if booking_id:
+            existing_booking = self.booking_repo.get_booking_summary_for_calculation(booking_id)
+
+        # 1. Determine Room Details
+        nights = data.get("nights") or 1
+        daily_rate = data.get("daily_rate")
+        room_type = data.get("room_type") or "Standard Room"
+        room_number = data.get("room_number")
+        guest_phone = data.get("guest_phone")
+
+        if existing_booking:
+            if not daily_rate and existing_booking.get("daily_rate"):
+                daily_rate = float(existing_booking["daily_rate"])
+            if not room_number:
+                room_number = existing_booking.get("room_number")
+            if not room_type and existing_booking.get("room_type_id"):
+                room_type = existing_booking.get("room_type_id")
+            if not guest_phone and existing_booking.get("phone_number"):
+                guest_phone = str(existing_booking.get("phone_number"))
+
+        if not daily_rate:
+            type_str = str(room_type).upper()
+            if "DELUXE" in type_str:
+                daily_rate = 22000.0
+            elif "FAMILY" in type_str:
+                daily_rate = 28000.0
+            elif "SUITE" in type_str:
+                daily_rate = 35000.0
+            else:
+                daily_rate = 15000.0
+
+        daily_rate = float(daily_rate)
+        nights = max(1, int(nights))
+
+        # 2. Check Membership Discounts
+        room_discount_pct = float(data.get("membership_discount_percent") or 0.0)
+        service_discount_pct = 0.0
+
+        if guest_phone:
+            guest_info = self.booking_repo.get_guest_membership_by_phone(guest_phone)
+            if guest_info:
+                if guest_info.get("room_discount_percentage") is not None:
+                    room_discount_pct = max(room_discount_pct, float(guest_info["room_discount_percentage"]))
+                if guest_info.get("service_discount_percentage") is not None:
+                    service_discount_pct = float(guest_info["service_discount_percentage"])
+
+        room_subtotal = round(daily_rate * nights, 2)
+        room_discount_amount = round(room_subtotal * (room_discount_pct / 100.0), 2)
+        room_total = round(room_subtotal - room_discount_amount, 2)
+
+        # 3. Calculate Services
+        service_catalog = self.booking_repo.get_service_catalog()
+        services_map = {s["service_id"]: s for s in service_catalog}
+        services_by_name = {s["service_name"].lower(): s for s in service_catalog}
+
+        requested_services = data.get("services") or []
+        services_breakdown = []
+        services_subtotal = 0.0
+        services_discount_amount = 0.0
+        services_total = 0.0
+
+        for item in requested_services:
+            if hasattr(item, "model_dump"):
+                item_dict = item.model_dump()
+            else:
+                item_dict = dict(item)
+
+            svc_id = item_dict.get("service_id")
+            svc_name = item_dict.get("service_name") or ""
+            qty = max(1, int(item_dict.get("quantity", 1)))
+            days = max(1, int(item_dict.get("days", 1)))
+
+            matched_svc = services_map.get(svc_id) if svc_id else services_by_name.get(svc_name.lower())
+            if matched_svc:
+                day_rate = float(matched_svc.get("day_rate", 0.0))
+                svc_name = matched_svc.get("service_name", svc_name)
+                svc_id = matched_svc.get("service_id", svc_id)
+            else:
+                day_rate = float(item_dict.get("unit_price") or 0.0)
+
+            item_subtotal = round(day_rate * qty * days, 2)
+            item_discount = round(item_subtotal * (service_discount_pct / 100.0), 2)
+            item_total = round(item_subtotal - item_discount, 2)
+
+            services_breakdown.append({
+                "service_id": svc_id,
+                "service_name": svc_name or f"Service {svc_id}",
+                "quantity": qty,
+                "days": days,
+                "day_rate": day_rate,
+                "subtotal": item_subtotal,
+                "discount_percentage": service_discount_pct,
+                "discount_amount": item_discount,
+                "total": item_total,
+            })
+
+            services_subtotal += item_subtotal
+            services_discount_amount += item_discount
+            services_total += item_total
+
+        services_subtotal = round(services_subtotal, 2)
+        services_discount_amount = round(services_discount_amount, 2)
+        services_total = round(services_total, 2)
+
+        # 4. Calculate Taxes
+        active_taxes = self.booking_repo.get_active_tax_policies()
+        tax_items = []
+        taxable_amount = round(room_total + services_total, 2)
+        total_tax = 0.0
+
+        for t in active_taxes:
+            t_pct = float(t.get("tax_percentage", 0.0))
+            t_amt = round(taxable_amount * (t_pct / 100.0), 2)
+            total_tax += t_amt
+            tax_items.append({
+                "tax_name": t.get("tax_name", "Tax"),
+                "tax_percentage": t_pct,
+                "tax_amount": t_amt,
+            })
+
+        total_tax = round(total_tax, 2)
+        subtotal = taxable_amount
+        grand_total = round(subtotal + total_tax, 2)
+
+        return {
+            "booking_id": booking_id,
+            "room_charges": {
+                "room_type": room_type,
+                "room_number": room_number,
+                "daily_rate": daily_rate,
+                "nights": nights,
+                "subtotal": room_subtotal,
+                "discount_percentage": room_discount_pct,
+                "discount_amount": room_discount_amount,
+                "total": room_total,
+            },
+            "services_charges": {
+                "items": services_breakdown,
+                "subtotal": services_subtotal,
+                "discount_percentage": service_discount_pct,
+                "discount_amount": services_discount_amount,
+                "total": services_total,
+            },
+            "taxes": tax_items,
+            "subtotal": subtotal,
+            "total_tax": total_tax,
+            "grand_total": grand_total,
+            "is_updated": False,
+            "status": "PREVIEW_CALCULATED",
+            "note": "Calculated bill preview with selected services. Database records remain un-updated so this can be resolved/finalized later.",
+        }
+

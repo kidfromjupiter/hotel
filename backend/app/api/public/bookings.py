@@ -32,6 +32,7 @@ def create_customer_booking(
 
 
 from app.api.dependencies import get_current_guest
+from app.schemas.booking_flow import BillCalculationRequest, BillCalculationResponse
 
 @router.get("/")
 def get_my_bookings(
@@ -42,3 +43,31 @@ def get_my_bookings(
     if not current_guest.get("guest_id"):
         return []
     return booking_service.booking_repo.list_all_bookings(guest_id=current_guest["guest_id"])
+
+
+@router.post("/calculate-bill", response_model=BillCalculationResponse)
+@router.post("/services/calculate-bill", response_model=BillCalculationResponse)
+def calculate_bill_with_services(
+    payload: BillCalculationRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """
+    Public endpoint after room selection to add services the guest wants and calculate whole bill.
+    NOTE: Database records are intentionally NOT updated (read-only calculation/preview).
+    """
+    return booking_service.calculate_bill(payload)
+
+
+@router.post("/{booking_id}/calculate-bill", response_model=BillCalculationResponse)
+def calculate_booking_bill_with_services(
+    booking_id: int,
+    payload: BillCalculationRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """
+    Public endpoint to calculate whole bill with additional services for an existing booking.
+    NOTE: Database records are intentionally NOT updated (read-only calculation/preview).
+    """
+    payload.booking_id = booking_id
+    return booking_service.calculate_bill(payload)
+

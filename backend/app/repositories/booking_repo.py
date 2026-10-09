@@ -543,3 +543,97 @@ class BookingRepository:
             b["grand_total"] = current_total + payload.service_total
             return True
         return False
+
+    def get_service_catalog(self) -> List[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT service_id, service_name, day_rate, description FROM service_catalogue ORDER BY service_id"
+                    )
+                    rows = cursor.fetchall()
+                    if rows:
+                        return [dict(r) for r in rows]
+            except Exception:
+                pass
+        return [
+            {"service_id": 1, "service_name": "Airport Transfer", "day_rate": 5000.0, "description": "Airport Transfer"},
+            {"service_id": 2, "service_name": "Laundry", "day_rate": 1500.0, "description": "Laundry"},
+            {"service_id": 3, "service_name": "Room Service", "day_rate": 2500.0, "description": "Room Service"},
+            {"service_id": 4, "service_name": "Spa", "day_rate": 7500.0, "description": "Spa"},
+            {"service_id": 5, "service_name": "Breakfast", "day_rate": 3000.0, "description": "Breakfast"},
+            {"service_id": 6, "service_name": "Dinner", "day_rate": 4500.0, "description": "Dinner"},
+            {"service_id": 7, "service_name": "Extra Bed", "day_rate": 4000.0, "description": "Extra Bed"},
+        ]
+
+    def get_active_tax_policies(self) -> List[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT tax_id, tax_name, tax_percentage FROM tax_policies WHERE active = true ORDER BY tax_id"
+                    )
+                    rows = cursor.fetchall()
+                    if rows:
+                        return [dict(r) for r in rows]
+            except Exception:
+                pass
+        return [
+            {"tax_id": 1, "tax_name": "VAT", "tax_percentage": 15.0},
+            {"tax_id": 2, "tax_name": "Service Tax", "tax_percentage": 5.0},
+        ]
+
+    def get_guest_membership_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
+        if not phone:
+            return None
+        raw_phone = str(phone).replace("+94", "").replace(" ", "").strip()
+        if raw_phone.startswith("0"):
+            raw_phone = raw_phone[1:]
+        if not raw_phone.isdigit():
+            return None
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        """
+                        SELECT g.guest_id, g.name, m.membership_name, m.room_discount_percentage, m.service_discount_percentage
+                        FROM guests g
+                        LEFT JOIN skynest_membership m ON g.membership_id = m.membership_id
+                        WHERE g.phone_number = %s
+                        LIMIT 1
+                        """,
+                        (int(raw_phone),),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        return dict(row)
+            except Exception:
+                pass
+        return None
+
+    def get_booking_summary_for_calculation(self, booking_id: int) -> Optional[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        """
+                        SELECT b.booking_id, b.room_number, b.branch_id, b.start_date, b.end_date,
+                               b.adult_count, b.children_count, rd.room_type_id, rt.daily_rate,
+                               g.phone_number, m.room_discount_percentage, m.service_discount_percentage
+                        FROM booking b
+                        LEFT JOIN room_details rd ON b.room_number = rd.room_number AND b.branch_id = rd.branch_id
+                        LEFT JOIN room_types rt ON rd.room_type_id = rt.room_type_id
+                        LEFT JOIN guests g ON b.guest_id = g.guest_id
+                        LEFT JOIN skynest_membership m ON g.membership_id = m.membership_id
+                        WHERE b.booking_id = %s
+                        LIMIT 1
+                        """,
+                        (booking_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        return dict(row)
+            except Exception:
+                pass
+        return None
+
