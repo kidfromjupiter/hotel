@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiCalendar, HiMinus, HiPlus, HiSearch } from 'react-icons/hi';
 
 interface FormData {
@@ -65,6 +65,11 @@ export default function BookingForm({
   onSubmit,
   loading,
 }: BookingFormProps) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
 
@@ -136,6 +141,7 @@ export default function BookingForm({
                 <HiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-skynest-blue text-lg pointer-events-none" />
                 <input
                   type="date"
+                  disabled={!ready || loading}
                   value={checkIn}
                   min={today}
                   onChange={e => handleCheckInChange(e.target.value)}
@@ -158,6 +164,7 @@ export default function BookingForm({
                 <HiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-skynest-blue text-lg pointer-events-none" />
                 <input
                   type="date"
+                  disabled={!ready || loading}
                   value={checkOut}
                   min={checkIn || today}
                   onChange={e => setCheckOut(e.target.value)}
@@ -217,7 +224,7 @@ export default function BookingForm({
           {/* ── Submit ── */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={!ready || loading}
             className="w-full flex items-center justify-center gap-2 py-4 bg-skynest-blue text-white font-bold text-sm tracking-[0.15em] rounded-xl hover:bg-skynest-blue-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-skynest-blue/30"
           >
             {loading ? (
