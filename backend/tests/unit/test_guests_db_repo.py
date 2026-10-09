@@ -105,7 +105,7 @@ def test_guest_service_delegates_to_repo():
     assert svc.lookup_by_phone("0771234567")["has_membership"] is True
 
 
-def test_guests_api_endpoints(monkeypatch):
+def test_guests_api_endpoints(client, monkeypatch):
     test_guests = [
         {
             "guest_id": 1,
@@ -133,8 +133,6 @@ def test_guests_api_endpoints(monkeypatch):
     monkeypatch.setattr(GuestsRepo, "get_all_guests", lambda self, search=None: test_guests)
     monkeypatch.setattr(GuestsRepo, "get_guest_by_id", lambda self, gid: next((g for g in test_guests if g["guest_id"] == gid), None))
     monkeypatch.setattr(GuestsRepo, "get_guest_by_phone", lambda self, phone: test_guests[0])
-
-    client = TestClient(app)
 
     # 1. GET /api/v1/private/guests/
     res = client.get("/api/v1/private/guests/")

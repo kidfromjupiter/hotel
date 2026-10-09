@@ -117,7 +117,7 @@ def test_services_and_billing_service_delegation():
     assert len(b_service.list_active_stays()) == 1
 
 
-def test_services_and_billing_endpoints(monkeypatch):
+def test_services_and_billing_endpoints(client, monkeypatch):
     monkeypatch.setattr(
         ServicesRepo,
         "get_services",
@@ -167,7 +167,6 @@ def test_services_and_billing_endpoints(monkeypatch):
             "amount_paid": 55000.0,
         },
     )
-    client = TestClient(app)
 
     # 1. GET /api/v1/private/services/
     res_s = client.get("/api/v1/private/services/")
