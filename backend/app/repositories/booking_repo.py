@@ -104,6 +104,8 @@ class BookingRepository:
                         room_num = 101
 
                     guest_id = record.get("guest_id")
+                    name_val = record.get("name") or record.get("guest_name")
+                    nic_val = record.get("national_id") or record.get("nic")
                     if not guest_id and record.get("phone"):
                         try:
                             raw_phone = str(record["phone"]).replace("+94", "").replace(" ", "").strip()
@@ -114,6 +116,30 @@ class BookingRepository:
                                 grow = cursor.fetchone()
                                 if grow and grow.get("guest_id"):
                                     guest_id = grow["guest_id"]
+                                    if name_val and nic_val:
+                                        cursor.execute("UPDATE guests SET name = %s, national_id = %s WHERE guest_id = %s", (name_val, nic_val, guest_id))
+                                    elif name_val:
+                                        cursor.execute("UPDATE guests SET name = %s WHERE guest_id = %s", (name_val, guest_id))
+                                    elif nic_val:
+                                        cursor.execute("UPDATE guests SET national_id = %s WHERE guest_id = %s", (nic_val, guest_id))
+                                else:
+                                    cursor.execute("SELECT COALESCE(MAX(guest_id), 0) + 1 FROM guests")
+                                    new_gid = cursor.fetchone()["?column?"]
+                                    cursor.execute(
+                                        "INSERT INTO guests (guest_id, name, phone_number, national_id) VALUES (%s, %s, %s, %s)",
+                                        (new_gid, name_val or "Guest", int(raw_phone), nic_val),
+                                    )
+                                    guest_id = new_gid
+                        except Exception:
+                            pass
+                    elif guest_id and (name_val or nic_val):
+                        try:
+                            if name_val and nic_val:
+                                cursor.execute("UPDATE guests SET name = %s, national_id = %s WHERE guest_id = %s", (name_val, nic_val, guest_id))
+                            elif name_val:
+                                cursor.execute("UPDATE guests SET name = %s WHERE guest_id = %s", (name_val, guest_id))
+                            elif nic_val:
+                                cursor.execute("UPDATE guests SET national_id = %s WHERE guest_id = %s", (nic_val, guest_id))
                         except Exception:
                             pass
                     if not guest_id:

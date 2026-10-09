@@ -108,6 +108,30 @@ def test_create_booking_frontend_alias(client):
     assert response.json()["success"] is True
 
 
+def test_create_booking_with_name_and_national_id(client):
+    payload = {
+        "branch": "colombo",
+        "checkIn": "2026-10-20T00:00:00.000Z",
+        "checkOut": "2026-10-23T00:00:00.000Z",
+        "adults": 2,
+        "children": 0,
+        "nights": 3,
+        "roomId": "deluxe-101",
+        "roomType": "Deluxe Room",
+        "phone": "+94775551234",
+        "name": "Sunil Perera",
+        "national_id": "198812345678",
+        "totalPrice": 75000,
+        "amenityIds": [],
+        "amenities": [],
+    }
+    response = client.post("/api/v1/bookings/", json=payload)
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert response.json()["bookingRef"].startswith("SKN-")
+
+
+
 def test_list_bookings_all(client, sample_bookings):
     res = client.get("/api/v1/private/bookings/")
     assert res.status_code == 200

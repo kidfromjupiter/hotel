@@ -20,13 +20,35 @@ def create_customer_booking(
     """Public customer endpoint to complete a room reservation."""
     # If not authenticated, ensure we find or create the guest by phone
     token_to_use = current_guest
+    g_name = payload.name or payload.guest_name
+    g_nic = payload.national_id
+
     if not current_guest and payload.phone:
         guest = guest_service.lookup_by_phone(payload.phone)
         if not guest:
-            guest = guest_service.create_guest(payload.phone)
+            guest = guest_service.create_guest(
+                payload.phone,
+                name=g_name or "Guest",
+                national_id=g_nic,
+            )
+        else:
+            if g_name or g_nic:
+                guest_service.update_guest_info(
+                    guest_id=guest["guest_id"],
+                    name=g_name,
+                    national_id=g_nic,
+                )
         if guest and guest.get("guest_id"):
-            # Create a mock token just to pass the guest_id downstream
-            token_to_use = {"guest_id": guest["guest_id"], "discount_percent": 0}
+            token_to_use = {
+                "guest_id": guest["guest_id"],
+                "discount_percent": guest.get("room_discount_percentage", 0),
+            }
+    elif current_guest and (g_name or g_nic):
+        guest_service.update_guest_info(
+            guest_id=current_guest.get("guest_id"),
+            name=g_name,
+            national_id=g_nic,
+        )
 
     return booking_service.create_booking(payload, guest_token=token_to_use)
 

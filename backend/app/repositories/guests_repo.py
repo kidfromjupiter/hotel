@@ -9,7 +9,12 @@ class GuestsRepo:
     def __init__(self, db: Optional[connection] = None) -> None:
         self.db = db
 
-    def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
+    def create_guest(
+        self,
+        phone: str,
+        name: str = "Guest",
+        national_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         if self.db is not None:
             try:
                 with self.db.cursor() as cursor:
@@ -25,8 +30,8 @@ class GuestsRepo:
                     phone_int = int(v_digits) if v_digits else 0
                     
                     cursor.execute(
-                        "INSERT INTO guests (guest_id, name, phone_number) VALUES (%s, %s, %s)",
-                        (new_id, name, phone_int)
+                        "INSERT INTO guests (guest_id, name, phone_number, national_id) VALUES (%s, %s, %s, %s)",
+                        (new_id, name or "Guest", phone_int, national_id),
                     )
                 self.db.commit()
                 return self.get_guest_by_id(new_id)
@@ -34,6 +39,36 @@ class GuestsRepo:
                 print(f"Failed to create guest: {e}")
                 pass
         return None
+
+    def update_guest_info(
+        self,
+        guest_id: int,
+        name: Optional[str] = None,
+        national_id: Optional[str] = None,
+    ) -> bool:
+        if self.db is not None:
+            try:
+                with self.db.cursor() as cursor:
+                    if name and national_id:
+                        cursor.execute(
+                            "UPDATE guests SET name = %s, national_id = %s WHERE guest_id = %s",
+                            (name, national_id, guest_id),
+                        )
+                    elif name:
+                        cursor.execute(
+                            "UPDATE guests SET name = %s WHERE guest_id = %s",
+                            (name, guest_id),
+                        )
+                    elif national_id:
+                        cursor.execute(
+                            "UPDATE guests SET national_id = %s WHERE guest_id = %s",
+                            (national_id, guest_id),
+                        )
+                self.db.commit()
+                return True
+            except Exception as e:
+                print(f"Failed to update guest info: {e}")
+        return False
 
     def get_all_guests(self, search: Optional[str] = None) -> List[Dict[str, Any]]:
         if self.db is not None:

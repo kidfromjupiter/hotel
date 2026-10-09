@@ -33,6 +33,9 @@ class CreateBookingRequest(BaseModel):
     roomId: str
     roomType: Optional[str] = None
     phone: str
+    name: Optional[str] = None
+    guest_name: Optional[str] = None
+    national_id: Optional[str] = None
     totalPrice: float
     amenityIds: Optional[List[str]] = []
     amenities: Optional[List[Dict[str, Any]]] = []
