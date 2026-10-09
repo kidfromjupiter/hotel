@@ -15,6 +15,32 @@ class BookingListItem(BaseModel):
     is_member: bool = False
 
 
+class AdminReservationListItem(BaseModel):
+    booking_id: int
+    booking_ref: Optional[str] = None
+    guest_id: Optional[int] = None
+    guest_name: str
+    guest_contact: Optional[str] = None
+    room_number: int
+    room_type_id: Optional[str] = None
+    branch_id: Optional[int] = None
+    branch_name: str
+    booking_status: str
+    start_date: str
+    end_date: str
+    nights: int
+    adult_count: int
+    children_count: int
+    total_room_charges: float = 0.0
+    total_service_charges: float = 0.0
+    total_tax_amount: float = 0.0
+    grand_total: float
+    amount_paid: float
+    balance_amount: float
+    invoice_status: str
+    payment_method: str = "NONE"
+
+
 class CheckInRequest(BaseModel):
     check_in_time: Optional[str] = Field(default=None, description="Check-in time in HH:MM:SS format")
 

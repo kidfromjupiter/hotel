@@ -201,6 +201,25 @@ class BookingRepository:
             results.append(b)
         return results
 
+    def get_admin_reservations_list(
+        self,
+        branch_id: Optional[int] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT get_admin_reservations(%s, %s)",
+                        (branch_id, status),
+                    )
+                    row = cursor.fetchone()
+                    if row and "get_admin_reservations" in row and row["get_admin_reservations"] is not None:
+                        return row["get_admin_reservations"]
+            except Exception as e:
+                print(f"Error fetching admin reservations: {e}")
+        return []
+
     def update_booking(
         self, booking_id: int, updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:

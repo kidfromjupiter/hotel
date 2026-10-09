@@ -5,6 +5,7 @@ from fastapi import HTTPException, Request
 
 from app.repositories.booking_repo import BookingRepository
 from app.schemas.bookings import (
+    AdminReservationListItem,
     BookingDetailResponse,
     BookingListItem,
     CancelBookingResponse,
@@ -148,6 +149,47 @@ class BookingService:
             )
         return results
 
+    def get_admin_reservations_list(
+        self,
+        branch_id: Optional[int] = None,
+        status: Optional[str] = None,
+    ) -> List[AdminReservationListItem]:
+        bookings = self.booking_repo.get_admin_reservations_list(
+            branch_id=branch_id,
+            status=status,
+        )
+        results: List[AdminReservationListItem] = []
+
+        for b in bookings:
+            results.append(
+                AdminReservationListItem(
+                    booking_id=b.get("booking_id", 0),
+                    booking_ref=b.get("booking_ref"),
+                    guest_id=b.get("guest_id"),
+                    guest_name=b.get("guest_name", "Unknown Guest"),
+                    guest_contact=b.get("guest_contact"),
+                    room_number=b.get("room_number", 0),
+                    room_type_id=b.get("room_type_id"),
+                    branch_id=b.get("branch_id"),
+                    branch_name=b.get("branch_name", "Unknown"),
+                    booking_status=b.get("booking_status", "Confirmed"),
+                    start_date=str(b.get("start_date") or ""),
+                    end_date=str(b.get("end_date") or ""),
+                    nights=b.get("nights", 1),
+                    adult_count=b.get("adult_count", 1),
+                    children_count=b.get("children_count", 0),
+                    total_room_charges=float(b.get("total_room_charges", 0.0)),
+                    total_service_charges=float(b.get("total_service_charges", 0.0)),
+                    total_tax_amount=float(b.get("total_tax_amount", 0.0)),
+                    grand_total=float(b.get("grand_total", 0.0)),
+                    amount_paid=float(b.get("amount_paid", 0.0)),
+                    balance_amount=float(b.get("balance_amount", 0.0)),
+                    invoice_status=b.get("invoice_status", "UNPAID"),
+                    payment_method=b.get("payment_method", "NONE"),
+                )
+            )
+        return results
+
     def get_booking_by_id(self, booking_id: int) -> BookingDetailResponse:
         b = self.booking_repo.find_booking_by_id(booking_id)
         if not b:
@@ -273,6 +315,24 @@ class BookingService:
             
         self.booking_repo.add_service_to_booking(booking_id, payload)
         return self.get_booking_by_id(booking_id)
+
+    def get_pending_booking_by_id(self, booking_id: int):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if b and b.get("booking_status") in ["Confirmed", "Checked-In"]:
+            return {
+                "success": True,
+                "booking": {
+                    "id": b.get("booking_id", "TBD"),
+                    "guestName": b.get("guest_name", "Guest"),
+                    "phone": b.get("guest_phone", ""),
+                    "roomType": b.get("room_type_id", "Standard Room"),
+                    "roomNumber": b.get("room_number", "TBD"),
+                    "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
+                    "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
+                    "status": b.get("booking_status", "Confirmed")
+                }
+            }
+        return {"success": False, "message": "Booking not found or not in pending state."}
 
     def get_pending_booking_by_phone(self, phone: str):
         bookings = self.booking_repo.list_all_bookings()
