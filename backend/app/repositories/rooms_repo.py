@@ -25,3 +25,24 @@ class RoomsRepo:
                     return row["get_available_rooms"]
 
         return []
+
+    def get_all_rooms(self) -> List[Dict[str, Any]]:
+        if self.db is not None:
+            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    """
+                    SELECT 
+                        rd.room_number, 
+                        rd.room_type_id as room_type, 
+                        rd.branch_id, 
+                        b.branch_name, 
+                        rt.daily_rate, 
+                        rd.room_status 
+                    FROM room_details rd
+                    JOIN branches b ON rd.branch_id = b.branch_id
+                    JOIN room_types rt ON rd.room_type_id = rt.room_type_id
+                    ORDER BY b.branch_id, rd.room_number
+                    """
+                )
+                return cursor.fetchall()
+        return []

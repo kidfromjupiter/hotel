@@ -29,7 +29,11 @@ export default function ActiveStaysPage() {
         const checkedIn = bookingsData.filter(booking => booking.status === 'Checked-In');
         setActiveStays(checkedIn);
         setAmenities(amenitiesData);
-        setServices(servicesData);
+        setServices(servicesData.map(s => ({
+          id: s.service_id,
+          name: s.service_name,
+          price: s.day_rate
+        })));
       } catch (error) {
         console.error("Failed to fetch data:", error);
         // Fallback to empty array if backend is down

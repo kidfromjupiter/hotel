@@ -10,6 +10,13 @@ from app.services.room_service import RoomService
 
 router = APIRouter()
 
+@router.get("/all")
+def get_all_rooms(
+    room_service: RoomService = Depends(get_room_service),
+):
+    """Admin/Public endpoint to get all rooms."""
+    return room_service.get_all_rooms()
+
 
 @router.get("/")
 @router.get("/rooms")
