@@ -14,6 +14,8 @@ from app.schemas.bookings import (
     CheckInResponse,
     CheckOutRequest,
     CheckOutResponse,
+    AddServiceRequest,
+    PaymentRequest,
 )
 from app.services.booking_service import BookingService
 
@@ -81,6 +83,26 @@ def cancel_booking(
 ):
     """Staff endpoint to cancel a booking."""
     return booking_service.cancel_booking(booking_id)
+
+
+@router.post("/{booking_id}/services", response_model=BookingDetailResponse)
+def add_service(
+    booking_id: int,
+    payload: AddServiceRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Staff/Receptionist endpoint to add a service charge to a booking."""
+    return booking_service.add_service_to_booking(booking_id, payload)
+
+
+@router.post("/{booking_id}/pay")
+def process_payment(
+    booking_id: int,
+    payload: PaymentRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Staff/Receptionist endpoint to process a payment against an invoice."""
+    return booking_service.process_payment(booking_id, payload)
 
 
 @router.post("/verify-otp")

@@ -87,6 +87,10 @@ export default function PhoneOTPForm({ bookingData, onBack, onComplete }: PhoneC
         toast.success('Phone verified successfully!');
       }
 
+      if (verifyRes.token) {
+        localStorage.setItem('guest_token', verifyRes.token);
+      }
+
       // 2. Once verified, finalize the booking
       const bookingRes = await createBooking({ ...bookingData, phone: fullPhone });
       if (!bookingRes.success) {

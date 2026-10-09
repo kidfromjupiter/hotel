@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalendar, HiX } from 'react-icons/hi';
-import { getAllBookings, getBill, checkInGuest, checkOutGuest, cancelBooking, addServiceToBooking, addAmenityToBooking, extendStay, getAmenities, getServices } from '@/lib/api';
+import { getAllBookings, getBill, checkInGuest, checkOutGuest, cancelBooking, addServiceToBooking, addAmenityToBooking, extendStay, getAmenities, getServices, processPayment } from '@/lib/api';
 import type { StaffBooking, InvoiceSummary, ServiceCatalogueItem } from '@/lib/types';
 
 
@@ -15,6 +15,11 @@ export default function ActiveStaysPage() {
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
+  const [serviceDays, setServiceDays] = useState(1);
+  const [serviceQty, setServiceQty] = useState(1);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,9 +58,31 @@ export default function ActiveStaysPage() {
     try {
       const billData = await getBill(selectedStay.bookingId);
       setInvoice(billData);
+      setPaymentAmount(Math.max(0, billData.grandTotal - billData.amountPaid));
     } catch (error) {
       console.error("Failed to fetch bill", error);
       alert("Could not fetch bill details from the server.");
+    }
+  };
+
+  const handleProcessPayment = async () => {
+    if (!selectedStay || !invoice || paymentAmount <= 0) return;
+    setIsProcessingPayment(true);
+    try {
+      const result = await processPayment(selectedStay.bookingId, paymentAmount, paymentMethod);
+      if (result.success) {
+        alert('Payment processed successfully!');
+        // Refresh bill
+        const billData = await getBill(selectedStay.bookingId);
+        setInvoice(billData);
+        setPaymentAmount(Math.max(0, billData.grandTotal - billData.amountPaid));
+      } else {
+        alert(`Payment failed: ${result.message}`);
+      }
+    } catch (err) {
+      alert('Error processing payment.');
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -98,15 +125,18 @@ export default function ActiveStaysPage() {
   const handleAddService = async (service: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
-      const result = await addServiceToBooking(selectedStay.bookingId, service.id);
+      const total = service.price * serviceDays * serviceQty;
+      const result = await addServiceToBooking(selectedStay.bookingId, service.name, total, serviceDays, serviceQty);
       if (result.success) {
-        // alert(`Successfully added ${service.name} to guest's tab!`);
+        alert(`Successfully added ${serviceQty}x ${service.name} (${serviceDays} days) to guest's tab!`);
         setActiveModal('NONE');
+        setServiceDays(1);
+        setServiceQty(1);
       } else {
-        console.error(`Failed: ${result.message}`);
+        alert(`Failed: ${result.message}`);
       }
     } catch (err) {
-      console.error('Error connecting to the database to add service.');
+      alert('Error connecting to the database to add service.');
     }
   };
 
@@ -285,7 +315,18 @@ export default function ActiveStaysPage() {
               {/* Services Modal Content */}
               {activeModal === 'SERVICES' && (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-500 mb-4">Select a service to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">service_charges</code>).</p>
+                  <p className="text-sm text-gray-500 mb-2">Select a service to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">service_charges</code>).</p>
+                  
+                  <div className="flex gap-4 mb-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-500 mb-1">Days</label>
+                      <input type="number" min="1" value={serviceDays} onChange={e => setServiceDays(parseInt(e.target.value) || 1)} className="w-full p-2 border-2 border-gray-200 rounded-xl font-bold focus:border-skynest-blue focus:outline-none" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-gray-500 mb-1">Quantity</label>
+                      <input type="number" min="1" value={serviceQty} onChange={e => setServiceQty(parseInt(e.target.value) || 1)} className="w-full p-2 border-2 border-gray-200 rounded-xl font-bold focus:border-skynest-blue focus:outline-none" />
+                    </div>
+                  </div>
                   {services.map(s => (
                     <button key={s.id} onClick={() => handleAddService(s)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
                       <span className="font-bold text-skynest-navy">{s.name}</span>
@@ -348,18 +389,33 @@ export default function ActiveStaysPage() {
 
                       <div>
                         <label className="block text-xs font-bold text-gray-500 mb-2">Payment Method</label>
-                        <select className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue">
+                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue">
                           <option>Credit Card</option>
                           <option>Cash</option>
                         </select>
                       </div>
+                      
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">Amount to Pay (LKR)</label>
+                        <input type="number" min="0" value={paymentAmount} onChange={e => setPaymentAmount(parseFloat(e.target.value) || 0)} className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue" />
+                      </div>
+
+                      {invoice.grandTotal - invoice.amountPaid > 0 && (
+                        <button 
+                          onClick={handleProcessPayment} 
+                          disabled={isProcessingPayment || paymentAmount <= 0}
+                          className="w-full py-4 bg-skynest-blue text-white font-black uppercase tracking-widest rounded-xl hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/30 disabled:opacity-50 mb-2"
+                        >
+                          {isProcessingPayment ? 'Processing...' : 'Process Payment'}
+                        </button>
+                      )}
 
                       <button 
                         onClick={handleCheckout} 
-                        disabled={isCheckingOut}
-                        className="w-full py-4 bg-green-500 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50"
+                        disabled={isCheckingOut || invoice.grandTotal - invoice.amountPaid > 0}
+                        className="w-full py-4 bg-green-500 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:bg-gray-400 disabled:shadow-none"
                       >
-                        {isCheckingOut ? 'Processing...' : 'Complete Checkout'}
+                        {isCheckingOut ? 'Processing...' : (invoice.grandTotal - invoice.amountPaid > 0 ? 'Payment Required to Checkout' : 'Complete Checkout')}
                       </button>
                     </>
                   )}

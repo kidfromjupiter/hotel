@@ -274,6 +274,17 @@ class BookingService:
         self.booking_repo.add_service_to_booking(booking_id, payload)
         return self.get_booking_by_id(booking_id)
 
+    def process_payment(self, booking_id: int, payload: Any):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+            
+        success = self.booking_repo.process_payment(booking_id, payload.amount, payload.method)
+        if not success:
+            raise HTTPException(status_code=500, detail="Payment processing failed.")
+            
+        return {"success": True, "message": "Payment processed successfully.", "amount_paid": payload.amount}
+
     def get_pending_booking_by_phone(self, phone: str):
         bookings = self.booking_repo.list_all_bookings()
         for b in bookings:

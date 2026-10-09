@@ -3,6 +3,8 @@ import string
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
+
+
 from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
 
@@ -94,7 +96,12 @@ class BookingRepository:
                     branch_val = record.get("branch", "colombo")
                     branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
 
-                    room_num = record.get("room_number", 101)
+                    raw_room = record.get("room_number") or record.get("roomId", 101)
+                    try:
+                        room_num = int(str(raw_room).replace("room-", "").split("-")[0])
+                    except ValueError:
+                        room_num = 101
+
                     guest_id = record.get("guest_id", 1)
                     status = record.get("booking_status", "Confirmed")
 
@@ -128,10 +135,11 @@ class BookingRepository:
                 self.db.commit()
             except Exception as e:
                 print(f"Exception in save_booking: {e}")
-                import traceback
-                traceback.print_exc()
                 if self.db:
                     self.db.rollback()
+                # standard Python error
+                raise RuntimeError(f"Database insertion failed: {str(e)}")
+
         else:
             if "booking_id" not in record or not record["booking_id"]:
                 record["booking_id"] = BookingRepository._shared_next_id
@@ -215,6 +223,17 @@ class BookingRepository:
                         (booking_id, status, check_in_time, check_out_time),
                     )
                     row = cursor.fetchone()
+                    
+                    if status in ["Checked-In", "Checked-Out", "Cancelled"]:
+                        cursor.execute("SELECT room_number, branch_id FROM booking WHERE booking_id = %s", (booking_id,))
+                        b_row = cursor.fetchone()
+                        if b_row:
+                            new_room_status = "OCCUPIED" if status == "Checked-In" else "AVAILABLE"
+                            cursor.execute(
+                                "UPDATE room_details SET room_status = %s WHERE room_number = %s AND branch_id = %s",
+                                (new_room_status, b_row["room_number"], b_row["branch_id"])
+                            )
+                            
                     if row and "update_booking_status" in row and row["update_booking_status"] is not None:
                         updated_db = row["update_booking_status"]
                         # Also sync in-memory record
@@ -503,6 +522,44 @@ class BookingRepository:
             ]
 
     def add_service_to_booking(self, booking_id: int, payload):
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    # 1. Look up or create the service in catalogue
+                    cursor.execute("SELECT service_id FROM service_catalogue WHERE LOWER(service_name) = LOWER(%s)", (payload.service_name,))
+                    srv = cursor.fetchone()
+                    if srv:
+                        service_id = srv["service_id"]
+                    else:
+                        cursor.execute("SELECT COALESCE(MAX(service_id), 0) + 1 AS new_id FROM service_catalogue")
+                        service_id = cursor.fetchone()["new_id"]
+                        rate = payload.service_total / max(1, payload.service_dates)
+                        cursor.execute(
+                            "INSERT INTO service_catalogue (service_id, service_name, day_rate) VALUES (%s, %s, %s)",
+                            (service_id, payload.service_name, rate)
+                        )
+                    
+                    # 2. Insert into service_charges
+                    cursor.execute("SELECT COALESCE(MAX(service_log_id), 0) + 1 AS new_id FROM service_charges")
+                    log_id = cursor.fetchone()["new_id"]
+                    cursor.execute(
+                        "INSERT INTO service_charges (service_log_id, booking_id, service_id, service_dates, service_total) VALUES (%s, %s, %s, %s, %s)",
+                        (log_id, booking_id, service_id, payload.service_dates, payload.service_total)
+                    )
+                    
+                    # 3. Update grand_total in billing_summary
+                    cursor.execute(
+                        "UPDATE billing_summary SET grand_total = grand_total + %s, total_service_charges = total_service_charges + %s WHERE booking_id = %s",
+                        (payload.service_total, payload.service_total, booking_id)
+                    )
+                self.db.commit()
+            except Exception as e:
+                print(f"Exception in add_service_to_booking: {e}")
+                if self.db:
+                    self.db.rollback()
+                raise RuntimeError(f"Database insertion failed: {str(e)}")
+
+        # Fallback / sync for in-memory list
         b = self.find_booking_by_id(booking_id)
         if b:
             if "service_charges" not in b:
@@ -518,5 +575,35 @@ class BookingRepository:
             # Update grand total
             current_total = b.get("grand_total", 0.0)
             b["grand_total"] = current_total + payload.service_total
+            return True
+        return False
+
+    def process_payment(self, booking_id: int, amount: float, method: str):
+        if self.db is not None:
+            try:
+                with self.db.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE billing_summary 
+                        SET amount_paid = amount_paid + %s,
+                            payment_method = %s,
+                            payment_status = CASE 
+                                WHEN (amount_paid + %s) >= grand_total THEN 'PAID' 
+                                WHEN (amount_paid + %s) > 0 THEN 'PARTIAL'
+                                ELSE 'UNPAID' 
+                            END
+                        WHERE booking_id = %s
+                    """, (amount, method, amount, amount, booking_id))
+                self.db.commit()
+            except Exception as e:
+                print(f"Exception in process_payment: {e}")
+                if self.db:
+                    self.db.rollback()
+                raise RuntimeError(f"Database payment update failed: {str(e)}")
+        
+        # In-memory sync
+        b = self.find_booking_by_id(booking_id)
+        if b:
+            b["amount_paid"] = b.get("amount_paid", 0.0) + amount
+            b["invoice_status"] = "PAID" if b["amount_paid"] >= b.get("grand_total", 0.0) else "PARTIAL"
             return True
         return False

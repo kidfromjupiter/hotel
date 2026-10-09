@@ -225,20 +225,7 @@ export async function getActiveStays(): Promise<any[]> {
   });
 }
 
-/**
- * POST /api/v1/bookings/{booking_id}/services
- * Adds a service to the guest's tab.
- */
-export async function addServiceToTab(bookingId: number, serviceName: string, serviceTotal: number): Promise<any> {
-  return request<any>(`/api/v1/bookings/${bookingId}/services`, {
-    method: 'POST',
-    body: JSON.stringify({
-      service_name: serviceName,
-      service_total: serviceTotal,
-      service_dates: 1
-    }),
-  });
-}
+
 
 /**
  * GET /api/v1/booking/
@@ -380,9 +367,39 @@ export async function cancelBooking(bookingId: number): Promise<{ success: boole
   }
 }
 
-// These endpoints are not yet implemented in the backend — kept as stubs
-export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
+export async function addServiceToBooking(
+  bookingId: number, 
+  serviceName: string, 
+  serviceTotal: number, 
+  days: number, 
+  quantity: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await request(`/api/v1/bookings/${bookingId}/services`, {
+      method: 'POST',
+      body: JSON.stringify({
+        service_name: serviceName,
+        service_total: serviceTotal,
+        service_dates: days,
+        quantity: quantity
+      }),
+    });
+    return { success: true, message: 'Service added successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Failed to add service' };
+  }
+}
+
+export async function processPayment(bookingId: number, amount: number, method: string): Promise<{ success: boolean; message: string }> {
+  try {
+    await request(`/api/v1/bookings/${bookingId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, method }),
+    });
+    return { success: true, message: 'Payment processed successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Payment failed' };
+  }
 }
 
 export async function addAmenityToBooking(bookingId: number, amenityId: number): Promise<{ success: boolean; message: string }> {
