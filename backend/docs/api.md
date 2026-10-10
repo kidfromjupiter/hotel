@@ -302,10 +302,7 @@ Create a new room booking.
   "start_date": "2026-10-01",
   "end_date": "2026-10-05",
   "adult_count": 2,
-  "children_count": 0,
-  "extra_amenities": [
-    { "amenity_id": 3, "quantity": 2 }
-  ]
+  "children_count": 0
 }
 ```
 
@@ -318,7 +315,6 @@ Create a new room booking.
 | `end_date`        | `date`       | Yes      | Check-out date (`YYYY-MM-DD`)                  |
 | `adult_count`     | `int`        | Yes      | Number of adults                               |
 | `children_count`  | `int`        | Yes      | Number of children                             |
-| `extra_amenities` | `array`      | No       | Additional amenities requested                 |
 
 **Response** `201 Created`
 ```json
@@ -348,7 +344,6 @@ Create a new room booking.
   - `STANDARD` / `DELUXE` → max 2 people
   - `FAMILY` / `FAMILY_DELUXE` → max 5 people
 - Sets initial `booking_status` to `Confirmed`.
-- Saves any extra amenities requested into `booking_extra_amenities`.
 
 ---
 

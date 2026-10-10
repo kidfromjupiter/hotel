@@ -1,11 +1,3 @@
-def test_public_amenities_route(client):
-    res = client.get("/api/v1/public/amenities?branch=colombo")
-    assert res.status_code == 200
-    data = res.json()
-    assert "amenities" in data
-    assert len(data["amenities"]) > 0
-
-
 def test_public_otp_routes(client, otp_service):
     # Test send OTP
     res_send = client.post("/api/v1/public/otp/send", json={"phone": "+94771234567"})
@@ -36,8 +28,6 @@ def test_public_create_booking_flow(client, booking_repo):
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
-        "amenityIds": [],
-        "amenities": [],
     }
     res = client.post("/api/v1/public/bookings/", json=booking_payload)
     assert res.status_code == 200

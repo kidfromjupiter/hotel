@@ -43,7 +43,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
        └─ /booking/colombo ← Multi-step wizard:
        └─ /booking/kandy       Step 1: Check-in / Check-out / Guests
        └─ /booking/galle       Step 2: Available rooms (from backend)
-                               Step 3: Optional amenities
+                               Step 3: Booking summary
                                Step 4: Phone number → OTP verification
                                Step 5: Booking confirmation + OTP reminder
 ```
@@ -57,7 +57,6 @@ The frontend calls these endpoints (base URL from `NEXT_PUBLIC_API_URL`):
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/rooms/availability` | Check available rooms |
-| `GET` | `/api/amenities?branch=<b>` | Fetch add-on amenities |
 | `POST` | `/api/otp/send` | Send OTP to phone |
 | `POST` | `/api/otp/verify` | Verify OTP |
 | `POST` | `/api/booking/create` | Create booking record |
@@ -128,7 +127,6 @@ Response: `{ "success": true, "message": "OTP sent" }`
   "roomType": "Standard Room",
   "nights": 4,
   "totalPrice": 80000,
-  "amenityIds": ["breakfast", "airport"],
   "phone": "+94771234567"
 }
 ```
@@ -156,7 +154,6 @@ skynest/
 │   ├── BookingWizard.tsx          # ★ Main multi-step booking wizard
 │   ├── BookingForm.tsx            # Step 1 — dates + guests
 │   ├── RoomCard.tsx               # Step 2 — individual room card
-│   ├── AmenitiesSelector.tsx      # Step 3 — optional add-ons
 │   ├── PhoneOTPForm.tsx           # Step 4 — phone + OTP + create booking
 │   └── BookingSummary.tsx         # Step 5 — final summary
 ├── lib/

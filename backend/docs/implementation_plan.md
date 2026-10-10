@@ -77,7 +77,7 @@ def test_create_booking_prevents_double_booking(mocker):
 ### 3. Bookings (`/api/v1/bookings`)
 | Method | Endpoint | Description | Request Params / Body | Response |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/bookings` | Create a new booking (checks overlap) | Body: `BookingCreateRequest` (`room_number`, `branch_id`, `guest_id`, `start_date`, `end_date`, `adult_count`, `children_count`, `extra_amenities`) | `BookingResponse` (201 Created) |
+| `POST` | `/api/v1/bookings` | Create a new booking (checks overlap) | Body: `BookingCreateRequest` (`room_number`, `branch_id`, `guest_id`, `start_date`, `end_date`, `adult_count`, `children_count`) | `BookingResponse` (201 Created) |
 | `GET` | `/api/v1/bookings` | List bookings | Query: `branch_id`, `guest_id`, `status`, `start_date`, `end_date` | `List[BookingResponse]` |
 | `GET` | `/api/v1/bookings/{booking_id}` | Retrieve booking details, services used, billing | Path param: `booking_id` | `BookingDetailResponse` |
 | `POST` | `/api/v1/bookings/{booking_id}/check-in` | Guest check-in: records `checked_in_time`, sets room to `Occupied`, booking to `Checked-In` | Path param: `booking_id`, Body: Optional `{ "check_in_time": time }` | `BookingResponse` |

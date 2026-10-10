@@ -43,18 +43,6 @@ def test_services_repo_calls_db():
     assert charge_res["success"] is True
     assert "add_service_to_booking" in mock_cursor.execute.call_args[0][0]
 
-    # 3. add_extra_amenity
-    mock_cursor.fetchone.return_value = {
-        "add_extra_amenity_to_booking": {
-            "success": True,
-            "message": "Extra amenity added",
-        }
-    }
-    amenity_res = s_repo.add_extra_amenity(booking_id=101, amenity_id=2, quantity=1)
-    assert amenity_res["success"] is True
-    assert "add_extra_amenity_to_booking" in mock_cursor.execute.call_args[0][0]
-
-
 def test_billing_repo_calls_db():
     mock_db = MagicMock()
     mock_cursor = MagicMock()
@@ -134,17 +122,6 @@ def test_services_and_billing_endpoints(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        ServicesRepo,
-        "add_extra_amenity",
-        lambda self, booking_id, amenity_id, quantity=1: {
-            "success": True,
-            "message": "Extra amenity added successfully",
-            "booking_id": booking_id,
-            "amenity_id": amenity_id,
-            "quantity": quantity,
-        },
-    )
-    monkeypatch.setattr(
         BillingRepo,
         "get_all_invoices",
         lambda self, payment_status=None: [{"invoice_id": "inv-001", "payment_status": "PAID"}],
@@ -182,25 +159,17 @@ def test_services_and_billing_endpoints(monkeypatch):
     assert res_charge.status_code == 200
     assert res_charge.json()["success"] is True
 
-    # 3. POST /api/v1/private/services/amenities/extra
-    res_extra = client.post(
-        "/api/v1/private/services/amenities/extra",
-        json={"booking_id": 9921, "amenity_id": 1, "quantity": 2},
-    )
-    assert res_extra.status_code == 200
-    assert res_extra.json()["success"] is True
-
-    # 4. GET /api/v1/private/billing/invoices
+    # 3. GET /api/v1/private/billing/invoices
     res_inv = client.get("/api/v1/private/billing/invoices")
     assert res_inv.status_code == 200
     assert len(res_inv.json()) >= 1
 
-    # 5. GET /api/v1/private/billing/stays/active
+    # 4. GET /api/v1/private/billing/stays/active
     res_stays = client.get("/api/v1/private/billing/stays/active")
     assert res_stays.status_code == 200
     assert len(res_stays.json()) >= 1
 
-    # 6. POST /api/v1/private/billing/checkout
+    # 5. POST /api/v1/private/billing/checkout
     res_co = client.post(
         "/api/v1/private/billing/checkout",
         json={"booking_id": 9921, "payment_method": "CREDIT_CARD"},

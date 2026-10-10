@@ -21,20 +21,6 @@ class BookingService:
     def __init__(self, *, booking_repo: BookingRepository):
         self.booking_repo = booking_repo
 
-    def get_amenities(self, branch: str = "colombo") -> Dict[str, Any]:
-        branch_clean = branch.lower() if branch else "colombo"
-        if self.booking_repo.db is not None:
-            try:
-                from psycopg2.extras import RealDictCursor
-                with self.booking_repo.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute("SELECT get_branch_amenities(%s)", (branch_clean,))
-                    row = cursor.fetchone()
-                    if row and "get_branch_amenities" in row and row["get_branch_amenities"]:
-                        return {"amenities": row["get_branch_amenities"]}
-            except Exception:
-                pass
-        return {"amenities": []}
-
     def create_booking(self, request: Any, guest_token: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if hasattr(request, "model_dump"):
             booking_dict = request.model_dump()

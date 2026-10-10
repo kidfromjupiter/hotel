@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalendar, HiX } from 'react-icons/hi';
-import { getAllBookings, getBill, checkInGuest, checkOutGuest, cancelBooking, addServiceToBooking, addAmenityToBooking, extendStay, getAmenities, getServices } from '@/lib/api';
-import type { StaffBooking, InvoiceSummary, ServiceCatalogueItem } from '@/lib/types';
+import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, extendStay, getServices } from '@/lib/api';
+import type { StaffBooking, InvoiceSummary } from '@/lib/types';
 
 
 export default function ActiveStaysPage() {
   const [selectedStay, setSelectedStay] = useState<StaffBooking | null>(null);
   const [activeStays, setActiveStays] = useState<StaffBooking[]>([]);
-  const [amenities, setAmenities] = useState<Array<{ id: number; name: string; price: number }>>([]);
   const [services, setServices] = useState<Array<{ id: number; name: string; price: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
@@ -19,16 +18,14 @@ export default function ActiveStaysPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [bookingsData, amenitiesData, servicesData] = await Promise.all([
+        const [bookingsData, servicesData] = await Promise.all([
           getAllBookings(),
-          getAmenities(),
           getServices()
         ]);
         
         // Backend returns all bookings, we only want those Checked-In for this specific view
         const checkedIn = bookingsData.filter(booking => booking.status === 'CHECKED_IN');
         setActiveStays(checkedIn);
-        setAmenities(amenitiesData);
         setServices(servicesData.map(s => ({
           id: s.service_id,
           name: s.service_name,
@@ -38,7 +35,6 @@ export default function ActiveStaysPage() {
         console.error("Failed to fetch data:", error);
         // Fallback to empty array if backend is down
         setActiveStays([]); 
-        setAmenities([]);
         setServices([]);
       } finally {
         setIsLoading(false);
@@ -48,7 +44,7 @@ export default function ActiveStaysPage() {
   }, []);
   
   // Modals state
-  const [activeModal, setActiveModal] = useState<'NONE' | 'AMENITIES' | 'SERVICES' | 'EXTEND' | 'BILLING'>('NONE');
+  const [activeModal, setActiveModal] = useState<'NONE' | 'SERVICES' | 'EXTEND' | 'BILLING'>('NONE');
 
   const handleOpenBilling = async () => {
     if (!selectedStay) return;
@@ -81,21 +77,6 @@ export default function ActiveStaysPage() {
       alert('Checkout failed! Database rejected the transaction (Does the guest still owe money?).');
     } finally {
       setIsCheckingOut(false);
-    }
-  };
-
-  const handleAddAmenity = async (amenity: { id: number; name: string; price: number }) => {
-    if (!selectedStay) return;
-    try {
-      const result = await addAmenityToBooking(selectedStay.bookingId, amenity.id);
-      if (result.success) {
-        alert(`Successfully added ${amenity.name} to guest's tab!`);
-        setActiveModal('NONE');
-      } else {
-        alert(`Failed: ${result.message}`);
-      }
-    } catch (err) {
-      alert('Error connecting to the database to add amenity.');
     }
   };
 
@@ -202,14 +183,10 @@ export default function ActiveStaysPage() {
                 {/* Action Buttons */}
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 tracking-widest uppercase mb-4">Add to Tab</h3>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
                       Services
-                    </button>
-                    <button onClick={() => setActiveModal('AMENITIES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
-                      <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
-                      Amenities
                     </button>
                     <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
                       <HiOutlineCalendar size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
@@ -233,7 +210,7 @@ export default function ActiveStaysPage() {
                 <HiOutlineUserGroup size={48} className="opacity-50" />
               </div>
               <p className="font-bold text-lg text-skynest-navy">No Stay Selected</p>
-              <p className="text-sm mt-2 text-center max-w-xs">Select a checked-in guest from the list to manage their stay, add amenities, or process checkout.</p>
+              <p className="text-sm mt-2 text-center max-w-xs">Select a checked-in guest from the list to manage their stay, add services, or process checkout.</p>
             </div>
           )}
         </div>
@@ -252,7 +229,6 @@ export default function ActiveStaysPage() {
             
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
               <h2 className="font-black text-xl text-skynest-navy">
-                {activeModal === 'AMENITIES' && 'Add Extra Amenity'}
                 {activeModal === 'SERVICES' && 'Add Room Service'}
                 {activeModal === 'EXTEND' && 'Extend Stay'}
                 {activeModal === 'BILLING' && 'Final Billing Summary'}
@@ -273,19 +249,6 @@ export default function ActiveStaysPage() {
 
             <div className="p-6">
               
-              {/* Amenities Modal Content */}
-              {activeModal === 'AMENITIES' && (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-500 mb-4">Select an amenity to add to the guest's tab (updates <code className="text-xs bg-gray-100 px-1 rounded">booking_extra_amenities</code>).</p>
-                  {amenities.map(a => (
-                    <button key={a.id} onClick={() => handleAddAmenity(a)} className="w-full flex justify-between items-center p-4 border-2 border-gray-100 rounded-xl hover:border-skynest-blue hover:bg-skynest-blue-pale transition-colors text-left">
-                      <span className="font-bold text-skynest-navy">{a.name}</span>
-                      <span className="font-black text-skynest-blue">LKR {a.price}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
               {/* Services Modal Content */}
               {activeModal === 'SERVICES' && (
                 <div className="space-y-3">
@@ -336,7 +299,6 @@ export default function ActiveStaysPage() {
                     <>
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2 text-sm">
                         <div className="flex justify-between"><span className="text-gray-500">Room Charges</span><span className="font-bold">LKR {invoice.totalRoomCharges.toLocaleString()}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500">Extra Amenities</span><span className="font-bold">LKR {invoice.totalAmenityCharges.toLocaleString()}</span></div>
                         <div className="flex justify-between"><span className="text-gray-500">Room Services</span><span className="font-bold">LKR {invoice.totalServiceCharges.toLocaleString()}</span></div>
                         <div className="flex justify-between"><span className="text-gray-500">Taxes</span><span className="font-bold">LKR {invoice.totalTaxAmount.toLocaleString()}</span></div>
                         

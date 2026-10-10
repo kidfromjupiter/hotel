@@ -57,16 +57,6 @@ def test_create_booking_success(client, booking_repo):
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
-        "amenityIds": ["airport-pickup"],
-        "amenities": [
-            {
-                "id": "airport-pickup",
-                "name": "Airport Pickup",
-                "price": 5000,
-                "icon": "car",
-                "description": "Luxury car transfer",
-            }
-        ],
     }
 
     response = client.post("/api/v1/bookings/", json=booking_payload)
@@ -100,8 +90,6 @@ def test_create_booking_frontend_alias(client):
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
-        "amenityIds": [],
-        "amenities": [],
     }
     response = client.post("/api/v1/booking/create", json=booking_payload)
     assert response.status_code == 200
