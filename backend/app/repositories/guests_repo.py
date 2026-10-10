@@ -9,7 +9,13 @@ class GuestsRepo:
     def __init__(self, db: Optional[connection] = None) -> None:
         self.db = db
 
-    def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
+    def create_guest(
+        self,
+        phone: str,
+        name: str = "Guest",
+        national_id: Optional[str] = None,
+        email: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         if self.db is not None:
             try:
                 with self.db.cursor() as cursor:
@@ -25,8 +31,8 @@ class GuestsRepo:
                     phone_int = int(v_digits) if v_digits else 0
                     
                     cursor.execute(
-                        "INSERT INTO guests (guest_id, name, phone_number) VALUES (%s, %s, %s)",
-                        (new_id, name, phone_int)
+                        "INSERT INTO guests (guest_id, name, phone_number, national_id, email) VALUES (%s, %s, %s, %s, %s)",
+                        (new_id, name or "Guest", phone_int, national_id, email),
                     )
                 self.db.commit()
                 return self.get_guest_by_id(new_id)
@@ -34,6 +40,37 @@ class GuestsRepo:
                 print(f"Failed to create guest: {e}")
                 pass
         return None
+
+    def update_guest_info(
+        self,
+        guest_id: int,
+        name: Optional[str] = None,
+        national_id: Optional[str] = None,
+        email: Optional[str] = None,
+    ) -> bool:
+        if self.db is not None:
+            try:
+                with self.db.cursor() as cursor:
+                    updates = []
+                    params = []
+                    if name:
+                        updates.append("name = %s")
+                        params.append(name)
+                    if national_id:
+                        updates.append("national_id = %s")
+                        params.append(national_id)
+                    if email:
+                        updates.append("email = %s")
+                        params.append(email)
+                    if updates:
+                        params.append(guest_id)
+                        sql = f"UPDATE guests SET {', '.join(updates)} WHERE guest_id = %s"
+                        cursor.execute(sql, tuple(params))
+                self.db.commit()
+                return True
+            except Exception as e:
+                print(f"Failed to update guest info: {e}")
+        return False
 
     def get_all_guests(self, search: Optional[str] = None) -> List[Dict[str, Any]]:
         if self.db is not None:

@@ -42,6 +42,10 @@ export interface Room {
   membershipPrice?: number;
   /** Discount percentage for members */
   membershipDiscount?: number;
+  /** Number of physical rooms of this type currently available */
+  roomsLeft?: number;
+  /** List of specific available rooms of this type */
+  availableRooms?: Room[];
 }
 
 /** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */
@@ -112,6 +116,9 @@ export interface VerifyOTPPayload {
 export interface VerifyOTPResponse {
   success: boolean;
   message: string;
+  token?: string;
+  guest_id?: number | null;
+  has_membership?: boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -128,6 +135,12 @@ export interface CreateBookingPayload {
   roomType: string;
   totalPrice: number;
   phone: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  nationalId?: string;
+  specialRequests?: string;
 }
 
 export interface CreateBookingResponse {
@@ -150,6 +163,11 @@ export interface BookingWizardState {
   nights: number;
   selectedRoom: Room | null;
   phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  nationalId?: string;
+  specialRequests?: string;
   bookingRef: string;
   hasMembership: boolean;
   totalPrice: number;
@@ -201,6 +219,23 @@ export interface InvoiceSummary {
   grandTotal: number;
   amountPaid: number;
   paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+}
+
+//  Staff Authentication
+// ─────────────────────────────────────────────
+export interface StaffUser {
+  staff_id: number;
+  branch_id: number | null;
+  username: string;
+  full_name: string;
+  role: 'admin' | 'receptionist';
+  is_active: boolean;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: StaffUser;
 }
 
 // ─────────────────────────────────────────────
