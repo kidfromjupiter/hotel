@@ -13,6 +13,7 @@ from app.schemas.auth import StaffUser
 from app.schemas.booking_flow import CheckInOTPRequest
 from app.services.otp_service import OTPService
 from app.schemas.bookings import (
+    AdminReservationListItem,
     BookingDetailResponse,
     BookingListItem,
     CancelBookingResponse,
@@ -48,6 +49,19 @@ def list_bookings(
         status=status,
         start_date=start_date,
         end_date=end_date,
+    )
+
+
+@router.get("/admin-reservations", response_model=List[AdminReservationListItem])
+def get_admin_reservations(
+    branch_id: Optional[int] = Query(None, description="Filter by branch ID"),
+    status: Optional[str] = Query(None, description="Filter by booking status"),
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Admin endpoint to search and filter bookings with financial info."""
+    return booking_service.get_admin_reservations_list(
+        branch_id=branch_id,
+        status=status,
     )
 
 
@@ -97,7 +111,14 @@ def verify_otp(
     otp_service: OTPService = Depends(get_otp_service),
     booking_service: BookingService = Depends(get_booking_service)
 ):
-    """Receptionist endpoint to look up pending bookings by OTP."""
+    """Receptionist endpoint to look up pending bookings by OTP or Booking Ref."""
+    if payload.otp.startswith("BKG-"):
+        booking_id_str = payload.otp.replace("BKG-", "")
+        if booking_id_str.isdigit():
+            booking_id = int(booking_id_str)
+            return booking_service.get_pending_booking_by_id(booking_id)
+        return {"success": False, "message": "Invalid booking reference format."}
+
     phone = otp_service.find_phone_by_otp(payload.otp)
     if phone is None:
         return {"success": False, "message": "Invalid OTP or booking not found."}

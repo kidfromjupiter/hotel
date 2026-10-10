@@ -14,3 +14,6 @@ class RoomService:
         return self.repo.get_rooms(
             check_in, check_out, branch.lower(), children, adults
         )
+
+    def get_all_rooms(self):
+        return self.repo.get_all_rooms()

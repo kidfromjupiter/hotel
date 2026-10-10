@@ -242,6 +242,32 @@ export interface LoginResponse {
 //  MANAGEMENT UI (ADMIN) TYPES
 // ─────────────────────────────────────────────
 
+export interface AdminReservationListItem {
+  booking_id: number;
+  booking_ref: string | null;
+  guest_id: number | null;
+  guest_name: string;
+  guest_contact: string | null;
+  room_number: number;
+  room_type_id: string | null;
+  branch_id: number | null;
+  branch_name: string;
+  booking_status: string;
+  start_date: string;
+  end_date: string;
+  nights: number;
+  adult_count: number;
+  children_count: number;
+  total_room_charges: number;
+  total_service_charges: number;
+  total_tax_amount: number;
+  grand_total: number;
+  amount_paid: number;
+  balance_amount: number;
+  invoice_status: string;
+  payment_method: string;
+}
+
 export interface AdminBranch {
   id: number;
   name: string;

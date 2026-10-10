@@ -15,10 +15,10 @@ export default function AdminServicesPage() {
       // API currently just returns id, name, price. 
       // We map these to the structure expected by the UI.
       const formatted = data.map(s => ({
-        id: s.id,
-        name: s.name,
+        id: s.service_id,
+        name: s.service_name,
         category: 'General', // default category
-        price: `$${s.price}`,
+        price: `LKR ${s.day_rate}`,
         status: 'Active'
       }));
       setServices(formatted);
