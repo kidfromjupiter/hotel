@@ -151,7 +151,7 @@ class BookingService:
                     guest_name=b.get("guest_name", "Guest"),
                     room_number=b.get("room_number", 101),
                     branch_name=b.get("branch_name", "Colombo"),
-                    booking_status=b.get("booking_status", "Confirmed"),
+                    booking_status=b.get("booking_status", "CONFIRMED"),
                     start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
                     end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
                     guest_phone=b.get("guest_phone", "N/A"),
@@ -183,7 +183,7 @@ class BookingService:
                     room_type_id=b.get("room_type_id"),
                     branch_id=b.get("branch_id"),
                     branch_name=b.get("branch_name", "Unknown"),
-                    booking_status=b.get("booking_status", "Confirmed"),
+                    booking_status=b.get("booking_status", "CONFIRMED"),
                     start_date=str(b.get("start_date") or ""),
                     end_date=str(b.get("end_date") or ""),
                     nights=b.get("nights", 1),
@@ -226,7 +226,7 @@ class BookingService:
                 branch_name=b.get("branch_name", "Colombo"),
                 room_type_id=b.get("room_type_id", "STANDARD"),
             ),
-            booking_status=b.get("booking_status", "Confirmed"),
+            booking_status=b.get("booking_status", "CONFIRMED"),
             start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
             end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
             checked_in_time=str(b.get("checked_in_time")) if b.get("checked_in_time") else None,
@@ -247,20 +247,20 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
 
         current_status = b.get("booking_status", "")
-        if current_status != "Confirmed":
+        if current_status != "CONFIRMED":
             raise HTTPException(
                 status_code=400,
-                detail=f"Booking is not in 'Confirmed' status (current status: {current_status}).",
+                detail=f"Booking is not in 'CONFIRMED' status (current status: {current_status}).",
             )
 
         in_time = check_in_time or datetime.now().strftime("%H:%M:%S")
         self.booking_repo.update_booking(
             booking_id,
-            {"booking_status": "Checked-In", "checked_in_time": in_time},
+            {"booking_status": "CHECKED_IN", "checked_in_time": in_time},
         )
         return CheckInResponse(
             booking_id=booking_id,
-            booking_status="Checked-In",
+            booking_status="CHECKED_IN",
             checked_in_time=in_time,
         )
 
@@ -272,10 +272,10 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
 
         current_status = b.get("booking_status", "")
-        if current_status != "Checked-In":
+        if current_status != "CHECKED_IN":
             raise HTTPException(
                 status_code=400,
-                detail=f"Booking is not in 'Checked-In' status (current status: {current_status}).",
+                detail=f"Booking is not in 'CHECKED_IN' status (current status: {current_status}).",
             )
 
         grand_total = float(b.get("grand_total", 0.0))
@@ -290,11 +290,11 @@ class BookingService:
         out_time = check_out_time or datetime.now().strftime("%H:%M:%S")
         self.booking_repo.update_booking(
             booking_id,
-            {"booking_status": "Checked-Out", "checked_out_time": out_time},
+            {"booking_status": "CHECKED_OUT", "checked_out_time": out_time},
         )
         return CheckOutResponse(
             booking_id=booking_id,
-            booking_status="Checked-Out",
+            booking_status="CHECKED_OUT",
             checked_out_time=out_time,
         )
 
@@ -304,16 +304,16 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
 
         current_status = b.get("booking_status", "")
-        if current_status in ("Checked-In", "Checked-Out"):
+        if current_status in ("CHECKED_IN", "CHECKED_OUT"):
             raise HTTPException(
                 status_code=400,
-                detail="Cannot cancel a booking that is already Checked-In or Checked-Out.",
+                detail="Cannot cancel a booking that is already CHECKED_IN or CHECKED_OUT.",
             )
 
-        self.booking_repo.update_booking(booking_id, {"booking_status": "Cancelled"})
+        self.booking_repo.update_booking(booking_id, {"booking_status": "CANCELLED"})
         return CancelBookingResponse(
             booking_id=booking_id,
-            booking_status="Cancelled",
+            booking_status="CANCELLED",
         )
     def add_service_to_booking(self, booking_id: int, payload):
         b = self.booking_repo.find_booking_by_id(booking_id)
@@ -321,7 +321,7 @@ class BookingService:
             raise HTTPException(status_code=404, detail="Booking does not exist.")
             
         current_status = b.get("booking_status", "")
-        if current_status not in ("Confirmed", "Checked-In"):
+        if current_status not in ("CONFIRMED", "CHECKED_IN"):
             raise HTTPException(status_code=400, detail="Can only add services to active stays.")
             
         if self.booking_repo.db is not None:
@@ -341,7 +341,7 @@ class BookingService:
 
     def get_pending_booking_by_id(self, booking_id: int):
         b = self.booking_repo.find_booking_by_id(booking_id)
-        if b and b.get("booking_status") in ["Confirmed", "Checked-In"]:
+        if b and b.get("booking_status") in ["CONFIRMED", "CHECKED_IN"]:
             return {
                 "success": True,
                 "booking": {
@@ -352,7 +352,7 @@ class BookingService:
                     "roomNumber": b.get("room_number", "TBD"),
                     "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
                     "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
-                    "status": b.get("booking_status", "Confirmed")
+                    "status": b.get("booking_status", "CONFIRMED")
                 }
             }
         return {"success": False, "message": "Booking not found or not in pending state."}
@@ -361,7 +361,7 @@ class BookingService:
         bookings = self.booking_repo.list_all_bookings()
         for b in bookings:
             # We are using .get() because b is a dictionary
-            if b.get("guest_phone") == phone and b.get("booking_status") == "Confirmed":
+            if b.get("guest_phone") == phone and b.get("booking_status") == "CONFIRMED":
                 # Returning the exact structure the frontend expects
                 return {
                     "success": True,
@@ -373,7 +373,7 @@ class BookingService:
                         "roomNumber": b.get("room_number", "TBD"),
                         "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
                         "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
-                        "status": b.get("booking_status", "Confirmed")
+                        "status": b.get("booking_status", "CONFIRMED")
                     }
                 }
         

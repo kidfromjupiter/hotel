@@ -63,7 +63,7 @@ class BookingRepository:
                     if "bookingRef" not in record or not record["bookingRef"]:
                         record["bookingRef"] = self.generate_booking_ref()
                     if "booking_status" not in record:
-                        record["booking_status"] = "Confirmed"
+                        record["booking_status"] = "CONFIRMED"
 
                     branch_map = {"colombo": 1, "kandy": 2, "galle": 3}
                     branch_val = record.get("branch", "colombo")
@@ -74,7 +74,16 @@ class BookingRepository:
                     guest_name = record.get("guest_name") or record.get("name")
                     if guest_id and guest_name:
                         cursor.execute("UPDATE guests SET name = %s WHERE guest_id = %s", (guest_name, guest_id))
-                    status = record.get("booking_status", "Confirmed")
+                    raw_status = record.get("booking_status", "CONFIRMED")
+                    status_map = {
+                        "confirmed": "CONFIRMED",
+                        "checked_in": "CHECKED_IN",
+                        "checked_out": "CHECKED_OUT",
+                        "cancelled": "CANCELLED",
+                    }
+                    status = status_map.get(str(raw_status).lower(), str(raw_status).upper() if raw_status else "CONFIRMED")
+
+
 
                     start_date = record.get("start_date") or (record.get("checkIn") or "")[:10]
                     end_date = record.get("end_date") or (record.get("checkOut") or "")[:10]
@@ -110,6 +119,7 @@ class BookingRepository:
                 traceback.print_exc()
                 if self.db:
                     self.db.rollback()
+
 
         return record
 
