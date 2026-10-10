@@ -264,39 +264,7 @@ class BookingService:
             checked_in_time=in_time,
         )
 
-    def check_out(
-        self, booking_id: int, check_out_time: Optional[str] = None
-    ) -> CheckOutResponse:
-        b = self.booking_repo.find_booking_by_id(booking_id)
-        if not b:
-            raise HTTPException(status_code=404, detail="Booking does not exist.")
 
-        current_status = b.get("booking_status", "")
-        if current_status != "CHECKED_IN":
-            raise HTTPException(
-                status_code=400,
-                detail=f"Booking is not in 'CHECKED_IN' status (current status: {current_status}).",
-            )
-
-        grand_total = float(b.get("grand_total", 0.0))
-        amount_paid = float(b.get("amount_paid", 0.0))
-        if amount_paid < grand_total:
-            outstanding = grand_total - amount_paid
-            raise HTTPException(
-                status_code=400,
-                detail=f"Outstanding unpaid balance exists: ${outstanding:,.2f}. Full payment required before checkout.",
-            )
-
-        out_time = check_out_time or datetime.now().strftime("%H:%M:%S")
-        self.booking_repo.update_booking(
-            booking_id,
-            {"booking_status": "CHECKED_OUT", "checked_out_time": out_time},
-        )
-        return CheckOutResponse(
-            booking_id=booking_id,
-            booking_status="CHECKED_OUT",
-            checked_out_time=out_time,
-        )
 
     def cancel_booking(self, booking_id: int) -> CancelBookingResponse:
         b = self.booking_repo.find_booking_by_id(booking_id)
