@@ -48,7 +48,7 @@ BEGIN
         GREATEST(0, LEAST(bk.end_date, p_end_date) - GREATEST(bk.start_date, p_start_date))
       ) AS occupied_nights
     FROM booking bk
-    WHERE bk.booking_status != 'Cancelled'
+    WHERE bk.booking_status != 'CANCELLED'
       AND bk.start_date < p_end_date
       AND bk.end_date > p_start_date
     GROUP BY bk.branch_id

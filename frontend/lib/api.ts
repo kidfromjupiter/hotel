@@ -341,7 +341,7 @@ export async function getBookingDetail(bookingId: number): Promise<InvoiceSummar
     totalTaxAmount: 0,
     grandTotal: b.grand_total,
     amountPaid: b.amount_paid,
-    paymentStatus: b.invoice_status as 'Paid' | 'Partial' | 'Unpaid',
+    paymentStatus: b.invoice_status as 'PAID' | 'PARTIAL' | 'UNPAID',
   };
 }
 
