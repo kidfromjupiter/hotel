@@ -7,7 +7,6 @@ from app.core.security import decode_access_token
 
 
 from app.db import get_db
-from app.repositories.amenities_repo import AmenitiesRepo
 from app.repositories.billing_repo import BillingRepo
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.branches_repo import BranchesRepo
@@ -15,7 +14,6 @@ from app.repositories.guests_repo import GuestsRepo
 from app.repositories.reports_repo import ReportsRepo
 from app.repositories.rooms_repo import RoomsRepo
 from app.repositories.services_repo import ServicesRepo
-from app.services.amenities_service import AmenitiesService
 from app.services.billing_service import BillingService
 from app.services.booking_service import BookingService
 from app.services.branch_service import BranchService
@@ -74,16 +72,6 @@ def get_branch_service(
     branches_repo: BranchesRepo = Depends(get_branches_repo),
 ) -> BranchService:
     return BranchService(repo=branches_repo)
-
-
-def get_amenities_repo(db: Optional[connection] = Depends(get_db)) -> AmenitiesRepo:
-    return AmenitiesRepo(db=db)
-
-
-def get_amenities_service(
-    amenities_repo: AmenitiesRepo = Depends(get_amenities_repo),
-) -> AmenitiesService:
-    return AmenitiesService(repo=amenities_repo)
 
 
 def get_guests_repo(db: Optional[connection] = Depends(get_db)) -> GuestsRepo:

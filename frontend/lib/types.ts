@@ -89,10 +89,6 @@ export interface Amenity {
   icon: string;
 }
 
-export interface AmenitiesResponse {
-  amenities: Amenity[];
-}
-
 // ─────────────────────────────────────────────
 //  OTP
 // ─────────────────────────────────────────────
@@ -196,7 +192,6 @@ export interface InvoiceSummary {
   invoiceId: string; // UUID
   bookingId: number;
   totalRoomCharges: number;
-  totalAmenityCharges: number;
   totalServiceCharges: number;
   totalTaxAmount: number;
   grandTotal: number;

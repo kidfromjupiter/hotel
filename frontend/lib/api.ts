@@ -1,15 +1,12 @@
 import type {
   AvailabilityPayload,
   AvailabilityResponse,
-  AmenitiesResponse,
   SendOTPResponse,
   VerifyOTPResponse,
   CreateBookingPayload,
   CreateBookingResponse,
   StaffBooking,
   BookingStatus,
-  GuestProfile,
-  ServiceCatalogueItem,
   InvoiceSummary,
   AdminReservationListItem
 } from './types';
@@ -297,7 +294,6 @@ export async function getBookingDetail(bookingId: number): Promise<InvoiceSummar
     invoiceId: `INV-${bookingId}`,
     bookingId: b.booking_id,
     totalRoomCharges: b.grand_total - totalServiceCharges,
-    totalAmenityCharges: 0,
     totalServiceCharges,
     totalTaxAmount: 0,
     grandTotal: b.grand_total,
@@ -354,10 +350,6 @@ export async function cancelBooking(bookingId: number): Promise<{ success: boole
 // These endpoints are not yet implemented in the backend — kept as stubs
 export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
-}
-
-export async function addAmenityToBooking(bookingId: number, amenityId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Amenity added' }), 500));
 }
 
 export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
@@ -428,12 +420,4 @@ export async function getServices(): Promise<Array<{ service_id: number; service
  */
 export async function getGuests(): Promise<Array<{ guest_id: number; name: string; national_id: string; phone_number: string; membership_id: number | null }>> {
   return request('/api/v1/guests/');
-}
-
-/**
- * GET /api/v1/amenities
- * Returns all amenities.
- */
-export async function getAmenities(): Promise<Array<{ id: number; name: string; price: number }>> {
-  return request('/api/v1/amenities');
 }

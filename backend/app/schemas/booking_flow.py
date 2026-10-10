@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,5 +36,3 @@ class CreateBookingRequest(BaseModel):
     roomType: Optional[str] = None
     phone: str
     totalPrice: float
-    amenityIds: Optional[List[str]] = []
-    amenities: Optional[List[Dict[str, Any]]] = []
