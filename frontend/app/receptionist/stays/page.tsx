@@ -26,7 +26,7 @@ export default function ActiveStaysPage() {
         ]);
         
         // Backend returns all bookings, we only want those Checked-In for this specific view
-        const checkedIn = bookingsData.filter(booking => booking.status === 'Checked-In');
+        const checkedIn = bookingsData.filter(booking => booking.status === 'CHECKED_IN');
         setActiveStays(checkedIn);
         setAmenities(amenitiesData);
         setServices(servicesData.map(s => ({

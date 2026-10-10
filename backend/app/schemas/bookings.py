@@ -47,7 +47,7 @@ class CheckInRequest(BaseModel):
 
 class CheckInResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Checked-In"
+    booking_status: str = "CHECKED_IN"
     checked_in_time: str
 
 
@@ -57,13 +57,13 @@ class CheckOutRequest(BaseModel):
 
 class CheckOutResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Checked-Out"
+    booking_status: str = "CHECKED_OUT"
     checked_out_time: str
 
 
 class CancelBookingResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Cancelled"
+    booking_status: str = "CANCELLED"
 
 
 class GuestProfileSummary(BaseModel):

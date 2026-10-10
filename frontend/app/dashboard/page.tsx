@@ -89,9 +89,9 @@ export default function GuestDashboard() {
                       <td className="py-3 px-4 text-sm text-gray-600">{new Date(b.checkOut).toLocaleDateString()}</td>
                       <td className="py-3 px-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          b.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                          b.status === 'Checked-In' ? 'bg-blue-100 text-blue-700' :
-                          b.status === 'Checked-Out' ? 'bg-gray-100 text-gray-700' :
+                          b.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                          b.status === 'CHECKED_IN' ? 'bg-blue-100 text-blue-700' :
+                          b.status === 'CHECKED_OUT' ? 'bg-gray-100 text-gray-700' :
                           'bg-red-100 text-red-700'
                         }`}>
                           {b.status}
