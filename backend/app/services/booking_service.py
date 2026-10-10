@@ -43,6 +43,17 @@ class BookingService:
         else:
             booking_dict = dict(request)
 
+        booking_dict["branch_id"] = booking_dict.pop("branchId")
+        booking_dict["room_number"] = booking_dict.pop("roomNumber")
+
+        if not self.booking_repo.room_exists(
+            booking_dict["branch_id"], booking_dict["room_number"]
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail="The selected room does not exist at this branch.",
+            )
+
         # Apply membership discounts if token is present
         if guest_token:
             discount = guest_token.get("discount_percent", 0)
@@ -57,7 +68,7 @@ class BookingService:
         saved = self.booking_repo.save_booking(booking_dict)
         return {
             "success": True,
-            "bookingRef": saved["bookingRef"],
+            "bookingRef": saved["booking_ref"],
             "message": "Your reservation has been confirmed successfully!",
         }
 
@@ -148,6 +159,7 @@ class BookingService:
             results.append(
                 BookingListItem(
                     booking_id=b.get("booking_id", 0),
+                    booking_ref=b["booking_ref"],
                     guest_name=b.get("guest_name", "Guest"),
                     room_number=b.get("room_number", 101),
                     branch_name=b.get("branch_name", "Colombo"),
@@ -175,7 +187,7 @@ class BookingService:
             results.append(
                 AdminReservationListItem(
                     booking_id=b.get("booking_id", 0),
-                    booking_ref=b.get("booking_ref"),
+                    booking_ref=b["booking_ref"],
                     guest_id=b.get("guest_id"),
                     guest_name=b.get("guest_name", "Unknown Guest"),
                     guest_contact=b.get("guest_contact"),
@@ -217,6 +229,7 @@ class BookingService:
 
         return BookingDetailResponse(
             booking_id=b["booking_id"],
+            booking_ref=b["booking_ref"],
             guest=GuestProfileSummary(
                 guest_id=b.get("guest_id", 1001),
                 name=b.get("guest_name", "Guest"),
@@ -346,6 +359,7 @@ class BookingService:
                 "success": True,
                 "booking": {
                     "id": b.get("booking_id", "TBD"),
+                    "bookingReference": b["booking_ref"],
                     "guestName": b.get("guest_name", "Guest"),
                     "phone": b.get("guest_phone", ""),
                     "roomType": b.get("room_type_id", "Standard Room"),
@@ -354,6 +368,25 @@ class BookingService:
                     "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
                     "status": b.get("booking_status", "CONFIRMED")
                 }
+            }
+        return {"success": False, "message": "Booking not found or not in pending state."}
+
+    def get_pending_booking_by_ref(self, booking_ref: str):
+        b = self.booking_repo.find_booking_by_ref(booking_ref)
+        if b and b.get("booking_status") in ["CONFIRMED", "CHECKED_IN"]:
+            return {
+                "success": True,
+                "booking": {
+                    "id": b["booking_id"],
+                    "bookingReference": b["booking_ref"],
+                    "guestName": b.get("guest_name", "Guest"),
+                    "phone": b.get("guest_phone", ""),
+                    "roomType": b.get("room_type_id", "Standard Room"),
+                    "roomNumber": b["room_number"],
+                    "checkIn": b.get("start_date"),
+                    "checkOut": b.get("end_date"),
+                    "status": b.get("booking_status", "CONFIRMED"),
+                },
             }
         return {"success": False, "message": "Booking not found or not in pending state."}
 
@@ -367,6 +400,7 @@ class BookingService:
                     "success": True,
                     "booking": {
                         "id": b.get("booking_id", "TBD"),
+                        "bookingReference": b["booking_ref"],
                         "guestName": b.get("guest_name", "Guest"),
                         "phone": b.get("guest_phone", phone),
                         "roomType": b.get("room_type_id", "Standard Room"),

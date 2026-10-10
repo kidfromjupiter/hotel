@@ -12,6 +12,7 @@ BEGIN
     jsonb_agg(
       jsonb_build_object(
         'booking_id', bk.booking_id,
+        'booking_ref', bk.booking_ref,
         'guest_id', bk.guest_id,
         'guest_name', COALESCE(g.name, 'Unknown Guest'),
         'guest_contact', g.phone_number::TEXT,

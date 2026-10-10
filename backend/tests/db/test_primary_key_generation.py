@@ -24,7 +24,9 @@ def test_database():
             "WHERE room_number = 101 AND branch_id = 1)"
         )
         assert cursor.fetchone()[0], "Load seed.sql before running these tests"
-        cursor.execute("SELECT EXISTS (SELECT 1 FROM service_catalogue WHERE service_id = 1)")
+        cursor.execute(
+            "SELECT EXISTS (SELECT 1 FROM service_catalogue WHERE service_id = 1)"
+        )
         assert cursor.fetchone()[0], "Seed service 1 is required"
     connection.commit()
 
@@ -40,8 +42,12 @@ def test_database():
             )
             ids = [row[0] for row in cursor.fetchall()]
             if ids:
-                cursor.execute("DELETE FROM service_charges WHERE booking_id = ANY(%s)", (ids,))
-                cursor.execute("DELETE FROM billing_summary WHERE booking_id = ANY(%s)", (ids,))
+                cursor.execute(
+                    "DELETE FROM service_charges WHERE booking_id = ANY(%s)", (ids,)
+                )
+                cursor.execute(
+                    "DELETE FROM billing_summary WHERE booking_id = ANY(%s)", (ids,)
+                )
                 cursor.execute("DELETE FROM booking WHERE booking_id = ANY(%s)", (ids,))
             cursor.execute("DELETE FROM guests WHERE name LIKE %s", (prefix + "%",))
         connection.commit()
@@ -81,7 +87,9 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
 
         service_booking = None
         if kind == "service":
-            service_booking = BookingRepository(setup).save_booking(booking_payload(0))["booking_id"]
+            service_booking = BookingRepository(setup).save_booking(booking_payload(0))[
+                "booking_id"
+            ]
 
         with setup.cursor() as cursor:
             cursor.execute(f"SELECT COALESCE(MAX({column}), 0) FROM {table}")
@@ -101,9 +109,9 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
                     assert result is not None
                     return result["guest_id"]
                 if kind == "booking":
-                    return BookingRepository(db).save_booking(
-                        booking_payload(index)
-                    )["booking_id"]
+                    return BookingRepository(db).save_booking(booking_payload(index))[
+                        "booking_id"
+                    ]
                 with db.cursor() as cursor:
                     cursor.execute(
                         "SELECT add_service_to_booking(%s, %s, %s)",
@@ -131,3 +139,38 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
         assert persisted == set(ids), "Returned IDs were not saved in PostgreSQL"
     finally:
         setup.close()
+
+
+def test_booking_reference_is_stored_and_constrained(test_database):
+    dsn, prefix = test_database
+    connection = psycopg2.connect(dsn)
+    try:
+        guest = GuestsRepo(connection).create_guest(
+            "+94770000113", prefix + "_reference_owner"
+        )
+        booking = BookingRepository(connection).save_booking(
+            {
+                "room_number": 101,
+                "branch_id": 1,
+                "guest_id": guest["guest_id"],
+                "booking_status": "CONFIRMED",
+                "start_date": "2200-01-01",
+                "end_date": "2200-01-02",
+                "adult_count": 1,
+                "children_count": 0,
+                "grand_total": 15000,
+            }
+        )
+
+        assert booking["booking_ref"] == f"SKN-{booking['booking_id']}"
+
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE booking SET booking_ref = %s WHERE booking_id = %s",
+                    ("SKN-WRONG", booking["booking_id"]),
+                )
+            connection.commit()
+        connection.rollback()
+    finally:
+        connection.close()

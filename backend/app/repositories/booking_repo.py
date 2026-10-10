@@ -1,5 +1,3 @@
-import random
-import string
 from datetime import date
 from typing import Any, Dict, List, Optional
 
@@ -14,10 +12,6 @@ class BookingRepository:
     def clear(self):
         """No-op kept for test fixture compatibility; real database cleans up via SQL."""
         pass
-
-    def generate_booking_ref(self) -> str:
-        random_code = "".join(random.choices(string.digits, k=4))
-        return f"SKN-{random_code}"
 
     # ── Database-Backed Availability ──
 
@@ -50,6 +44,17 @@ class BookingRepository:
 
     # ── Database-Backed Booking Operations ──
 
+    def room_exists(self, branch_id: int, room_number: int) -> bool:
+        if self.db is None:
+            raise RuntimeError("Database connection is unavailable")
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "SELECT EXISTS (SELECT 1 FROM room_details "
+                "WHERE branch_id = %s AND room_number = %s)",
+                (branch_id, room_number),
+            )
+            return bool(cursor.fetchone()[0])
+
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
 
@@ -62,16 +67,11 @@ class BookingRepository:
                         )
                         record["booking_id"] = cursor.fetchone()["booking_id"]
                         
-                    if "bookingRef" not in record or not record["bookingRef"]:
-                        record["bookingRef"] = self.generate_booking_ref()
                     if "booking_status" not in record:
                         record["booking_status"] = "CONFIRMED"
 
-                    branch_map = {"colombo": 1, "kandy": 2, "galle": 3}
-                    branch_val = record.get("branch", "colombo")
-                    branch_id = branch_map.get(str(branch_val).lower(), record.get("branch_id", 1))
-
-                    room_num = record.get("room_number", 101)
+                    branch_id = record["branch_id"]
+                    room_num = record["room_number"]
                     guest_id = record.get("guest_id", 1)
                     guest_name = record.get("guest_name") or record.get("name")
                     if guest_id and guest_name:
@@ -114,6 +114,10 @@ class BookingRepository:
                             amount_paid,
                         ),
                     )
+                    row = cursor.fetchone()
+                    if not row or row.get("create_booking") is None:
+                        raise RuntimeError("Database did not return the created booking")
+                    saved = row["create_booking"]
                 self.db.commit()
             except Exception as e:
                 print(f"Exception in save_booking: {e}")
@@ -121,9 +125,11 @@ class BookingRepository:
                 traceback.print_exc()
                 if self.db:
                     self.db.rollback()
+                raise
 
-
-        return record
+        if self.db is None:
+            raise RuntimeError("Database connection is unavailable")
+        return saved
 
     def find_booking_by_id(self, booking_id: int) -> Optional[Dict[str, Any]]:
         if self.db is not None:
@@ -135,6 +141,19 @@ class BookingRepository:
                         return row["get_booking_by_id"]
             except Exception:
                 pass
+        return None
+
+    def find_booking_by_ref(self, booking_ref: str) -> Optional[Dict[str, Any]]:
+        if self.db is not None:
+            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT get_booking_by_id(booking_id) AS booking "
+                    "FROM booking WHERE booking_ref = %s",
+                    (booking_ref,),
+                )
+                row = cursor.fetchone()
+                if row and row.get("booking") is not None:
+                    return row["booking"]
         return None
 
     def list_all_bookings(

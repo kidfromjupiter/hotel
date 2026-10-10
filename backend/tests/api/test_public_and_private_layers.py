@@ -26,13 +26,13 @@ def test_public_otp_routes(client, otp_service):
 
 def test_public_create_booking_flow(client, booking_repo):
     booking_payload = {
-        "branch": "colombo",
-        "checkIn": "2026-10-15T00:00:00.000Z",
-        "checkOut": "2026-10-18T00:00:00.000Z",
+        "branchId": 1,
+        "checkIn": "2026-12-15T00:00:00.000Z",
+        "checkOut": "2026-12-18T00:00:00.000Z",
         "adults": 2,
         "children": 0,
         "nights": 3,
-        "roomId": "deluxe-101",
+        "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
@@ -51,7 +51,6 @@ def test_private_booking_staff_operations(client, booking_repo):
     saved = booking_repo.save_booking(
         {
             "booking_id": 99901,
-            "bookingRef": "SKN-99901",
             "guest_id": 1,
             "guest_name": "Test Guest",
             "room_number": 103,

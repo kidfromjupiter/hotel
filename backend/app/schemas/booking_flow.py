@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SendOTPRequest(BaseModel):
@@ -24,13 +24,15 @@ class AvailabilityRequest(BaseModel):
 
 
 class CreateBookingRequest(BaseModel):
-    branch: str
+    model_config = ConfigDict(extra="forbid")
+
+    branchId: int = Field(gt=0)
     checkIn: str
     checkOut: str
     adults: int
     children: int
     nights: Optional[int] = 1
-    roomId: str
+    roomNumber: int = Field(gt=0, le=32767)
     roomType: Optional[str] = None
     phone: str
     totalPrice: float

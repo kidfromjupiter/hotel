@@ -25,8 +25,9 @@ export interface BookingFormData {
 // ─────────────────────────────────────────────
 export interface Room {
   id: string;
-  /** Room number from the database (used as key in lists) */
-  roomNumber?: number;
+  /** Composite database identity for a physical room. */
+  branchId: number;
+  roomNumber: number;
   type: string;
   name: string;
   description: string;
@@ -118,13 +119,13 @@ export interface VerifyOTPResponse {
 //  Booking Creation
 // ─────────────────────────────────────────────
 export interface CreateBookingPayload {
-  branch: string;
+  branchId: number;
   checkIn: string;
   checkOut: string;
   adults: number;
   children: number;
   nights: number;
-  roomId: string;
+  roomNumber: number;
   roomType: string;
   totalPrice: number;
   phone: string;
@@ -209,7 +210,7 @@ export interface InvoiceSummary {
 
 export interface AdminReservationListItem {
   booking_id: number;
-  booking_ref: string | null;
+  booking_ref: string;
   guest_id: number | null;
   guest_name: string;
   guest_contact: string | null;

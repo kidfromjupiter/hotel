@@ -40,7 +40,7 @@ BEGIN
     jsonb_agg(
       jsonb_build_object(
         'booking_id', b.booking_id,
-        'booking_ref', 'SKN-' || b.booking_id,
+        'booking_ref', b.booking_ref,
         'guest_id', b.guest_id,
         'guest_name', COALESCE(g.name, 'Valued Guest'),
         'guest_phone', COALESCE(g.phone_number::TEXT, ''),
@@ -173,7 +173,7 @@ BEGIN
       jsonb_build_object(
         'invoice_id', bs.invoice_id,
         'booking_id', bs.booking_id,
-        'booking_ref', 'SKN-' || bs.booking_id,
+        'booking_ref', b.booking_ref,
         'guest_name', COALESCE(g.name, 'Valued Guest'),
         'guest_phone', COALESCE(g.phone_number::TEXT, ''),
         'branch_id', b.branch_id,

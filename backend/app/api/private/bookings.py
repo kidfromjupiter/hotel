@@ -57,6 +57,23 @@ def get_admin_reservations(
     )
 
 
+@router.post("/verify-otp")
+def verify_otp(
+    payload: CheckInOTPRequest,
+    otp_service: OTPService = Depends(get_otp_service),
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Look up a pending booking by its SKN reference or a valid OTP."""
+    if payload.otp.startswith("SKN-"):
+        return booking_service.get_pending_booking_by_ref(payload.otp)
+
+    phone = otp_service.find_phone_by_otp(payload.otp)
+    if phone is None:
+        return {"success": False, "message": "Invalid OTP or booking not found."}
+
+    return booking_service.get_pending_booking_by_phone(phone)
+
+
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
 def get_booking(
     booking_id: int,
@@ -95,24 +112,3 @@ def cancel_booking(
 ):
     """Staff endpoint to cancel a booking."""
     return booking_service.cancel_booking(booking_id)
-
-
-@router.post("/verify-otp")
-def verify_otp(
-    payload: CheckInOTPRequest,
-    otp_service: OTPService = Depends(get_otp_service),
-    booking_service: BookingService = Depends(get_booking_service)
-):
-    """Receptionist endpoint to look up pending bookings by OTP or Booking Ref."""
-    if payload.otp.startswith("BKG-"):
-        booking_id_str = payload.otp.replace("BKG-", "")
-        if booking_id_str.isdigit():
-            booking_id = int(booking_id_str)
-            return booking_service.get_pending_booking_by_id(booking_id)
-        return {"success": False, "message": "Invalid booking reference format."}
-
-    phone = otp_service.find_phone_by_otp(payload.otp)
-    if phone is None:
-        return {"success": False, "message": "Invalid OTP or booking not found."}
-    
-    return booking_service.get_pending_booking_by_phone(phone)

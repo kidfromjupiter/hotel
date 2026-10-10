@@ -6,13 +6,11 @@ def sample_bookings(booking_repo):
     booking_repo.save_booking(
         {
             "booking_id": 500101,
-            "bookingRef": "SKN-5101",
             "guest_id": 1,
             "guest_name": "Amal Perera",
             "room_number": 101,
             "branch_id": 1,
             "branch_name": "Colombo",
-            "roomId": "standard-room",
             "room_type_id": "STANDARD",
             "booking_status": "CONFIRMED",
             "start_date": "2026-10-01",
@@ -27,13 +25,11 @@ def sample_bookings(booking_repo):
     booking_repo.save_booking(
         {
             "booking_id": 500102,
-            "bookingRef": "SKN-5102",
             "guest_id": 2,
             "guest_name": "Kamal Silva",
             "room_number": 201,
             "branch_id": 2,
             "branch_name": "Kandy",
-            "roomId": "deluxe-room",
             "room_type_id": "DELUXE",
             "booking_status": "CHECKED_IN",
             "start_date": "2026-10-02",
@@ -49,16 +45,15 @@ def sample_bookings(booking_repo):
         booking_repo.db.commit()
 
 
-# TODO: This is probably the wrong format to send create booking in.
 def test_create_booking_success(client, booking_repo):
     booking_payload = {
-        "branch": "colombo",
+        "branchId": 1,
         "checkIn": "2026-10-15T00:00:00.000Z",
         "checkOut": "2026-10-18T00:00:00.000Z",
         "adults": 2,
         "children": 0,
         "nights": 3,
-        "roomId": "deluxe-101",
+        "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
@@ -83,19 +78,25 @@ def test_create_booking_success(client, booking_repo):
 
     if booking_repo.db:
         with booking_repo.db.cursor() as cursor:
-            cursor.execute("SELECT booking_id FROM booking WHERE branch_id = 1 ORDER BY booking_id DESC LIMIT 1")
-            assert cursor.fetchone() is not None
+            cursor.execute(
+                "SELECT booking_id, booking_ref, room_number, branch_id "
+                "FROM booking WHERE booking_ref = %s",
+                (data["bookingRef"],),
+            )
+            booking_id, booking_ref, room_number, branch_id = cursor.fetchone()
+            assert booking_ref == f"SKN-{booking_id}"
+            assert (branch_id, room_number) == (1, 201)
 
 
 def test_create_booking_frontend_alias(client):
     booking_payload = {
-        "branch": "colombo",
-        "checkIn": "2026-10-15T00:00:00.000Z",
-        "checkOut": "2026-10-18T00:00:00.000Z",
+        "branchId": 1,
+        "checkIn": "2026-11-15T00:00:00.000Z",
+        "checkOut": "2026-11-18T00:00:00.000Z",
         "adults": 2,
         "children": 0,
         "nights": 3,
-        "roomId": "deluxe-101",
+        "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
@@ -105,6 +106,28 @@ def test_create_booking_frontend_alias(client):
     response = client.post("/api/v1/booking/create", json=booking_payload)
     assert response.status_code == 200
     assert response.json()["success"] is True
+
+
+def test_create_booking_rejects_unknown_branch_room_pair(client):
+    response = client.post(
+        "/api/v1/bookings/",
+        json={
+            "branchId": 999,
+            "roomNumber": 201,
+            "checkIn": "2026-11-15",
+            "checkOut": "2026-11-18",
+            "adults": 2,
+            "children": 0,
+            "nights": 3,
+            "roomType": "Deluxe Room",
+            "phone": "+94771234567",
+            "totalPrice": 105000,
+        },
+    )
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"] == "The selected room does not exist at this branch."
+    )
 
 
 def test_list_bookings_all(client, sample_bookings):
@@ -135,9 +158,20 @@ def test_get_booking_success(client, sample_bookings):
     assert res.status_code == 200
     data = res.json()
     assert data["booking_id"] == 500101
+    assert data["booking_ref"] == "SKN-500101"
     assert data["guest"]["name"] == "Amal Perera"
     assert data["room"]["room_number"] == 101
     assert data["booking_status"] == "CONFIRMED"
+
+
+def test_receptionist_lookup_uses_stored_booking_reference(client, sample_bookings):
+    res = client.post(
+        "/api/v1/private/bookings/verify-otp",
+        json={"otp": "SKN-500101"},
+    )
+    assert res.status_code == 200
+    assert res.json()["success"] is True
+    assert res.json()["booking"]["bookingReference"] == "SKN-500101"
 
 
 def test_get_booking_not_found(client):
@@ -174,7 +208,6 @@ def test_check_out_success_when_paid(client, booking_repo):
     booking_repo.save_booking(
         {
             "booking_id": 500103,
-            "bookingRef": "SKN-5103",
             "booking_status": "CHECKED_IN",
             "grand_total": 40000.0,
             "amount_paid": 40000.0,
@@ -198,7 +231,6 @@ def test_cancel_booking_success(client, booking_repo):
     booking_repo.save_booking(
         {
             "booking_id": 500104,
-            "bookingRef": "SKN-5104",
             "booking_status": "CONFIRMED",
             "guest_id": 1,
             "room_number": 101,

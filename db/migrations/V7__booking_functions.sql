@@ -70,6 +70,7 @@ BEGIN
     jsonb_agg(
       jsonb_build_object(
         'booking_id', bk.booking_id,
+        'booking_ref', bk.booking_ref,
         'guest_id', bk.guest_id,
         'guest_name', COALESCE(g.name, 'Guest'),
         'room_number', bk.room_number,
@@ -118,6 +119,7 @@ DECLARE
 BEGIN
   SELECT jsonb_build_object(
     'booking_id', bk.booking_id,
+    'booking_ref', bk.booking_ref,
     'guest_id', bk.guest_id,
     'guest_name', COALESCE(g.name, 'Guest'),
     'room_number', bk.room_number,
@@ -209,6 +211,7 @@ DECLARE
 BEGIN
   INSERT INTO booking (
     booking_id,
+    booking_ref,
     room_number,
     branch_id,
     guest_id,
@@ -219,6 +222,7 @@ BEGIN
     children_count
   ) VALUES (
     p_booking_id,
+    'SKN-' || p_booking_id,
     p_room_number,
     p_branch_id,
     p_guest_id,

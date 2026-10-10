@@ -35,7 +35,7 @@ export default function CheckInPage() {
           guestName: result.booking.guestName,
           phone: result.booking.phone,
           branchId: 0,
-          bookingReference: `BKG-${result.booking.id}`,
+          bookingReference: result.booking.bookingReference,
           roomNumber: result.booking.roomNumber,
           roomType: result.booking.roomType,
           checkIn: result.booking.checkIn,
@@ -113,7 +113,7 @@ export default function CheckInPage() {
                     type="text" 
                     value={otp}
                     onChange={e => setOtp(e.target.value)}
-                    placeholder="e.g. BKG-2024-001"
+                    placeholder="e.g. SKN-1001"
                     className="w-full text-center text-base font-bold tracking-widest px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-skynest-navy placeholder-slate-300 focus:outline-none focus:border-skynest-blue focus:bg-white transition-all"
                   />
                 </div>

@@ -80,7 +80,9 @@ The frontend calls these endpoints (base URL from `NEXT_PUBLIC_API_URL`):
   "hasMembership": false,
   "rooms": [
     {
-      "id": "room-101",
+      "id": "1-101",
+      "branchId": 1,
+      "roomNumber": 101,
       "type": "Deluxe",
       "name": "Deluxe City View",
       "description": "...",
@@ -117,17 +119,20 @@ Response: `{ "success": true, "message": "OTP sent" }`
 ### POST `/api/booking/create`
 ```json
 {
-  "branch": "colombo",
+  "branchId": 1,
   "checkIn": "2026-10-01",
   "checkOut": "2026-10-05",
   "adults": 2,
   "children": 1,
-  "roomId": "room-101",
+  "roomNumber": 101,
+  "roomType": "Standard Room",
+  "nights": 4,
+  "totalPrice": 80000,
   "amenityIds": ["breakfast", "airport"],
   "phone": "+94771234567"
 }
 ```
-Response: `{ "success": true, "bookingRef": "SKN-2026-7834", "message": "Booking confirmed" }`
+Response: `{ "success": true, "bookingRef": "SKN-1009", "message": "Booking confirmed" }`
 
 ---
 

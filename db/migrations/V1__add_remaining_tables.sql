@@ -70,6 +70,7 @@ CREATE TABLE room_amenities (
 -- 3. Bookings and onward
 CREATE TABLE booking (
     booking_id BIGINT PRIMARY KEY,
+    booking_ref VARCHAR(32) NOT NULL UNIQUE,
     room_number SMALLINT,
     branch_id INT,
     guest_id INT,
@@ -83,7 +84,9 @@ CREATE TABLE booking (
     FOREIGN KEY (room_number, branch_id)
         REFERENCES room_details(room_number, branch_id),
     FOREIGN KEY (guest_id)
-        REFERENCES guests(guest_id)
+        REFERENCES guests(guest_id),
+    CONSTRAINT booking_booking_ref_matches_id
+        CHECK (booking_ref = 'SKN-' || booking_id::TEXT)
 );
 
 CREATE TABLE billing_summary (
