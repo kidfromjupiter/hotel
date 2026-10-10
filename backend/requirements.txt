@@ -51,3 +51,6 @@ uvloop==0.22.1
 watchfiles==1.2.0
 websockets==17.1
 PyJWT==2.8.0
+httpx2==2.13.1
+httpcore2==2.13.1
+truststore==0.10.4
