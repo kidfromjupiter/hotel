@@ -652,3 +652,46 @@ VALUES
 -- END OF SEED DATA
 -- =====================================================================
 
+
+-- Synchronize identity sequences after inserting explicit seed IDs.
+-- Run seeding before starting application traffic.
+BEGIN;
+LOCK TABLE booking, guests, service_charges IN ACCESS EXCLUSIVE MODE;
+
+DO $$
+DECLARE
+    item RECORD;
+    sequence_name TEXT;
+    highest_id BIGINT;
+    sequence_value BIGINT;
+BEGIN
+    FOR item IN
+        SELECT *
+        FROM (VALUES
+            ('booking', 'booking_id'),
+            ('guests', 'guest_id'),
+            ('service_charges', 'service_log_id')
+        ) AS ids(table_name, column_name)
+    LOOP
+        sequence_name := pg_get_serial_sequence(
+            item.table_name, item.column_name
+        );
+
+        EXECUTE format(
+            'SELECT COALESCE(MAX(%I), 0) FROM %I',
+            item.column_name, item.table_name
+        ) INTO highest_id;
+
+        EXECUTE format(
+            'SELECT last_value FROM %s', sequence_name
+        ) INTO sequence_value;
+
+        PERFORM setval(
+            sequence_name::regclass,
+            GREATEST(highest_id, sequence_value, 1),
+            true
+        );
+    END LOOP;
+END;
+$$;
+COMMIT;
