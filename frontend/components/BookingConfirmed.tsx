@@ -121,10 +121,32 @@ export default function BookingConfirmed({ booking }: BookingConfirmedProps) {
             <span className="text-gray-500 font-medium">Room Type</span>
             <span className="font-bold text-skynest-blue">{booking.selectedRoom?.name ?? 'Standard Room'}</span>
           </div>
+          {(booking.firstName || booking.lastName) && (
+            <div className="flex justify-between py-2.5 print:py-1.5">
+              <span className="text-gray-500 font-medium">Primary Guest</span>
+              <span className="font-bold text-skynest-navy">
+                {`${booking.firstName || ''} ${booking.lastName || ''}`.trim()}
+              </span>
+            </div>
+          )}
+          {booking.email && (
+            <div className="flex justify-between py-2.5 print:py-1.5">
+              <span className="text-gray-500 font-medium">Guest Email</span>
+              <span className="font-semibold text-skynest-navy">{booking.email}</span>
+            </div>
+          )}
           <div className="flex justify-between py-2.5 print:py-1.5">
             <span className="text-gray-500 font-medium">Contact Phone</span>
             <span className="font-semibold text-skynest-navy">{booking.phone}</span>
           </div>
+          {booking.specialRequests && (
+            <div className="flex flex-col py-2.5 print:py-1.5 text-left">
+              <span className="text-gray-500 font-medium mb-0.5">Special Requests</span>
+              <span className="text-gray-700 italic bg-gray-50 px-3 py-1.5 rounded border border-gray-100 text-xs">
+                {booking.specialRequests}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between py-3 border-t-2 border-dashed border-gray-200 print:py-2.5">
             <span className="font-bold text-skynest-navy">Total Paid / Due</span>
             <span className="font-black text-skynest-blue text-lg print:text-sm">{LKR(booking.totalPrice)}</span>

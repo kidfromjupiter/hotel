@@ -21,16 +21,18 @@ class GuestService:
         phone: str,
         name: str = "Guest",
         national_id: Optional[str] = None,
+        email: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        return self.repo.create_guest(phone, name, national_id)
+        return self.repo.create_guest(phone, name, national_id, email=email)
 
     def update_guest_info(
         self,
         guest_id: int,
         name: Optional[str] = None,
         national_id: Optional[str] = None,
+        email: Optional[str] = None,
     ) -> bool:
-        return self.repo.update_guest_info(guest_id, name, national_id)
+        return self.repo.update_guest_info(guest_id, name, national_id, email=email)
 
     def update_phone(self, guest_id: int, phone: str) -> Dict[str, Any]:
         return self.repo.update_guest_phone(guest_id, phone)

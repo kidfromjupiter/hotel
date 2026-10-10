@@ -135,6 +135,12 @@ export interface CreateBookingPayload {
   roomType: string;
   totalPrice: number;
   phone: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  nationalId?: string;
+  specialRequests?: string;
 }
 
 export interface CreateBookingResponse {
@@ -157,6 +163,11 @@ export interface BookingWizardState {
   nights: number;
   selectedRoom: Room | null;
   phone: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  nationalId?: string;
+  specialRequests?: string;
   bookingRef: string;
   hasMembership: boolean;
   totalPrice: number;

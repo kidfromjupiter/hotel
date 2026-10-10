@@ -14,6 +14,7 @@ class GuestsRepo:
         phone: str,
         name: str = "Guest",
         national_id: Optional[str] = None,
+        email: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         if self.db is not None:
             try:
@@ -30,8 +31,8 @@ class GuestsRepo:
                     phone_int = int(v_digits) if v_digits else 0
                     
                     cursor.execute(
-                        "INSERT INTO guests (guest_id, name, phone_number, national_id) VALUES (%s, %s, %s, %s)",
-                        (new_id, name or "Guest", phone_int, national_id),
+                        "INSERT INTO guests (guest_id, name, phone_number, national_id, email) VALUES (%s, %s, %s, %s, %s)",
+                        (new_id, name or "Guest", phone_int, national_id, email),
                     )
                 self.db.commit()
                 return self.get_guest_by_id(new_id)
@@ -45,25 +46,26 @@ class GuestsRepo:
         guest_id: int,
         name: Optional[str] = None,
         national_id: Optional[str] = None,
+        email: Optional[str] = None,
     ) -> bool:
         if self.db is not None:
             try:
                 with self.db.cursor() as cursor:
-                    if name and national_id:
-                        cursor.execute(
-                            "UPDATE guests SET name = %s, national_id = %s WHERE guest_id = %s",
-                            (name, national_id, guest_id),
-                        )
-                    elif name:
-                        cursor.execute(
-                            "UPDATE guests SET name = %s WHERE guest_id = %s",
-                            (name, guest_id),
-                        )
-                    elif national_id:
-                        cursor.execute(
-                            "UPDATE guests SET national_id = %s WHERE guest_id = %s",
-                            (national_id, guest_id),
-                        )
+                    updates = []
+                    params = []
+                    if name:
+                        updates.append("name = %s")
+                        params.append(name)
+                    if national_id:
+                        updates.append("national_id = %s")
+                        params.append(national_id)
+                    if email:
+                        updates.append("email = %s")
+                        params.append(email)
+                    if updates:
+                        params.append(guest_id)
+                        sql = f"UPDATE guests SET {', '.join(updates)} WHERE guest_id = %s"
+                        cursor.execute(sql, tuple(params))
                 self.db.commit()
                 return True
             except Exception as e:
