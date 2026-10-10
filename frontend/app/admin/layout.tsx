@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HiOutlineChartBar, HiOutlineOfficeBuilding, HiOutlineViewGrid, HiOutlineCube, HiOutlineDocumentReport } from 'react-icons/hi';
+import { HiOutlineChartBar, HiOutlineOfficeBuilding, HiOutlineViewGrid, HiOutlineCube, HiOutlineDocumentReport, HiOutlineClipboardList } from 'react-icons/hi';
 
 const NAV_LINKS = [
   { name: 'Dashboard', href: '/admin', icon: HiOutlineChartBar },
   { name: 'Branch Management', href: '/admin/branches', icon: HiOutlineOfficeBuilding },
   { name: 'Room Management', href: '/admin/rooms', icon: HiOutlineViewGrid },
+  { name: 'Bookings & Invoices', href: '/admin/bookings', icon: HiOutlineClipboardList },
   { name: 'Services & Addons', href: '/admin/services', icon: HiOutlineCube },
   { name: 'Financial Reports', href: '/admin/reports', icon: HiOutlineDocumentReport },
 ];
