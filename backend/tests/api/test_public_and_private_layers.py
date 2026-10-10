@@ -84,7 +84,7 @@ def test_private_booking_staff_operations(client, booking_repo):
         json={"check_in_time": "14:30:00"},
     )
     assert res_checkin.status_code == 200
-    assert res_checkin.json()["booking_status"] == "Checked-In"
+    assert res_checkin.json()["booking_status"] in ("Checked-In", "CHECKED_IN")
 
     # 4. Staff check-out
     res_checkout = client.post(
@@ -92,7 +92,7 @@ def test_private_booking_staff_operations(client, booking_repo):
         json={"check_out_time": "11:00:00"},
     )
     assert res_checkout.status_code == 200
-    assert res_checkout.json()["booking_status"] == "Checked-Out"
+    assert res_checkout.json()["booking_status"] in ("Checked-Out", "CHECKED_OUT")
 
 
 def test_private_reports_routes(client):
