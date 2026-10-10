@@ -200,7 +200,7 @@ export interface InvoiceSummary {
   totalTaxAmount: number;
   grandTotal: number;
   amountPaid: number;
-  paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+  paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID';
 }
 
 // ─────────────────────────────────────────────

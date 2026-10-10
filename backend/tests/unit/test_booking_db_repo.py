@@ -105,7 +105,7 @@ def test_booking_repo_db_crud_functions():
         "get_booking_by_id": {
             "booking_id": 500001,
             "guest_name": "Test User",
-            "booking_status": "Confirmed",
+            "booking_status": "CONFIRMED",
         }
     }
     repo = BookingRepository(db=mock_db)
@@ -116,7 +116,7 @@ def test_booking_repo_db_crud_functions():
     # 2. list_all_bookings calls get_all_bookings
     mock_cursor.fetchone.return_value = {
         "get_all_bookings": [
-            {"booking_id": 500001, "booking_status": "Confirmed"}
+            {"booking_id": 500001, "booking_status": "CONFIRMED"}
         ]
     }
     bookings = repo.list_all_bookings(branch_id=1)
@@ -127,11 +127,11 @@ def test_booking_repo_db_crud_functions():
     mock_cursor.fetchone.return_value = {
         "update_booking_status": {
             "booking_id": 500001,
-            "booking_status": "Checked-In",
+            "booking_status": "CHECKED_IN",
         }
     }
-    updated = repo.update_booking(500001, {"booking_status": "Checked-In"})
-    assert updated["booking_status"] == "Checked-In"
+    updated = repo.update_booking(500001, {"booking_status": "CHECKED_IN"})
+    assert updated["booking_status"] == "CHECKED_IN"
     assert "update_booking_status" in mock_cursor.execute.call_args[0][0]
 
 

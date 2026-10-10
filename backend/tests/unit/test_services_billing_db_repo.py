@@ -83,7 +83,7 @@ def test_billing_repo_calls_db():
             {
                 "booking_id": 101,
                 "room_number": 201,
-                "booking_status": "Checked-In",
+                "booking_status": "CHECKED_IN",
             }
         ]
     }

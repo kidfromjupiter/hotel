@@ -42,7 +42,7 @@ BEGIN
       FROM booking bk
       WHERE bk.room_number = r.room_number
         AND bk.branch_id = r.branch_id
-        AND bk.booking_status != 'Cancelled'
+        AND bk.booking_status != 'CANCELLED'
         AND bk.start_date < p_check_out
         AND bk.end_date > p_check_in
     );
