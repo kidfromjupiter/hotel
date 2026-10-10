@@ -102,7 +102,7 @@ export default function ActiveStaysPage() {
   const handleAddService = async (service: { id: number; name: string; price: number }) => {
     if (!selectedStay) return;
     try {
-      const result = await addServiceToBooking(selectedStay.bookingId, service.id);
+      const result = await addServiceToBooking(selectedStay.bookingId, service.name, service.price, 1);
       if (result.success) {
         // alert(`Successfully added ${service.name} to guest's tab!`);
         setActiveModal('NONE');

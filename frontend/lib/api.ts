@@ -134,34 +134,34 @@ export async function checkAvailability(
     const pricePerNight = r.price_per_night ?? r.daily_rate;
     const membershipDiscount = 15; // 15% off for members
     const membershipPrice = Math.round(pricePerNight * (1 - membershipDiscount / 100));
-    
+
     return {
-      id:              String(r.room_number),
-      roomNumber:      r.room_number,
-      type:            r.room_type_id,
-      name:            r.room_type_id,
-      description:     '',
-      branchId:        r.branch_id,
-      branchName:      r.branch_name,
+      id: String(r.room_number),
+      roomNumber: r.room_number,
+      type: r.room_type_id,
+      name: r.room_type_id,
+      description: '',
+      branchId: r.branch_id,
+      branchName: r.branch_name,
       pricePerNight,
       membershipPrice,
       membershipDiscount,
-      capacity:        r.capacity,
-      maxCapacity:     r.capacity,
-      status:          r.room_status,
-      totalPrice:      0,
-      nights:          0,
-      features:        [],
-      amenities:       [],
-      image:           '',
+      capacity: r.capacity,
+      maxCapacity: r.capacity,
+      status: r.room_status,
+      totalPrice: 0,
+      nights: 0,
+      features: [],
+      amenities: [],
+      image: '',
     };
   });
 
   return {
-    available:     rooms.length > 0,
+    available: rooms.length > 0,
     rooms,
     hasMembership,
-    message:       rooms.length === 0 ? 'No rooms available for the selected dates.' : undefined,
+    message: rooms.length === 0 ? 'No rooms available for the selected dates.' : undefined,
   };
 }
 
@@ -391,8 +391,16 @@ export async function cancelBooking(bookingId: number): Promise<{ success: boole
 }
 
 // These endpoints are not yet implemented in the backend — kept as stubs
-export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
+export async function addServiceToBooking(bookingId: number, serviceName: string, serviceTotal: number, serviceDates: number = 1): Promise<{ success: boolean; message: string }> {
+  try {
+    await request(`/api/v1/bookings/${bookingId}/services`, { 
+      method: 'POST',
+      body: JSON.stringify({ service_name: serviceName, service_total: serviceTotal, service_dates: serviceDates })
+    });
+    return { success: true, message: 'Service added successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Failed to add service' };
+  }
 }
 
 export async function addAmenityToBooking(bookingId: number, amenityId: number): Promise<{ success: boolean; message: string }> {
@@ -400,15 +408,31 @@ export async function addAmenityToBooking(bookingId: number, amenityId: number):
 }
 
 export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Stay extended' }), 500));
+  try {
+    await request(`/api/v1/bookings/${bookingId}/extend`, { 
+      method: 'POST',
+      body: JSON.stringify({ new_checkout_date: newCheckOutDate })
+    });
+    return { success: true, message: 'Stay extended successfully' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Failed to extend stay' };
+  }
 }
 
 /**
- * POST /api/v1/management/memberships
- * Creates a new SkyNest Membership (stub — backend not yet implemented)
+ * POST /api/v1/guests/memberships
+ * Creates a new SkyNest Membership
  */
 export async function createMembership(data: { name: string; phone: string; email: string }): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Membership created successfully' }), 800));
+  try {
+    await request(`/api/v1/guests/memberships`, { 
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return { success: true, message: 'Guest successfully enrolled in SkyNest Membership!' };
+  } catch (e: any) {
+    return { success: false, message: e.message ?? 'Failed to enroll member' };
+  }
 }
 
 // ─────────────────────────────────────────────

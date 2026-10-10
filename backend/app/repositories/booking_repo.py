@@ -31,7 +31,7 @@ class BookingRepository:
         random_code = "".join(random.choices(string.digits, k=4))
         return f"SKN-{random_code}"
 
-    # ── Database-Backed Availability ──
+    # ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ Database-Backed Availability ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬
 
     def get_available_rooms(
         self,
@@ -73,8 +73,7 @@ class BookingRepository:
             available_rooms.append(room)
         return available_rooms
 
-    # ── Database-Backed Booking Operations ──
-
+    
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
         
@@ -356,186 +355,85 @@ class BookingRepository:
                     "type": "Oceanview Deluxe Suite",
                     "name": "Oceanview Deluxe Suite",
                     "description": "Uninterrupted panoramas of the Indian Ocean with private sunrise patio.",
-                    "pricePerNight": 48000,
-                    "membershipPrice": 43200,
-                    "membershipDiscount": 10,
-                    "maxCapacity": 3,
-                    "features": [
-                        "King Bed",
-                        "Ocean View",
-                        "Free Minibar",
-                        "Rain Shower",
-                    ],
-                    "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800",
-                    "isBestseller": True,
-                },
-                {
-                    "id": "presidential-suite",
-                    "type": "Fortress Grand Villa",
-                    "name": "Fortress Grand Villa",
-                    "description": "Grand heritage villa with private plunge pool and 24/7 dedicated butler service.",
-                    "pricePerNight": 75000,
-                    "membershipPrice": 67500,
-                    "membershipDiscount": 10,
-                    "maxCapacity": 4,
-                    "features": [
-                        "Private Pool",
-                        "Butler Service",
-                        "Oceanfront",
-                        "Gourmet Kitchen",
-                    ],
-                    "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800",
-                    "isBestseller": False,
-                },
-            ]
-        else:
-            return [
-                {
-                    "id": "standard-room",
-                    "type": "City View Standard",
-                    "name": "City View Standard",
-                    "description": "Sophisticated urban sanctuary overlooking the shimmering Colombo skyline.",
-                    "pricePerNight": 25000,
-                    "membershipPrice": 22500,
-                    "membershipDiscount": 10,
-                    "maxCapacity": 2,
-                    "features": [
-                        "Queen Bed",
-                        "City View",
-                        "Ergonomic Workspace",
-                        "High-Speed Wi-Fi",
-                    ],
-                    "image": "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800",
-                    "isBestseller": False,
-                },
-                {
-                    "id": "deluxe-room",
-                    "type": "Executive Oceanfront Deluxe",
-                    "name": "Executive Oceanfront Deluxe",
-                    "description": "Floor-to-ceiling vistas of Galle Face Green and the vibrant Port City sunsets.",
-                    "pricePerNight": 35000,
-                    "membershipPrice": 31500,
-                    "membershipDiscount": 10,
-                    "maxCapacity": 3,
-                    "features": [
-                        "King Bed",
-                        "Ocean View",
-                        "Lounge Access",
-                        "Marble Bathroom",
-                    ],
-                    "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800",
-                    "isBestseller": True,
-                },
-                {
-                    "id": "presidential-suite",
-                    "type": "Skyline Presidential Suite",
-                    "name": "Skyline Presidential Suite",
-                    "description": "Top-floor sprawling residence offering premier luxury and panoramic ocean views.",
-                    "pricePerNight": 65000,
-                    "membershipPrice": 58500,
-                    "membershipDiscount": 10,
-                    "maxCapacity": 4,
-                    "features": [
-                        "2 King Bedrooms",
-                        "Jacuzzi",
-                        "Skyline View",
-                        "Private Bar",
-                    ],
-                    "image": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800",
-                    "isBestseller": False,
-                },
-            ]
-
-    def get_amenities_catalog(self, branch: str) -> List[Dict[str, Any]]:
-        branch_lower = branch.lower() if branch else "colombo"
-        if branch_lower == "kandy":
-            return [
-                {
-                    "id": "kandy-tea-tour",
-                    "name": "Ceylon Tea Tasting & Estate Walk",
-                    "description": "Guided tasting session and scenic walking tour across organic tea estates.",
-                    "price": 4500,
-                    "icon": "cup",
-                },
-                {
-                    "id": "spa-ayurveda",
-                    "name": "Traditional Ayurvedic Spa Therapy",
-                    "description": "60-minute rejuvenating herbal massage and steam bath.",
-                    "price": 8500,
-                    "icon": "spa",
-                },
-                {
-                    "id": "airport-transfer",
-                    "name": "Airport Shuttle Transfer",
-                    "description": "Comfortable air-conditioned private vehicle transfer.",
-                    "price": 12000,
-                    "icon": "car",
-                },
-            ]
-        elif branch_lower == "galle":
-            return [
-                {
-                    "id": "sunset-cruise",
-                    "name": "Galle Coastal Sunset Cruise",
-                    "description": "Private catamaran boat ride with cocktails along the southern coastline.",
-                    "price": 9500,
-                    "icon": "water",
-                },
-                {
-                    "id": "surf-lesson",
-                    "name": "Private Surfing Lesson",
-                    "description": "2-hour beginner or intermediate surf session with certified instructor.",
-                    "price": 6000,
-                    "icon": "waves",
-                },
-                {
-                    "id": "airport-transfer",
-                    "name": "Airport Shuttle Transfer",
-                    "description": "Direct highway transfer from BIA Airport to Galle.",
-                    "price": 14000,
-                    "icon": "car",
-                },
-            ]
-        else:
-            return [
-                {
-                    "id": "airport-pickup",
-                    "name": "Airport Pickup & Luxury Transfer",
-                    "description": "Luxury chauffeur transfer from Bandaranaike International Airport (BIA).",
-                    "price": 5000,
-                    "icon": "car",
-                },
-                {
-                    "id": "buffet-breakfast",
-                    "name": "Gourmet Oceanview Breakfast Buffet",
-                    "description": "Daily lavish breakfast spread featuring international and Sri Lankan delicacies.",
-                    "price": 3500,
-                    "icon": "restaurant",
-                },
-                {
-                    "id": "spa-access",
-                    "name": "SkyNest Spa & Hydrotherapy Day Pass",
-                    "description": "Full-day access to sauna, steam rooms, and infinity hydro-pool.",
-                    "price": 7500,
-                    "icon": "spa",
-                },
-            ]
-
     def add_service_to_booking(self, booking_id: int, payload):
-        b = self.find_booking_by_id(booking_id)
-        if b:
-            if "service_charges" not in b:
-                b["service_charges"] = []
+        if self.db is not None:
+            try:
+                with self.db.cursor() as cursor:
+                    # 1. Update the grand total in billing_summary
+                    cursor.execute(
+                        "UPDATE billing_summary SET total_service_charges = COALESCE(total_service_charges, 0) + %s, grand_total = COALESCE(grand_total, 0) + %s WHERE booking_id = %s",
+                        (payload.service_total, payload.service_total, booking_id)
+                    )
+                    
+                    # 2. Insert into service_charges (Finds service_id using service_name automatically!)
+                    cursor.execute(
+                        "
+                        INSERT INTO service_charges (service_log_id, booking_id, service_id, service_dates, service_total)
+                        SELECT 
+                            (SELECT COALESCE(MAX(service_log_id), 0) + 1 FROM service_charges), 
+                            %s, 
+                            service_id, 
+                            %s, 
+                            %s 
+                        FROM service_catalogue 
+                        WHERE service_name = %s
+                        ",
+                        (booking_id, payload.service_dates, payload.service_total, payload.service_name)
+                    )
+            except Exception as e:
+                print(f"Database error in add_service: {e}")
+                pass
                 
-            new_service = {
-                "service_name": payload.service_name,
-                "service_total": payload.service_total,
-                "service_dates": payload.service_dates
-            }
-            b["service_charges"].append(new_service)
-            
-            # Update grand total
-            current_total = b.get("grand_total", 0.0)
-            b["grand_total"] = current_total + payload.service_total
-            return True
-        return False
+        # In-memory fallback if the database is offline
+        for b in self._bookings:
+            if b.get("booking_id") == booking_id:
+                if "service_charges" not in b:
+                    b["service_charges"] = []
+                b["service_charges"].append({
+                    "service_name": payload.service_name,
+                    "service_total": payload.service_total,
+                    "service_dates": payload.service_dates
+                })
+                b["grand_total"] = b.get("grand_total", 0.0) + payload.service_total
+                break
+
+    def find_pending_booking_by_phone(self, phone: str):
+        if self.db is not None:
+            try:
+                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute(
+                        "SELECT b.booking_id, g.name AS guest_name, g.phone_number as guest_phone, b.room_number, r.room_type_id, b.booking_status, b.start_date, b.end_date FROM booking b JOIN guests g ON b.guest_id = g.guest_id JOIN room_details r ON b.room_number = r.room_number AND b.branch_id = r.branch_id WHERE g.phone_number = %s AND b.booking_status = 'Confirmed'",
+                        (phone,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        return row
+            except Exception as e:
+                print(f"Database error finding pending booking: {e}")
+                pass
+
+        # In-memory fallback if the database is offline
+        for b in self._bookings:
+            guest_phone = b.get("guest_phone", b.get("phone", ""))
+            if str(guest_phone) == str(phone) and b.get("booking_status", "Confirmed") == "Confirmed":
+                return b
+        return None
+
+    def extending_stay(self, booking_id: int, new_checkout_date: str):
+        if self.db is not None:
+            try:
+                with self.db.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE booking SET end_date=%s WHERE booking_id=%s",
+                        (new_checkout_date, booking_id)
+                    )
+            except Exception as e:
+                print(f"Database error in extending_stay: {e}")
+                pass
+                
+        # In-memory fallback if the database is offline
+        for b in self._bookings:
+            if b.get("booking_id") == booking_id:
+                b["end_date"] = new_checkout_date
+                b["checkOut"] = new_checkout_date 
+                break

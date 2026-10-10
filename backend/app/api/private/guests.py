@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.dependencies import get_guest_service
-from app.schemas.guests import EnrollMembershipRequest, UpdatePhoneRequest
+from app.schemas.guests import EnrollMembershipRequest, UpdatePhoneRequest, CreateMembershipPayload
 from app.services.guest_service import GuestService
 
 router = APIRouter()
@@ -64,4 +64,15 @@ def enroll_guest_membership(
     result = guest_service.enroll_membership(guest_id=guest_id, membership_id=payload.membership_id)
     if not result.get("success"):
         raise HTTPException(status_code=400, detail=result.get("message", "Failed to enroll in membership"))
+    return result
+
+@router.post("/memberships")
+def create_membership(
+    payload: CreateMembershipPayload,
+    guest_service: GuestService = Depends(get_guest_service),
+) -> Dict[str, Any]:
+    """Enroll a new or existing guest into SkyNest membership program via frontend form."""
+    result = guest_service.enroll_by_phone(name=payload.name, phone=payload.phone, email=payload.email)
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message", "Failed to create membership"))
     return result

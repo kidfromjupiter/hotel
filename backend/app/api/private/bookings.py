@@ -15,6 +15,8 @@ from app.schemas.bookings import (
     CheckInResponse,
     CheckOutRequest,
     CheckOutResponse,
+    ServiceChargeItem,
+    ExtendStayRequest,
 )
 from app.services.booking_service import BookingService
 
@@ -116,3 +118,19 @@ def verify_otp(
         return {"success": False, "message": "Invalid OTP or booking not found."}
     
     return booking_service.get_pending_booking_by_phone(phone)
+
+@router.post("/{booking_id}/services")
+def add_service(
+    booking_id: int,
+    payload: ServiceChargeItem,
+    booking_service: BookingService = Depends(get_booking_service)
+):
+    return booking_service.add_service_to_booking(booking_id, payload)
+
+@router.post("/{booking_id}/extend")
+def extend_stay(
+    booking_id: int,
+    payload: ExtendStayRequest,
+    booking_service: BookingService = Depends(get_booking_service)
+):
+    return booking_service.extend_stay(booking_id, payload.new_checkout_date)

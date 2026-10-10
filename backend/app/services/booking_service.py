@@ -114,7 +114,7 @@ class BookingService:
             else "No rooms available for the selected dates.",
         }
 
-    # ── Booking Lifecycle & Management Methods ──
+    # â”€â”€ Booking Lifecycle & Management Methods â”€â”€
 
     def list_bookings(
         self,
@@ -335,24 +335,34 @@ class BookingService:
         return {"success": False, "message": "Booking not found or not in pending state."}
 
     def get_pending_booking_by_phone(self, phone: str):
-        bookings = self.booking_repo.list_all_bookings()
-        for b in bookings:
-            # We are using .get() because b is a dictionary
-            if b.get("guest_phone") == phone and b.get("booking_status") == "Confirmed":
-                # Returning the exact structure the frontend expects
-                return {
-                    "success": True,
-                    "booking": {
-                        "id": b.get("booking_id", "TBD"),
-                        "guestName": b.get("guest_name", "Guest"),
-                        "phone": b.get("guest_phone", phone),
-                        "roomType": b.get("room_type_id", "Standard Room"),
-                        "roomNumber": b.get("room_number", "TBD"),
-                        "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
-                        "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
-                        "status": b.get("booking_status", "Confirmed")
-                    }
-                }
+        # Now we hit the database directly! Much faster!
+        b = self.booking_repo.find_pending_booking_by_phone(phone)
         
-        # If the loop finishes without finding a match:
+        if b:
+            return {
+                "success": True,
+                "booking": {
+                    "id": b.get("booking_id", "TBD"),
+                    "guestName": b.get("guest_name", "Guest"),
+                    "phone": b.get("guest_phone", phone),
+                    "roomType": b.get("room_type_id", "Standard Room"),
+                    "roomNumber": b.get("room_number", "TBD"),
+                    "checkIn": b.get("start_date") or b.get("checkIn", "")[:10],
+                    "checkOut": b.get("end_date") or b.get("checkOut", "")[:10],
+                    "status": b.get("booking_status", "Confirmed")
+                }
+            }
+            
         return {"success": False, "message": "Invalid OTP or booking not found."}
+
+    def extend_stay(self, booking_id: int, new_checkout_date: str):
+        b = self.booking_repo.find_booking_by_id(booking_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+            
+        current_status = b.get("booking_status", "")
+        if current_status not in ("Confirmed", "Checked-In"):
+            raise HTTPException(status_code=400, detail="Can only extend active stays.")
+            
+        self.booking_repo.extending_stay(booking_id, new_checkout_date)
+        return self.get_booking_by_id(booking_id)

@@ -33,10 +33,26 @@ export default function GuestManagementPage() {
   }, []);
   
   // Handlers for mock APIs
-  const handleUpdatePhone = () => {
+  const handleUpdatePhone = async (guestId: number) => {
     const newPhone = prompt("Enter new phone number:");
     if (newPhone) {
-      alert(`Guest phone updated in guest table and sky-nest membership table to: ${newPhone}`);
+      try {
+        const response = await fetch(`/api/v1/guests/${guestId}/phone`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: newPhone })
+        });
+        const result = await response.json();
+        if (result.success) {
+          alert(`Guest phone updated successfully!`);
+          // Update local state to reflect change
+          setExpectedGuests(prev => prev.map(g => g.id === guestId ? { ...g, phone: newPhone } : g));
+        } else {
+          alert(`Failed to update phone: ${result.message}`);
+        }
+      } catch (error) {
+        alert('Error connecting to backend to update phone.');
+      }
     }
   };
 

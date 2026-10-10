@@ -19,3 +19,8 @@ class UpdatePhoneRequest(BaseModel):
 
 class EnrollMembershipRequest(BaseModel):
     membership_id: int = 1
+
+class CreateMembershipPayload(BaseModel):
+    name: str
+    phone: str
+    email: str
