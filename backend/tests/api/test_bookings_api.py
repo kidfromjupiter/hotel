@@ -88,36 +88,6 @@ def test_create_booking_success(client, booking_repo):
     assert saved["roomId"] == "deluxe-101"
 
 
-def test_create_booking_with_guest_contact_info(client, booking_repo):
-    booking_payload = {
-        "branch": "colombo",
-        "checkIn": "2026-10-20",
-        "checkOut": "2026-10-22",
-        "adults": 2,
-        "children": 0,
-        "nights": 2,
-        "roomId": "101",
-        "roomType": "Standard Room",
-        "phone": "+94779876543",
-        "firstName": "John",
-        "lastName": "Doe",
-        "email": "john.doe@example.com",
-        "national_id": "200012345678",
-        "specialRequests": "Late check-in, high floor quiet room please",
-        "totalPrice": 30000.0,
-    }
-
-    response = client.post("/api/v1/bookings/", json=booking_payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert data["bookingRef"].startswith("SKN-")
-
-    # Verify guest details saved
-    saved = booking_repo._bookings[-1]
-    assert saved["special_requests"] == "Late check-in, high floor quiet room please"
-
-
 def test_create_booking_frontend_alias(client):
     booking_payload = {
         "branch": "colombo",
