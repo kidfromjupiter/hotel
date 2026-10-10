@@ -29,6 +29,134 @@ const BRANCH_DISPLAY: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────────
+//  Room Type Visual Metadata & Descriptions
+// ─────────────────────────────────────────────
+const ROOM_TYPE_CONFIG: Record<string, {
+  name: string;
+  type: string;
+  description: string;
+  features: string[];
+  image: string;
+  isBestseller?: boolean;
+  maxCapacity: number;
+  membershipDiscount: number;
+}> = {
+  STANDARD: {
+    name: 'Standard Room',
+    type: 'Standard Room',
+    description: 'Comfortable and elegant room equipped with modern amenities, plush bedding, and scenic views.',
+    features: ['Queen Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'En-suite Bathroom', 'Smart TV', 'Tea & Coffee Maker'],
+    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+    isBestseller: false,
+    maxCapacity: 2,
+    membershipDiscount: 10,
+  },
+  DELUXE: {
+    name: 'Deluxe Room',
+    type: 'Deluxe Room',
+    description: 'Spacious sanctuary featuring a private balcony, luxury king bed, premium bath amenities, and panoramic ocean or skyline views.',
+    features: ['King Bed', 'Private Balcony', 'Bathtub & Rain Shower', 'Minibar', 'Ocean / Scenic View', '24/7 Room Service'],
+    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+    isBestseller: true,
+    maxCapacity: 2,
+    membershipDiscount: 15,
+  },
+  SUITE: {
+    name: 'Executive Suite',
+    type: 'Executive Suite',
+    description: 'Elevated luxury with a private lounge, panoramic ocean views, luxury king bed, jacuzzi bath, and dedicated butler service.',
+    features: ['King Bed', 'Private Lounge', 'Luxury Jacuzzi & Bath', 'Panoramic View', 'Complimentary Minibar', '24/7 Butler Service'],
+    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80',
+    isBestseller: false,
+    maxCapacity: 2,
+    membershipDiscount: 20,
+  },
+  FAMILY: {
+    name: 'Family Suite',
+    type: 'Family Suite',
+    description: 'Spacious accommodation designed for families with interconnecting sleeping zones, kid amenities, and large living area.',
+    features: ['1 King + 2 Twin Beds', 'Living Area', '2 En-suite Bathrooms', 'Kid-friendly Amenities', 'Smart TV & Console'],
+    image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80',
+    isBestseller: false,
+    maxCapacity: 4,
+    membershipDiscount: 15,
+  },
+};
+
+/**
+ * Groups raw database rooms by Room Type to eliminate duplicate cards
+ * and calculates the available inventory count for each category.
+ */
+function groupAvailableRooms(
+  rawRooms: Room[],
+  nights: number,
+  hasMembership: boolean
+): Room[] {
+  const groups = new Map<string, Room[]>();
+
+  for (const r of rawRooms) {
+    const rawType = (r as any).room_type_id || r.type || 'STANDARD';
+    const cleanType = String(rawType).toUpperCase().replace(/[^A-Z]/g, '');
+    let typeKey = 'STANDARD';
+    if (cleanType.includes('DELUXE')) typeKey = 'DELUXE';
+    else if (cleanType.includes('SUITE') && cleanType.includes('FAMILY')) typeKey = 'FAMILY';
+    else if (cleanType.includes('FAMILY')) typeKey = 'FAMILY';
+    else if (cleanType.includes('SUITE')) typeKey = 'SUITE';
+    else if (cleanType.includes('STANDARD')) typeKey = 'STANDARD';
+    else typeKey = cleanType || 'STANDARD';
+
+    if (!groups.has(typeKey)) {
+      groups.set(typeKey, []);
+    }
+    groups.get(typeKey)!.push(r);
+  }
+
+  const result: Room[] = [];
+
+  for (const [typeKey, roomsInGroup] of groups.entries()) {
+    const firstRoom = roomsInGroup[0];
+    const config = ROOM_TYPE_CONFIG[typeKey] || {
+      name: `${typeKey.charAt(0) + typeKey.slice(1).toLowerCase()} Room`,
+      type: `${typeKey.charAt(0) + typeKey.slice(1).toLowerCase()} Room`,
+      description: firstRoom.description || 'Comfortable and elegant room equipped with modern amenities and scenic views.',
+      features: firstRoom.features?.length ? firstRoom.features : ['Air Conditioning', 'Free Wi-Fi', 'En-suite Bathroom', 'Smart TV'],
+      image: firstRoom.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+      isBestseller: false,
+      maxCapacity: firstRoom.maxCapacity || 2,
+      membershipDiscount: 10,
+    };
+
+    const pricePerNight = firstRoom.pricePerNight || 15000;
+    const membershipDiscount = config.membershipDiscount;
+    const membershipPrice = firstRoom.membershipPrice || Math.round(pricePerNight * (1 - membershipDiscount / 100));
+    const effectiveRate = hasMembership && membershipPrice ? membershipPrice : pricePerNight;
+    const totalPrice = effectiveRate * nights;
+
+    result.push({
+      id: firstRoom.id,
+      roomNumber: firstRoom.roomNumber,
+      type: config.type,
+      name: config.name,
+      description: config.description,
+      pricePerNight,
+      totalPrice,
+      nights,
+      maxCapacity: config.maxCapacity || firstRoom.maxCapacity || 2,
+      features: config.features,
+      amenities: firstRoom.amenities || [],
+      image: config.image,
+      isBestseller: config.isBestseller,
+      membershipPrice,
+      membershipDiscount,
+      roomsLeft: roomsInGroup.length,
+      availableRooms: roomsInGroup,
+    });
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────
 //  BookingWizard — multi-step booking flow
 // ─────────────────────────────────────────────
 interface Props {
@@ -109,13 +237,13 @@ export default function BookingWizard({ branch }: Props) {
           'No rooms are available for the selected dates and guest count. Please try different dates or fewer guests.'
         );
       } else {
-        // Ensure totalPrice reflects the calculated nights
-        const roomsWithNights = res.rooms.map(r => ({
-          ...r,
+        // Group individual physical rooms by Room Type to eliminate duplicate room cards
+        const groupedRooms = groupAvailableRooms(
+          res.rooms as Room[],
           nights,
-          totalPrice: (r.membershipPrice && res.hasMembership ? r.membershipPrice : r.pricePerNight) * nights,
-        }));
-        setAvailableRooms(roomsWithNights);
+          res.hasMembership ?? false
+        );
+        setAvailableRooms(groupedRooms);
         setNoRoomMsg(null);
       }
 
@@ -151,8 +279,27 @@ export default function BookingWizard({ branch }: Props) {
   // ─────────────────────────────────────────────
   //  STEP 5 → 6 : Phone Submitted → Booking Confirmed
   // ─────────────────────────────────────────────
-  const handlePhoneComplete = (phone: string, bookingRef: string) => {
-    setState(prev => ({ ...prev, phone, bookingRef }));
+  const handlePhoneComplete = (
+    phone: string,
+    bookingRef: string,
+    details?: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      specialRequests?: string;
+      nationalId?: string;
+    }
+  ) => {
+    setState(prev => ({
+      ...prev,
+      phone,
+      bookingRef,
+      firstName: details?.firstName,
+      lastName: details?.lastName,
+      email: details?.email,
+      specialRequests: details?.specialRequests,
+      nationalId: details?.nationalId,
+    }));
     setStep('confirmed');
   };
 
@@ -160,10 +307,10 @@ export default function BookingWizard({ branch }: Props) {
   //  Render
   // ─────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-skynest-blue-pale pt-16">
+    <div className="min-h-screen bg-skynest-blue-pale pt-16 print:min-h-0 print:pt-0 print:bg-white">
 
       {/* ── Page header ── */}
-      <div className="bg-skynest-navy text-white py-6 px-4 shadow-lg">
+      <div className="bg-skynest-navy text-white py-6 px-4 shadow-lg print:hidden">
         <div className="max-w-6xl mx-auto">
           {/* Back navigation */}
           {step !== 'confirmed' && (
@@ -198,7 +345,7 @@ export default function BookingWizard({ branch }: Props) {
       </div>
 
       {/* ── Main content ── */}
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="max-w-6xl mx-auto px-4 py-10 print:max-w-none print:p-0 print:m-0">
 
         {/* Non-blocking availability error */}
         {availError && step === 'form' && (
@@ -266,7 +413,7 @@ export default function BookingWizard({ branch }: Props) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {availableRooms.map(room => (
                   <RoomCard
-                    key={room.roomNumber}
+                    key={room.type || room.id}
                     room={room}
                     nights={state.nights}
                     hasMembership={state.hasMembership}

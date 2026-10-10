@@ -96,6 +96,9 @@ class BookingRepository:
 
                     room_num = record.get("room_number", 101)
                     guest_id = record.get("guest_id", 1)
+                    guest_name = record.get("guest_name") or record.get("name")
+                    if guest_id and guest_name:
+                        cursor.execute("UPDATE guests SET name = %s WHERE guest_id = %s", (guest_name, guest_id))
                     status = record.get("booking_status", "CONFIRMED")
 
                     start_date = record.get("start_date") or (record.get("checkIn") or "")[:10]
@@ -125,6 +128,13 @@ class BookingRepository:
                             amount_paid,
                         ),
                     )
+
+                    special_req = record.get("special_requests") or record.get("specialRequests")
+                    if special_req:
+                        cursor.execute(
+                            "UPDATE booking SET special_requests = %s WHERE booking_id = %s",
+                            (special_req, record["booking_id"]),
+                        )
                 self.db.commit()
             except Exception as e:
                 print(f"Exception in save_booking: {e}")
