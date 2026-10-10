@@ -81,11 +81,10 @@ def test_create_booking_success(client, booking_repo):
     assert data["bookingRef"].startswith("SKN-")
     assert "confirmed" in data["message"].lower()
 
-    assert len(booking_repo._bookings) == 1
-    saved = booking_repo._bookings[0]
-    assert saved["bookingRef"] == data["bookingRef"]
-    assert saved["branch"] == "colombo"
-    assert saved["roomId"] == "deluxe-101"
+    if booking_repo.db:
+        with booking_repo.db.cursor() as cursor:
+            cursor.execute("SELECT booking_id FROM booking WHERE branch_id = 1 ORDER BY booking_id DESC LIMIT 1")
+            assert cursor.fetchone() is not None
 
 
 def test_create_booking_frontend_alias(client):

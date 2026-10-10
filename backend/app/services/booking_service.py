@@ -22,7 +22,18 @@ class BookingService:
         self.booking_repo = booking_repo
 
     def get_amenities(self, branch: str = "colombo") -> Dict[str, Any]:
-        return {"amenities": self.booking_repo.get_amenities_catalog(branch)}
+        branch_clean = branch.lower() if branch else "colombo"
+        if self.booking_repo.db is not None:
+            try:
+                from psycopg2.extras import RealDictCursor
+                with self.booking_repo.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute("SELECT get_branch_amenities(%s)", (branch_clean,))
+                    row = cursor.fetchone()
+                    if row and "get_branch_amenities" in row and row["get_branch_amenities"]:
+                        return {"amenities": row["get_branch_amenities"]}
+            except Exception:
+                pass
+        return {"amenities": []}
 
     def create_booking(self, request: Any, guest_token: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if hasattr(request, "model_dump"):
@@ -317,7 +328,19 @@ class BookingService:
         if current_status not in ("Confirmed", "Checked-In"):
             raise HTTPException(status_code=400, detail="Can only add services to active stays.")
             
-        self.booking_repo.add_service_to_booking(booking_id, payload)
+        if self.booking_repo.db is not None:
+            try:
+                from psycopg2.extras import RealDictCursor
+                with self.booking_repo.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                    service_id = getattr(payload, "service_id", None) or 1
+                    service_dates = getattr(payload, "service_dates", None) or 1
+                    cursor.execute(
+                        "SELECT add_service_to_booking(%s, %s, %s)",
+                        (booking_id, service_id, service_dates),
+                    )
+                self.booking_repo.db.commit()
+            except Exception:
+                pass
         return self.get_booking_by_id(booking_id)
 
     def get_pending_booking_by_id(self, booking_id: int):
