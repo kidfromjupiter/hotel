@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.dependencies import get_booking_service, get_otp_service
+from app.api.dependencies import get_booking_service, get_otp_service, get_billing_service
 from app.schemas.booking_flow import CheckInOTPRequest
 from app.services.otp_service import OTPService
 from app.schemas.bookings import (
@@ -17,6 +17,7 @@ from app.schemas.bookings import (
     CheckOutResponse,
 )
 from app.services.booking_service import BookingService
+from app.services.billing_service import BillingService
 
 router = APIRouter()
 
@@ -98,11 +99,25 @@ def check_in(
 def check_out(
     booking_id: int,
     payload: Optional[CheckOutRequest] = None,
-    booking_service: BookingService = Depends(get_booking_service),
+    billing_service: BillingService = Depends(get_billing_service),
 ):
-    """Staff/Receptionist endpoint to check a guest out (enforces full payment)."""
+    """Staff/Receptionist endpoint to check a guest out (enforces full payment and releases room)."""
     check_out_time = payload.check_out_time if payload else None
-    return booking_service.check_out(booking_id, check_out_time=check_out_time)
+
+    res = billing_service.checkout(booking_id, payment_method="CASH")
+    
+    if not res.get("success"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=res.get("message", "Check-out failed."))
+        
+    import datetime
+    out_time = check_out_time or datetime.datetime.now().strftime("%H:%M:%S")
+    
+    return CheckOutResponse(
+        booking_id=booking_id,
+        booking_status="CHECKED_OUT",
+        checked_out_time=out_time
+    )
 
 
 @router.post("/{booking_id}/cancel", response_model=CancelBookingResponse)
