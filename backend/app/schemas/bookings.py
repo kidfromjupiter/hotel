@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 class BookingListItem(BaseModel):
     booking_id: int
+    booking_ref: str
     guest_name: str
     room_number: int
     branch_name: str
@@ -17,7 +18,7 @@ class BookingListItem(BaseModel):
 
 class AdminReservationListItem(BaseModel):
     booking_id: int
-    booking_ref: Optional[str] = None
+    booking_ref: str
     guest_id: Optional[int] = None
     guest_name: str
     guest_contact: Optional[str] = None
@@ -85,6 +86,7 @@ class ServiceChargeItem(BaseModel):
 
 class BookingDetailResponse(BaseModel):
     booking_id: int
+    booking_ref: str
     guest: GuestProfileSummary
     room: RoomSummary
     booking_status: str

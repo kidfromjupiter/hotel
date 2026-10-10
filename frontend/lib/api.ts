@@ -10,7 +10,8 @@ import type {
   BookingStatus,
   GuestProfile,
   ServiceCatalogueItem,
-  InvoiceSummary
+  InvoiceSummary,
+  AdminReservationListItem
 } from './types';
 
 const BASE_URL = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : (process.env.INTERNAL_API_URL ?? 'http://backend:8000');
@@ -43,56 +44,6 @@ async function request<T>(
 
   return res.json() as Promise<T>;
 }
-
-// ─────────────────────────────────────────────
-//  Default / Hardcoded Room Types
-// ─────────────────────────────────────────────
-export const HARDCODED_ROOMS = (nights: number): AvailabilityResponse['rooms'] => [
-  {
-    id: 'standard-room',
-    type: 'Standard Room',
-    name: 'Standard Room',
-    description:
-      'Cozy, elegant room with contemporary furnishings, comfortable queen bed, city/garden views, and modern comforts.',
-    pricePerNight: 20000,
-    totalPrice: 20000 * (nights || 1),
-    nights: nights || 1,
-    maxCapacity: 2,
-    features: ['Queen Bed', 'Air Conditioning', 'Free High-Speed Wi-Fi', 'En-suite Bathroom', 'Smart TV', 'Tea & Coffee Maker'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' }
-    ],
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
-    isBestseller: false,
-    membershipPrice: 18000,
-    membershipDiscount: 10,
-  },
-  {
-    id: 'deluxe-room',
-    type: 'Deluxe Room',
-    name: 'Deluxe Room',
-    description:
-      'Spacious sanctuary featuring a private balcony, luxury king bed, premium bath amenities, and panoramic ocean or skyline views.',
-    pricePerNight: 35000,
-    totalPrice: 35000 * (nights || 1),
-    nights: nights || 1,
-    maxCapacity: 4,
-    features: ['King Bed', 'Private Balcony', 'Bathtub & Rain Shower', 'Minibar', 'Ocean / Scenic View', '24/7 Room Service'],
-    amenities: [
-      { id: 'a1', name: 'Air Conditioning', description: 'Climate control', price: 0, icon: '❄️' },
-      { id: 'a2', name: 'Free High-Speed Wi-Fi', description: 'Unlimited access', price: 0, icon: '📶' },
-      { id: 'a3', name: 'Minibar', description: 'Fully stocked minibar', price: 0, icon: '🍷' },
-      { id: 'a4', name: '24/7 Room Service', description: 'Available anytime', price: 0, icon: '🛎️' }
-    ],
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
-    isBestseller: true,
-    membershipPrice: 30000,
-    membershipDiscount: 15,
-  },
-];
-
-// ─────────────────────────────────────────────
 
 //  Rooms / Availability
 // ─────────────────────────────────────────────
@@ -136,7 +87,7 @@ export async function checkAvailability(
     const membershipPrice = Math.round(pricePerNight * (1 - membershipDiscount / 100));
     
     return {
-      id:              String(r.room_number),
+      id:              `${r.branch_id}-${r.room_number}`,
       roomNumber:      r.room_number,
       type:            r.room_type_id,
       name:            r.room_type_id,
@@ -247,27 +198,32 @@ export async function addServiceToTab(bookingId: number, serviceName: string, se
 export async function getMyBookings(): Promise<StaffBooking[]> {
   const raw = await request<Array<{
     booking_id: number;
+    booking_ref: string;
     guest_name: string;
     room_number: number;
+    branch_id: number;
     branch_name: string;
+    room_type_id?: string;
     booking_status: string;
     start_date: string;
     end_date: string;
+    adult_count?: number;
+    children_count?: number;
   }>>('/api/v1/booking/');
 
   return raw.map(b => ({
     bookingId: b.booking_id,
     guestName: b.guest_name,
     phone: '',
-    branchId: 0,
-    bookingReference: `BKG-${b.booking_id}`,
+    branchId: b.branch_id,
+    bookingReference: b.booking_ref,
     roomNumber: b.room_number,
-    roomType: '',
+    roomType: b.room_type_id ?? '',
     checkIn: b.start_date,
     checkOut: b.end_date,
     status: b.booking_status as BookingStatus,
-    adults: 0,
-    children: 0,
+    adults: b.adult_count ?? 0,
+    children: b.children_count ?? 0,
   }));
 }
 
@@ -278,11 +234,11 @@ export async function getMyBookings(): Promise<StaffBooking[]> {
 /**
  * GET /api/v1/private/bookings/admin-reservations
  */
-export async function getAdminReservationsList(status?: string): Promise<any[]> {
+export async function getAdminReservationsList(status?: string): Promise<AdminReservationListItem[]> {
   const url = status 
     ? `/api/v1/private/bookings/admin-reservations?status=${encodeURIComponent(status)}`
     : '/api/v1/private/bookings/admin-reservations';
-  return request<any[]>(url, { method: 'GET' });
+  return request<AdminReservationListItem[]>(url, { method: 'GET' });
 }
 
 /**
@@ -292,27 +248,32 @@ export async function getAdminReservationsList(status?: string): Promise<any[]> 
 export async function getAllBookings(): Promise<StaffBooking[]> {
   const raw = await request<Array<{
     booking_id: number;
+    booking_ref: string;
     guest_name: string;
     room_number: number;
+    branch_id: number;
     branch_name: string;
+    room_type_id?: string;
     booking_status: string;
     start_date: string;
     end_date: string;
+    adult_count?: number;
+    children_count?: number;
   }>>('/api/v1/bookings/');
 
   return raw.map(b => ({
     bookingId: b.booking_id,
     guestName: b.guest_name,
     phone: '',
-    branchId: 0,
-    bookingReference: `BKG-${b.booking_id}`,
+    branchId: b.branch_id,
+    bookingReference: b.booking_ref,
     roomNumber: b.room_number,
-    roomType: '',
+    roomType: b.room_type_id ?? '',
     checkIn: b.start_date,
     checkOut: b.end_date,
     status: b.booking_status as BookingStatus,
-    adults: 0,
-    children: 0,
+    adults: b.adult_count ?? 0,
+    children: b.children_count ?? 0,
   }));
 }
 

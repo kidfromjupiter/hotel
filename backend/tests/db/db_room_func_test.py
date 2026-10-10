@@ -26,11 +26,11 @@ def test_overlapping_booking_excludes_room(db_connection):
                 (102, 9001, 'TEST_STANDARD', 'AVAILABLE', 2);
 
             INSERT INTO booking
-                (booking_id, room_number, branch_id, guest_id,
+                (booking_id, booking_ref, room_number, branch_id, guest_id,
                  booking_status, start_date, end_date,
                  adult_count, children_count)
             VALUES
-                (9001, 102, 9001, 9001,
+                (9001, 'SKN-9001', 102, 9001, 9001,
                  'CONFIRMED', '2026-10-01', '2026-10-03', 2, 0);
         """)
 

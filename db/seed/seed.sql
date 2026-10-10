@@ -220,6 +220,7 @@ VALUES
 
 INSERT INTO booking (
     booking_id,
+    booking_ref,
     room_number,
     branch_id,
     guest_id,
@@ -236,6 +237,7 @@ VALUES
     -- Booking 1001 - Currently checked in
     (
         1001,
+        'SKN-1001',
         102,
         1,
         1,
@@ -251,6 +253,7 @@ VALUES
     -- Booking 1002 - Future booking
     (
         1002,
+        'SKN-1002',
         201,
         1,
         2,
@@ -266,6 +269,7 @@ VALUES
     -- Booking 1003 - Completed
     (
         1003,
+        'SKN-1003',
         201,
         2,
         3,
@@ -281,6 +285,7 @@ VALUES
     -- Booking 1004 - Completed
     (
         1004,
+        'SKN-1004',
         201,
         3,
         4,
@@ -296,6 +301,7 @@ VALUES
     -- Booking 1005 - Future booking
     (
         1005,
+        'SKN-1005',
         103,
         1,
         5,
@@ -311,6 +317,7 @@ VALUES
     -- Booking 1006 - Cancelled
     (
         1006,
+        'SKN-1006',
         301,
         2,
         6,
@@ -326,6 +333,7 @@ VALUES
     -- Booking 1007 - Future family booking
     (
         1007,
+        'SKN-1007',
         301,
         3,
         7,
@@ -341,6 +349,7 @@ VALUES
     -- Booking 1008 - Completed
     (
         1008,
+        'SKN-1008',
         101,
         2,
         8,

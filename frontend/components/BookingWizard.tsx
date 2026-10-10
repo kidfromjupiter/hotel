@@ -293,13 +293,13 @@ export default function BookingWizard({ branch }: Props) {
         {step === 'phone' && state.selectedRoom && (
           <PhoneOTPForm
             bookingData={{
-              branch: state.branch,
+              branchId: state.selectedRoom.branchId,
               checkIn: state.checkIn,
               checkOut: state.checkOut,
               adults: state.adults,
               children: state.children,
               nights: state.nights,
-              roomId: state.selectedRoom.id,
+              roomNumber: state.selectedRoom.roomNumber,
               roomType: state.selectedRoom.name,
               totalPrice: state.totalPrice,
             }}
