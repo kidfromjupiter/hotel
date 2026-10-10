@@ -27,8 +27,8 @@ export default function AdminBookingsPage() {
   const getStatusColor = (status: string) => {
     switch (status.toUpperCase()) {
       case 'CONFIRMED': return 'bg-blue-100 text-blue-700';
-      case 'CHECKED-IN': return 'bg-green-100 text-green-700';
-      case 'CHECKED-OUT': return 'bg-slate-200 text-slate-700';
+      case 'CHECKED_IN': return 'bg-green-100 text-green-700';
+      case 'CHECKED_OUT': return 'bg-slate-200 text-slate-700';
       case 'CANCELLED': return 'bg-red-100 text-red-700';
       default: return 'bg-slate-100 text-slate-700';
     }
@@ -66,10 +66,10 @@ export default function AdminBookingsPage() {
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"
             >
               <option value="All">All Statuses</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Checked-In">Checked-In</option>
-              <option value="Checked-Out">Checked-Out</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="CHECKED_IN">Checked-In</option>
+              <option value="CHECKED_OUT">Checked-Out</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
         </div>

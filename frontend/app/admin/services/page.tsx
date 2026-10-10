@@ -73,8 +73,8 @@ export default function AdminServicesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredServices.map((service) => (
-              <tr key={service.id} className="hover:bg-slate-50/50 transition-colors">
+            {filteredServices.map((service, index) => (
+              <tr key={service.id || `service-${index}`} className="hover:bg-slate-50/50 transition-colors">
                 <td className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600">

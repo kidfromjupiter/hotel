@@ -168,7 +168,7 @@ export interface GuestProfile {
   membershipId?: number;
 }
 
-export type BookingStatus = 'Confirmed' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
+export type BookingStatus = 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
 
 export interface StaffBooking {
   bookingId: number;

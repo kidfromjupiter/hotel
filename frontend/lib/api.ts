@@ -216,11 +216,11 @@ export async function createBooking(
 }
 
 /**
- * GET /api/v1/bookings/?status=Checked-In
+ * GET /api/v1/bookings/?status=CHECKED_IN
  * Fetches all guests who are currently checked in (Active Stays).
  */
 export async function getActiveStays(): Promise<any[]> {
-  return request<any[]>('/api/v1/bookings/?status=Checked-In', {
+  return request<any[]>('/api/v1/bookings/?status=CHECKED_IN', {
     method: 'GET',
   });
 }
@@ -347,7 +347,7 @@ export async function getBookingDetail(bookingId: number): Promise<InvoiceSummar
 
 /**
  * POST /api/v1/bookings/{id}/check-in
- * Checks in a guest (changes booking to Checked-In, Room to Occupied)
+ * Checks in a guest (changes booking to CHECKED_IN, Room to Occupied)
  */
 export async function checkInGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
   try {
