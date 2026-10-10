@@ -88,7 +88,7 @@ class BookingRepository:
                     if "bookingRef" not in record or not record["bookingRef"]:
                         record["bookingRef"] = self.generate_booking_ref()
                     if "booking_status" not in record:
-                        record["booking_status"] = "Confirmed"
+                        record["booking_status"] = "CONFIRMED"
 
                     branch_map = {"colombo": 1, "kandy": 2, "galle": 3}
                     branch_val = record.get("branch", "colombo")
@@ -96,7 +96,7 @@ class BookingRepository:
 
                     room_num = record.get("room_number", 101)
                     guest_id = record.get("guest_id", 1)
-                    status = record.get("booking_status", "Confirmed")
+                    status = record.get("booking_status", "CONFIRMED")
 
                     start_date = record.get("start_date") or (record.get("checkIn") or "")[:10]
                     end_date = record.get("end_date") or (record.get("checkOut") or "")[:10]
@@ -139,7 +139,7 @@ class BookingRepository:
             if "bookingRef" not in record or not record["bookingRef"]:
                 record["bookingRef"] = self.generate_booking_ref()
             if "booking_status" not in record:
-                record["booking_status"] = "Confirmed"
+                record["booking_status"] = "CONFIRMED"
 
         # Update in-memory record list
         self._bookings.append(record)
