@@ -13,26 +13,29 @@ class GuestsRepo:
         if self.db is not None:
             try:
                 with self.db.cursor() as cursor:
-                    cursor.execute("SELECT COALESCE(MAX(guest_id), 0) + 1 FROM guests")
-                    new_id = cursor.fetchone()[0]
-                    
-                    v_digits = "".join([c for c in phone if c.isdigit()])
+                    v_digits = "".join(c for c in phone if c.isdigit())
                     if v_digits.startswith("94"):
                         v_digits = v_digits[2:]
                     elif v_digits.startswith("0"):
                         v_digits = v_digits[1:]
-                    
+
                     phone_int = int(v_digits) if v_digits else 0
-                    
+
                     cursor.execute(
-                        "INSERT INTO guests (guest_id, name, phone_number) VALUES (%s, %s, %s)",
-                        (new_id, name, phone_int)
+                        """
+                        INSERT INTO guests (name, phone_number)
+                        VALUES (%s, %s)
+                        RETURNING guest_id
+                        """,
+                        (name, phone_int),
                     )
+                    new_id = cursor.fetchone()[0]
+
                 self.db.commit()
                 return self.get_guest_by_id(new_id)
-            except Exception as e:
-                print(f"Failed to create guest: {e}")
-                pass
+            except Exception:
+                self.db.rollback()
+                raise
         return None
 
     def get_all_guests(self, search: Optional[str] = None) -> List[Dict[str, Any]]:

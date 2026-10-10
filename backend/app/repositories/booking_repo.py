@@ -57,9 +57,11 @@ class BookingRepository:
             try:
                 with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
                     if "booking_id" not in record or not record["booking_id"]:
-                        cursor.execute("SELECT COALESCE(MAX(booking_id), 0) + 1 FROM booking")
-                        record["booking_id"] = cursor.fetchone()["?column?"]
-
+                        cursor.execute(
+                            "SELECT nextval(pg_get_serial_sequence('booking', 'booking_id')) AS booking_id"
+                        )
+                        record["booking_id"] = cursor.fetchone()["booking_id"]
+                        
                     if "bookingRef" not in record or not record["bookingRef"]:
                         record["bookingRef"] = self.generate_booking_ref()
                     if "booking_status" not in record:
