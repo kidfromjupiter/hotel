@@ -216,3 +216,20 @@ class BookingRepository:
             except Exception:
                 pass
         return None
+
+    def add_service_to_booking(
+        self, booking_id: int, service_id: int, service_dates: int
+    ) -> None:
+        if self.db is None:
+            raise RuntimeError("Database connection is unavailable")
+
+        try:
+            with self.db.cursor() as cursor:
+                cursor.execute(
+                    "SELECT add_service_to_booking(%s, %s, %s)",
+                    (booking_id, service_id, service_dates),
+                )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

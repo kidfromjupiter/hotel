@@ -285,25 +285,24 @@ class BookingService:
     def add_service_to_booking(self, booking_id: int, payload):
         b = self.booking_repo.find_booking_by_id(booking_id)
         if not b:
-            raise HTTPException(status_code=404, detail="Booking does not exist.")
-            
+            raise HTTPException(
+                status_code=404,
+                detail="Booking does not exist.",
+            )
+
         current_status = b.get("booking_status", "")
         if current_status not in ("CONFIRMED", "CHECKED_IN"):
-            raise HTTPException(status_code=400, detail="Can only add services to active stays.")
-            
-        if self.booking_repo.db is not None:
-            try:
-                from psycopg2.extras import RealDictCursor
-                with self.booking_repo.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    service_id = getattr(payload, "service_id", None) or 1
-                    service_dates = getattr(payload, "service_dates", None) or 1
-                    cursor.execute(
-                        "SELECT add_service_to_booking(%s, %s, %s)",
-                        (booking_id, service_id, service_dates),
-                    )
-                self.booking_repo.db.commit()
-            except Exception:
-                pass
+            raise HTTPException(
+                status_code=400,
+                detail="Can only add services to active stays.",
+            )
+
+        service_id = getattr(payload, "service_id", None) or 1
+        service_dates = getattr(payload, "service_dates", None) or 1
+
+        self.booking_repo.add_service_to_booking(
+            booking_id, service_id, service_dates
+        )
         return self.get_booking_by_id(booking_id)
 
     def get_pending_booking_by_id(self, booking_id: int):
