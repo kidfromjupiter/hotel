@@ -11,9 +11,6 @@ public_router.include_router(rooms_router, prefix="/rooms", tags=["Public - Room
 public_router.include_router(
     bookings_router, prefix="/bookings", tags=["Public - Bookings"]
 )
-public_router.include_router(
-    bookings_router, prefix="/booking", tags=["Public - Bookings"]
-)
 public_router.include_router(otp_router, prefix="/otp", tags=["Public - OTP"])
 public_router.include_router(
     branches_router, prefix="/branches", tags=["Public - Branches"]

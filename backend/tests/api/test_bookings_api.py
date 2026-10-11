@@ -78,7 +78,7 @@ def test_create_booking_success(client, booking_repo):
             assert (branch_id, room_number) == (1, 201)
 
 
-def test_create_booking_frontend_alias(client):
+def test_create_booking_create_path(client):
     booking_payload = {
         "branchId": 1,
         "checkIn": "2026-11-15T00:00:00.000Z",
@@ -91,7 +91,7 @@ def test_create_booking_frontend_alias(client):
         "phone": "+94771234567",
         "totalPrice": 105000,
     }
-    response = client.post("/api/v1/booking/create", json=booking_payload)
+    response = client.post("/api/v1/bookings/create", json=booking_payload)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
