@@ -42,9 +42,9 @@ export default function RoomAvailabilityPage() {
           <h1 className="text-xl font-bold text-skynest-navy">Room Availability Grid</h1>
           <p className="text-sm text-gray-500 mt-1">Live overview of all hotel rooms. Click an available room to start a walk-in booking.</p>
         </div>
-        
+
         <div className="flex gap-3">
-          <select 
+          <select
             className="px-4 py-3 bg-white/80 backdrop-blur-md shadow-sm border border-white/50 rounded-xl text-sm font-bold tracking-widest uppercase text-skynest-navy focus:outline-none focus:border-skynest-blue"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -54,11 +54,11 @@ export default function RoomAvailabilityPage() {
             <option value="OCCUPIED">Occupied</option>
             <option value="MAINTENANCE">Maintenance</option>
           </select>
-          
+
           <div className="relative">
             <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="SEARCH ROOM"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -80,12 +80,12 @@ export default function RoomAvailabilityPage() {
           const isMaintenance = room.room_status === 'MAINTENANCE';
 
           return (
-            <div 
+            <div
               key={`${room.branch_id}-${room.room_number}`}
               onClick={() => isAvailable && handleWalkInBooking(room.room_number)}
               className={`relative overflow-hidden p-5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-300 border-2 ${
-                isAvailable 
-                  ? 'bg-white border-slate-200 shadow-sm hover:shadow-lg hover:border-skynest-blue hover:-translate-y-1 cursor-pointer group' 
+                isAvailable
+                  ? 'bg-white border-slate-200 shadow-sm hover:shadow-lg hover:border-skynest-blue hover:-translate-y-1 cursor-pointer group'
                   : isOccupied
                   ? 'bg-skynest-navy border-skynest-navy shadow-lg text-white'
                   : 'bg-slate-100 border-dashed border-slate-300 text-slate-400'
@@ -94,20 +94,20 @@ export default function RoomAvailabilityPage() {
               {isAvailable && (
                 <div className="absolute top-0 right-0 w-16 h-16 bg-skynest-blue/10 rounded-bl-full -z-10 group-hover:bg-skynest-blue/20 transition-colors" />
               )}
-              
+
               <h3 className={`text-3xl font-bold mb-1 tracking-tight ${isAvailable ? 'text-skynest-navy' : isOccupied ? 'text-white' : 'text-gray-500'}`}>
                 {room.room_number}
               </h3>
-              
+
               <p className={`text-[10px] font-semibold tracking-widest uppercase mb-6 ${
                 isAvailable ? 'text-skynest-blue' : isOccupied ? 'text-gray-300' : 'text-gray-400'
               }`}>
                 {room.type_name}
               </p>
-              
+
               <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5 ${
-                isAvailable ? 'bg-skynest-blue text-white shadow-md shadow-skynest-blue/20' : 
-                isOccupied ? 'bg-white/20 text-white' : 
+                isAvailable ? 'bg-skynest-blue text-white shadow-md shadow-skynest-blue/20' :
+                isOccupied ? 'bg-white/20 text-white' :
                 'bg-gray-200 text-gray-500'
               }`}>
                 {isAvailable && <HiCheckCircle size={14} />}

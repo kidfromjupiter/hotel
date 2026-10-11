@@ -23,10 +23,10 @@ BEGIN
         'occupied_nights', COALESCE(occ.occupied_nights, 0),
         'total_possible_nights', (COALESCE(rc.room_count, 0) * v_period_days),
         'occupancy_rate_percent', ROUND(
-          CASE 
-            WHEN (COALESCE(rc.room_count, 0) * v_period_days) > 0 
+          CASE
+            WHEN (COALESCE(rc.room_count, 0) * v_period_days) > 0
             THEN (COALESCE(occ.occupied_nights, 0)::NUMERIC / (rc.room_count * v_period_days)::NUMERIC) * 100.0
-            ELSE 0.0 
+            ELSE 0.0
           END, 2
         )
       )
@@ -42,7 +42,7 @@ BEGIN
     GROUP BY branch_id
   ) rc ON b.branch_id = rc.branch_id
   LEFT JOIN (
-    SELECT 
+    SELECT
       bk.branch_id,
       SUM(
         GREATEST(0, LEAST(bk.end_date, p_end_date) - GREATEST(bk.start_date, p_start_date))
@@ -125,7 +125,7 @@ BEGIN
   )
   INTO result
   FROM (
-    SELECT 
+    SELECT
       sc.service_id,
       COUNT(DISTINCT sc.booking_id) AS total_bookings_used,
       SUM(COALESCE(sc.service_dates, 1)) AS total_days_used,
@@ -207,7 +207,7 @@ BEGIN
   )
   INTO result
   FROM (
-    SELECT 
+    SELECT
       sc.service_id,
       COUNT(sc.service_log_id) AS times_used,
       SUM(COALESCE(sc.service_total, 0.0)) AS total_revenue

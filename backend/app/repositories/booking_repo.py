@@ -66,7 +66,7 @@ class BookingRepository:
                             "SELECT nextval(pg_get_serial_sequence('booking', 'booking_id')) AS booking_id"
                         )
                         record["booking_id"] = cursor.fetchone()["booking_id"]
-                        
+
                     if "booking_status" not in record:
                         record["booking_status"] = "CONFIRMED"
 

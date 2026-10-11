@@ -1,7 +1,7 @@
 # SkyNest Hotels — Backend API Documentation
 
-> **Base URL:** `/api/v1`  
-> **Framework:** FastAPI (Python)  
+> **Base URL:** `/api/v1`
+> **Framework:** FastAPI (Python)
 > **Auth:** _To be defined (JWT planned)_
 
 ---
@@ -879,5 +879,5 @@ Get the full invoice details with tax breakdown and transaction history.
 | `FAMILY`        | Family Room        | 2 Large Beds   | **5**        |
 | `FAMILY_DELUXE` | Deluxe Family Room | 2 Large Beds   | **5**        |
 
-> `DELUXE` shares the same bed config as `STANDARD` but includes additional amenities.  
+> `DELUXE` shares the same bed config as `STANDARD` but includes additional amenities.
 > `FAMILY_DELUXE` shares the same bed config as `FAMILY` but includes additional amenities.

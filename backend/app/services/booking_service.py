@@ -46,7 +46,7 @@ class BookingService:
             if discount > 0:
                 original_price = booking_dict.get("totalPrice", 0.0)
                 booking_dict["totalPrice"] = round(original_price * (1 - (discount / 100.0)), 2)
-            
+
             # Auto-assign guest_id if they are logged in
             if guest_token.get("guest_id") and not booking_dict.get("guest_id"):
                 booking_dict["guest_id"] = guest_token.get("guest_id")
@@ -363,6 +363,6 @@ class BookingService:
                         "status": b.get("booking_status", "CONFIRMED")
                     }
                 }
-        
+
         # If the loop finishes without finding a match:
         return {"success": False, "message": "Invalid OTP or booking not found."}

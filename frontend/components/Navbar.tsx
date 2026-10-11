@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { label: 'OUR SPA', href: '/#spa' },
   { label: 'GALLERY', href: '/#gallery' },
   { label: 'OFFERS', href: '/#offers' },
-  { label: 'STAFF PORTAL', href: '/receptionist' },
+  { label: 'STAFF PORTAL', href: '/staff/login' },
 ];
 
 export default function Navbar() {
@@ -112,7 +112,7 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          
+
           <Link
             href={hasToken ? '/dashboard' : '/login'}
             className="block py-2.5 text-[11px] tracking-[0.15em] text-gray-400 hover:text-white font-bold"

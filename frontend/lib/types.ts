@@ -109,6 +109,24 @@ export interface VerifyOTPPayload {
 export interface VerifyOTPResponse {
   success: boolean;
   message: string;
+  token?: string;
+  guest_id?: number;
+  has_membership?: boolean;
+}
+
+export interface StaffUser {
+  staff_id: number;
+  branch_id: number | null;
+  username: string;
+  full_name: string;
+  role: 'admin' | 'receptionist';
+  is_active: boolean;
+}
+
+export interface StaffLoginResponse {
+  access_token: string;
+  token_type: 'bearer';
+  user: StaffUser;
 }
 
 // ─────────────────────────────────────────────

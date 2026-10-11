@@ -12,7 +12,7 @@ export default function AdminServicesPage() {
 
   useEffect(() => {
     getServices().then(data => {
-      // API currently just returns id, name, price. 
+      // API currently just returns id, name, price.
       // We map these to the structure expected by the UI.
       const formatted = data.map(s => ({
         id: s.service_id,
@@ -25,8 +25,8 @@ export default function AdminServicesPage() {
     });
   }, []);
 
-  const filteredServices = filterCategory === 'All Categories' 
-    ? services 
+  const filteredServices = filterCategory === 'All Categories'
+    ? services
     : services.filter(service => service.category === filterCategory);
 
   return (
@@ -36,7 +36,7 @@ export default function AdminServicesPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Services & Addons</h1>
           <p className="text-sm text-slate-600 mt-1 font-medium">Manage the service catalogue and pricing for guests.</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors"
         >
@@ -49,7 +49,7 @@ export default function AdminServicesPage() {
         <div className="p-6 border-b border-slate-200/50 bg-slate-50/50 flex justify-between items-center">
           <h3 className="font-bold text-slate-800">Service Catalogue</h3>
           <div className="flex gap-2">
-            <select 
+            <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiOutlineKey, HiCheckCircle, HiXCircle } from 'react-icons/hi';
-import { checkInGuest } from '@/lib/api';
+import { checkInGuest, verifyBookingOtp } from '@/lib/api';
 import type { StaffBooking } from '@/lib/types';
 
 export default function CheckInPage() {
@@ -16,20 +16,14 @@ export default function CheckInPage() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp) return;
-    
+
     setLoading(true);
     setError(null);
     setBookingData(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/bookings/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp })
-      });
-      
-      const result = await res.json();
-      if (result.success) {
+      const result = await verifyBookingOtp(otp);
+      if (result.success && result.booking) {
         setBookingData({
           bookingId: result.booking.id,
           guestName: result.booking.guestName,
@@ -81,16 +75,16 @@ export default function CheckInPage() {
       <div className="absolute bottom-[-20%] left-[20%] w-96 h-96 bg-sky-200/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
 
       <div className="relative z-10 w-full max-w-xl flex flex-col items-center animate-slide-up">
-        
+
         <div className="text-center mb-8 flex flex-col items-center gap-3">
           <div className="w-14 h-14 bg-white border-2 border-slate-100 text-skynest-blue rounded-2xl mx-auto flex items-center justify-center mb-2 shadow-lg shadow-skynest-blue/10">
             <HiOutlineKey size={28} />
           </div>
-          
+
           <div className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-100 via-white to-sky-100 animate-pulse border-2 border-white shadow-lg shadow-blue-900/10">
             <h1 className="text-2xl font-black text-black tracking-tight">Guest Check-In</h1>
           </div>
-          
+
           <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-white via-blue-50 to-white animate-pulse border border-white shadow-md shadow-blue-900/10">
             <p className="text-black font-bold text-sm">
               Enter the booking reference or OTP to retrieve guest details.
@@ -109,8 +103,8 @@ export default function CheckInPage() {
                   Booking Reference / OTP
                 </label>
                 <div className="relative">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={otp}
                     onChange={e => setOtp(e.target.value)}
                     placeholder="e.g. SKN-1001"
@@ -118,14 +112,14 @@ export default function CheckInPage() {
                   />
                 </div>
             </div>
-            
+
             {error && (
               <div className="bg-red-50 text-red-500 text-sm p-4 rounded-xl font-bold flex items-center justify-center gap-2">
                 <HiXCircle size={20} /> {error}
               </div>
             )}
 
-              <button 
+              <button
                 type="submit"
                 disabled={loading || !otp}
                 className="w-full py-3 bg-skynest-navy text-white text-sm font-bold tracking-widest uppercase rounded-xl hover:bg-skynest-blue transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
@@ -159,13 +153,13 @@ export default function CheckInPage() {
             </div>
 
               <div className="flex gap-4 mt-8">
-                <button 
+                <button
                   onClick={() => setBookingData(null)}
                   className="w-1/3 py-4 border-2 border-gray-200 text-gray-500 font-bold rounded-2xl hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={handleCheckIn}
                   className="w-2/3 py-4 bg-gradient-to-r from-skynest-blue to-[#00a8e8] text-white font-black tracking-wider uppercase rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-skynest-blue/30"
                 >

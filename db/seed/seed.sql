@@ -78,7 +78,7 @@ VALUES
 -- =====================================================================
 -- 5. AMENITIES
 -- =====================================================================
--- these amenities are what's included with the room. 
+-- these amenities are what's included with the room.
 INSERT INTO amenities (
     amenity_id,
     amenity_name
@@ -620,6 +620,66 @@ VALUES
         'CARD'
     );
 
+-- =====================================================================
+-- 16. STAFF (AUTHENTICATION)
+-- =====================================================================
+
+INSERT INTO staff (
+    staff_id,
+    branch_id,
+    username,
+    password_hash,
+    full_name,
+    role,
+    is_active
+)
+VALUES
+    -- Admin: access to all branches (branch_id is NULL)
+    -- Default password: "adminPassword123" (bcrypt hash)
+    (
+        1,
+        NULL,
+        'admin',
+        '$2b$12$99HpfqysYSTxXsEJqQR34u/xcv05X/XRccDLIlYw.ggsc9OamywRC',
+        'System Administrator',
+        'admin',
+        TRUE
+    ),
+    -- Receptionist for Colombo (branch_id = 1)
+    -- Default password: "colomboPassword123" (bcrypt hash)
+    (
+        2,
+        1,
+        'rec_colombo',
+        '$2b$12$9VyZStpePH4IKS3TjE0zWOYA164OIfRjV/.eFgU4bMlyYwF0p4tji',
+        'Colombo Reception Desk',
+        'receptionist',
+        TRUE
+    ),
+    -- Receptionist for Kandy (branch_id = 2)
+    -- Default password: "kandyPassword123" (bcrypt hash)
+    (
+        3,
+        2,
+        'rec_kandy',
+        '$2b$12$TpjfB3BlablrrO3r3LBzgurkSQdG.NfXBVmJ.7jHT0iI4RXc7lMpS',
+        'Kandy Reception Desk',
+        'receptionist',
+        TRUE
+    ),
+    -- Receptionist for Galle (branch_id = 3)
+    -- Default password: "gallePassword123" (bcrypt hash)
+    (
+        4,
+        3,
+        'rec_galle',
+        '$2b$12$pjzsYcJhuKTOMRLNp3pDV.EuzecRzyuQx43A1OdGYNpp2ILsFT/5O',
+        'Galle Reception Desk',
+        'receptionist',
+        TRUE
+    );
+
+
 
 -- =====================================================================
 -- END OF SEED DATA
@@ -629,7 +689,7 @@ VALUES
 -- Synchronize identity sequences after inserting explicit seed IDs.
 -- Run seeding before starting application traffic.
 BEGIN;
-LOCK TABLE booking, guests, service_charges IN ACCESS EXCLUSIVE MODE;
+LOCK TABLE booking, guests, service_charges, staff IN ACCESS EXCLUSIVE MODE;
 
 DO $$
 DECLARE
@@ -643,7 +703,8 @@ BEGIN
         FROM (VALUES
             ('booking', 'booking_id'),
             ('guests', 'guest_id'),
-            ('service_charges', 'service_log_id')
+            ('service_charges', 'service_log_id'),
+            ('staff', 'staff_id')
         ) AS ids(table_name, column_name)
     LOOP
         sequence_name := pg_get_serial_sequence(

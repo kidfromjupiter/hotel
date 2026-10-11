@@ -1,9 +1,12 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from app.api.dependencies import get_guest_service, get_otp_service
+from app.api.dependencies import get_auth_service, get_guest_service, get_otp_service
 from app.schemas.booking_flow import SendOTPRequest, VerifyOTPRequest
 from app.services.guest_service import GuestService
+from app.services.auth_service import AuthService
 from app.services.otp_service import OTPService
 
 router = APIRouter()
@@ -30,15 +33,12 @@ def send_otp(
             res["discountPercent"] = 10
     return res
 
-
-
-from app.core.security import create_access_token
-
 @router.post("/verify")
 def verify_otp(
     payload: VerifyOTPRequest,
     otp_service: OTPService = Depends(get_otp_service),
     guest_service: GuestService = Depends(get_guest_service),
+    auth_service: AuthService = Depends(get_auth_service),
 ):
     """Public customer endpoint to verify received OTP code."""
     success = otp_service.verify_otp(payload.phone, payload.otp)
@@ -50,7 +50,7 @@ def verify_otp(
                 "message": "Invalid or expired OTP. Please try again.",
             },
         )
-    
+
     guest = guest_service.lookup_by_phone(payload.phone)
     if not guest:
         guest = guest_service.create_guest(payload.phone)
@@ -64,13 +64,15 @@ def verify_otp(
 
     if guest:
         # Create token with guest_id and phone
-        token = create_access_token(
-            data={"sub": payload.phone, "guest_id": guest.get("guest_id"), "role": "guest", "discount_percent": discount_percent}
+        token = auth_service.create_access_token(
+            data={"sub": payload.phone, "guest_id": guest.get("guest_id"), "role": "guest", "discount_percent": discount_percent},
+            expires_delta=timedelta(days=7),
         )
     else:
         # Fallback if creation fails
-        token = create_access_token(
-            data={"sub": payload.phone, "role": "guest", "discount_percent": discount_percent}
+        token = auth_service.create_access_token(
+            data={"sub": payload.phone, "role": "guest", "discount_percent": discount_percent},
+            expires_delta=timedelta(days=7),
         )
 
     return {

@@ -60,7 +60,7 @@ export default function AdminBookingsPage() {
         <div className="p-6 border-b border-slate-200/50 bg-slate-50/50 flex justify-between items-center">
           <h3 className="font-bold text-slate-800">All Reservations</h3>
           <div className="flex gap-2">
-            <select 
+            <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"
@@ -133,7 +133,7 @@ export default function AdminBookingsPage() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button 
+                      <button
                         onClick={() => setSelectedBooking(booking)}
                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors title='View Details'"
                       >
@@ -159,13 +159,13 @@ export default function AdminBookingsPage() {
       {selectedBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            
+
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Booking Details</h2>
                 <p className="text-sm text-slate-500 font-medium">Ref: {selectedBooking.booking_ref}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedBooking(null)}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors"
               >
@@ -189,10 +189,10 @@ export default function AdminBookingsPage() {
                     <div className="text-sm text-slate-600">{selectedBooking.nights} {selectedBooking.nights === 1 ? 'night' : 'nights'} at {selectedBooking.branch_name}</div>
                   </div>
                 </div>
-                
+
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Financial Summary</div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm text-slate-600">
                       <span>Room Charges</span>
@@ -206,7 +206,7 @@ export default function AdminBookingsPage() {
                       <span>Taxes</span>
                       <span className="font-medium">Rs {selectedBooking.total_tax_amount.toLocaleString()}</span>
                     </div>
-                    
+
                     <div className="pt-2 mt-2 border-t border-slate-200 border-dashed flex justify-between items-center">
                       <span className="text-sm text-slate-800 font-bold">Grand Total</span>
                       <span className="font-bold text-slate-800">Rs {selectedBooking.grand_total.toLocaleString()}</span>
@@ -234,13 +234,13 @@ export default function AdminBookingsPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setSelectedBooking(null)}
                 className="px-5 py-2 text-sm font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors"
               >
                 Close
               </button>
-              <button 
+              <button
                 className="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-colors flex items-center gap-2"
               >
                 <HiOutlineDownload size={18} />

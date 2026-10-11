@@ -8,7 +8,9 @@ import type {
   StaffBooking,
   BookingStatus,
   InvoiceSummary,
-  AdminReservationListItem
+  AdminReservationListItem,
+  StaffLoginResponse,
+  StaffUser
 } from './types';
 
 const BASE_URL = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : (process.env.INTERNAL_API_URL ?? 'http://backend:8000');
@@ -23,7 +25,9 @@ async function request<T>(
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
 
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('guest_token');
+    const token = path.startsWith('/api/v1/private/') || path === '/api/v1/auth/me'
+      ? localStorage.getItem('staff_token')
+      : localStorage.getItem('guest_token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -36,10 +40,51 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
-    throw new Error(body?.message ?? `Request failed with status ${res.status}`);
+    throw new Error(body?.detail ?? body?.message ?? `Request failed with status ${res.status}`);
   }
 
   return res.json() as Promise<T>;
+}
+
+export async function loginStaff(
+  username: string,
+  password: string
+): Promise<StaffLoginResponse> {
+  const response = await request<StaffLoginResponse>('/api/v1/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  });
+
+  localStorage.setItem('staff_token', response.access_token);
+  localStorage.setItem('staff_user', JSON.stringify(response.user));
+  return response;
+}
+
+export async function getCurrentStaff(): Promise<StaffUser> {
+  return request<StaffUser>('/api/v1/auth/me');
+}
+
+export interface BookingLookupResponse {
+  success: boolean;
+  message?: string;
+  booking?: {
+    id: number;
+    guestName: string;
+    phone: string;
+    bookingReference: string;
+    roomNumber: number;
+    roomType: string;
+    checkIn: string;
+    checkOut: string;
+    status: BookingStatus;
+  };
+}
+
+export async function verifyBookingOtp(otp: string): Promise<BookingLookupResponse> {
+  return request<BookingLookupResponse>('/api/v1/private/bookings/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ otp }),
+  });
 }
 
 //  Rooms / Availability
@@ -62,7 +107,7 @@ export async function checkAvailability(
   if (data.branch != null) params.set('branch', data.branch);
 
   const query = params.toString();
-  const url = `/api/v1/rooms${query ? `?${query}` : ''}`;
+  const url = `/api/v1/public/rooms${query ? `?${query}` : ''}`;
 
   // Backend returns a raw array of rooms; transform it into AvailabilityResponse shape
   const raw = await request<Array<{
@@ -82,7 +127,7 @@ export async function checkAvailability(
     const pricePerNight = r.price_per_night ?? r.daily_rate;
     const membershipDiscount = 15; // 15% off for members
     const membershipPrice = Math.round(pricePerNight * (1 - membershipDiscount / 100));
-    
+
     return {
       id:              `${r.branch_id}-${r.room_number}`,
       roomNumber:      r.room_number,
@@ -125,7 +170,7 @@ export async function checkAvailability(
  * Backend also performs a membership lookup at this stage.
  */
 export async function sendOTP(phone: string): Promise<SendOTPResponse> {
-  return request<SendOTPResponse>('/api/v1/otp/send', {
+  return request<SendOTPResponse>('/api/v1/public/otp/send', {
     method: 'POST',
     body: JSON.stringify({ phone }),
   });
@@ -139,7 +184,7 @@ export async function verifyOTP(
   phone: string,
   otp: string
 ): Promise<VerifyOTPResponse> {
-  return request<VerifyOTPResponse>('/api/v1/otp/verify', {
+  return request<VerifyOTPResponse>('/api/v1/public/otp/verify', {
     method: 'POST',
     body: JSON.stringify({ phone, otp }),
   });
@@ -157,7 +202,7 @@ export async function verifyOTP(
 export async function createBooking(
   data: CreateBookingPayload
 ): Promise<CreateBookingResponse> {
-  return request<CreateBookingResponse>('/api/v1/bookings/', {
+  return request<CreateBookingResponse>('/api/v1/public/bookings/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -168,7 +213,7 @@ export async function createBooking(
  * Fetches all guests who are currently checked in (Active Stays).
  */
 export async function getActiveStays(): Promise<any[]> {
-  return request<any[]>('/api/v1/bookings/?status=CHECKED_IN', {
+  return request<any[]>('/api/v1/private/bookings/?status=CHECKED_IN', {
     method: 'GET',
   });
 }
@@ -178,7 +223,7 @@ export async function getActiveStays(): Promise<any[]> {
  * Adds a service to the guest's tab.
  */
 export async function addServiceToTab(bookingId: number, serviceName: string, serviceTotal: number): Promise<any> {
-  return request<any>(`/api/v1/bookings/${bookingId}/services`, {
+  return request<any>(`/api/v1/private/bookings/${bookingId}/services`, {
     method: 'POST',
     body: JSON.stringify({
       service_name: serviceName,
@@ -206,7 +251,7 @@ export async function getMyBookings(): Promise<StaffBooking[]> {
     end_date: string;
     adult_count?: number;
     children_count?: number;
-  }>>('/api/v1/booking/');
+  }>>('/api/v1/public/bookings/');
 
   return raw.map(b => ({
     bookingId: b.booking_id,
@@ -232,7 +277,7 @@ export async function getMyBookings(): Promise<StaffBooking[]> {
  * GET /api/v1/private/bookings/admin-reservations
  */
 export async function getAdminReservationsList(status?: string): Promise<AdminReservationListItem[]> {
-  const url = status 
+  const url = status
     ? `/api/v1/private/bookings/admin-reservations?status=${encodeURIComponent(status)}`
     : '/api/v1/private/bookings/admin-reservations';
   return request<AdminReservationListItem[]>(url, { method: 'GET' });
@@ -256,7 +301,7 @@ export async function getAllBookings(): Promise<StaffBooking[]> {
     end_date: string;
     adult_count?: number;
     children_count?: number;
-  }>>('/api/v1/bookings/');
+  }>>('/api/v1/private/bookings/');
 
   return raw.map(b => ({
     bookingId: b.booking_id,
@@ -286,7 +331,7 @@ export async function getBookingDetail(bookingId: number): Promise<InvoiceSummar
     invoice_status: string;
     grand_total: number;
     amount_paid: number;
-  }>(`/api/v1/bookings/${bookingId}`);
+  }>(`/api/v1/private/bookings/${bookingId}`);
 
   const totalServiceCharges = b.service_charges.reduce((sum, s) => sum + s.service_total, 0);
 
@@ -308,7 +353,7 @@ export async function getBookingDetail(bookingId: number): Promise<InvoiceSummar
  */
 export async function checkInGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
   try {
-    await request(`/api/v1/bookings/${bookingId}/check-in`, { method: 'POST' });
+    await request(`/api/v1/private/bookings/${bookingId}/check-in`, { method: 'POST' });
     return { success: true, message: 'Guest checked in successfully' };
   } catch (e: any) {
     return { success: false, message: e.message ?? 'Check-in failed' };
@@ -321,7 +366,7 @@ export async function checkInGuest(bookingId: number): Promise<{ success: boolea
  */
 export async function checkOutGuest(bookingId: number): Promise<{ success: boolean; message: string }> {
   try {
-    await request(`/api/v1/bookings/${bookingId}/check-out`, { method: 'POST' });
+    await request(`/api/v1/private/bookings/${bookingId}/check-out`, { method: 'POST' });
     return { success: true, message: 'Guest checked out successfully' };
   } catch (e: any) {
     return { success: false, message: e.message ?? 'Check-out failed' };
@@ -340,7 +385,7 @@ export async function getBill(bookingId: number): Promise<InvoiceSummary> {
  */
 export async function cancelBooking(bookingId: number): Promise<{ success: boolean; message: string }> {
   try {
-    await request(`/api/v1/bookings/${bookingId}/cancel`, { method: 'POST' });
+    await request(`/api/v1/private/bookings/${bookingId}/cancel`, { method: 'POST' });
     return { success: true, message: 'Booking cancelled' };
   } catch (e: any) {
     return { success: false, message: e.message ?? 'Cancellation failed' };
@@ -373,7 +418,7 @@ export async function createMembership(data: { name: string; phone: string; emai
  * Returns all rooms in the hotel.
  */
 export async function getAllRooms(): Promise<any[]> {
-  return request('/api/v1/rooms/all');
+  return request('/api/v1/public/rooms/all');
 }
 
 /**
@@ -381,7 +426,7 @@ export async function getAllRooms(): Promise<any[]> {
  * Returns all hotel branches.
  */
 export async function getBranches(): Promise<Array<{ branch_id: number; branch_name: string }>> {
-  return request('/api/v1/branches/');
+  return request('/api/v1/public/branches/');
 }
 
 /**
@@ -392,7 +437,7 @@ export async function getMonthlyRevenue(year: number): Promise<{
   year: number;
   data: Array<{ branch_name: string; month: string; room_revenue: number; service_revenue: number; total_revenue: number }>;
 }> {
-  return request(`/api/v1/reports/monthly-revenue?year=${year}`);
+  return request(`/api/v1/private/reports/monthly-revenue?year=${year}`);
 }
 
 /**
@@ -403,7 +448,7 @@ export async function getOccupancyReport(startDate: string, endDate: string): Pr
   period: { start_date: string; end_date: string };
   branches: Array<{ branch_name: string; total_rooms: number; occupied_nights: number; total_possible_nights: number; occupancy_rate_percent: number }>;
 }> {
-  return request(`/api/v1/reports/occupancy?start_date=${startDate}&end_date=${endDate}`);
+  return request(`/api/v1/private/reports/occupancy?start_date=${startDate}&end_date=${endDate}`);
 }
 
 /**
@@ -411,7 +456,7 @@ export async function getOccupancyReport(startDate: string, endDate: string): Pr
  * Returns all services.
  */
 export async function getServices(): Promise<Array<{ service_id: number; service_name: string; day_rate: number; description: string }>> {
-  return request('/api/v1/services/');
+  return request('/api/v1/private/services/');
 }
 
 /**
@@ -419,5 +464,5 @@ export async function getServices(): Promise<Array<{ service_id: number; service
  * Returns all guests.
  */
 export async function getGuests(): Promise<Array<{ guest_id: number; name: string; national_id: string; phone_number: string; membership_id: number | null }>> {
-  return request('/api/v1/guests/');
+  return request('/api/v1/private/guests/');
 }

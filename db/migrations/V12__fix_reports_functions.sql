@@ -26,7 +26,7 @@ BEGIN
   )
   INTO result
   FROM (
-    SELECT 
+    SELECT
       b.branch_id,
       b.branch_name,
       EXTRACT(MONTH FROM bk.start_date) AS month_num,
@@ -72,13 +72,13 @@ BEGIN
   )
   INTO result
   FROM (
-    SELECT 
+    SELECT
       st.service_id,
       st.times_used,
       st.total_revenue,
       row_number() OVER (ORDER BY st.times_used DESC) as rank
     FROM (
-      SELECT 
+      SELECT
         sc.service_id,
         COUNT(sc.service_log_id) AS times_used,
         SUM(COALESCE(sc.service_total, 0.0)) AS total_revenue

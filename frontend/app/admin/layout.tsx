@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HiOutlineChartBar, HiOutlineOfficeBuilding, HiOutlineViewGrid, HiOutlineCube, HiOutlineDocumentReport, HiOutlineClipboardList } from 'react-icons/hi';
+import StaffRouteGuard from '@/components/StaffRouteGuard';
 
 const NAV_LINKS = [
   { name: 'Dashboard', href: '/admin', icon: HiOutlineChartBar },
@@ -17,7 +18,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   return (
-    <div 
+    <StaffRouteGuard requiredRole="admin">
+    <div
       className="flex h-screen pt-16 overflow-hidden font-sans relative"
       style={{
         backgroundImage: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80")', // Modern corporate/management vibe
@@ -25,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         backgroundPosition: 'center',
       }}
     >
-      
+
       {/* Background Overlay for the entire admin portal */}
       <div className="absolute inset-0 z-0 bg-white/30" />
 
@@ -87,5 +89,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
     </div>
+    </StaffRouteGuard>
   );
 }

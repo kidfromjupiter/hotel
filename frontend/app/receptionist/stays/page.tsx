@@ -22,7 +22,7 @@ export default function ActiveStaysPage() {
           getAllBookings(),
           getServices()
         ]);
-        
+
         // Backend returns all bookings, we only want those Checked-In for this specific view
         const checkedIn = bookingsData.filter(booking => booking.status === 'CHECKED_IN');
         setActiveStays(checkedIn);
@@ -34,7 +34,7 @@ export default function ActiveStaysPage() {
       } catch (error) {
         console.error("Failed to fetch data:", error);
         // Fallback to empty array if backend is down
-        setActiveStays([]); 
+        setActiveStays([]);
         setServices([]);
       } finally {
         setIsLoading(false);
@@ -42,7 +42,7 @@ export default function ActiveStaysPage() {
     };
     fetchData();
   }, []);
-  
+
   // Modals state
   const [activeModal, setActiveModal] = useState<'NONE' | 'SERVICES' | 'EXTEND' | 'BILLING'>('NONE');
 
@@ -102,7 +102,7 @@ export default function ActiveStaysPage() {
       if (result.success) {
         // alert(`Room is available!\nBooking ${selectedStay.bookingReference} end_date extended to ${newCheckOut}.`);
         setActiveModal('NONE');
-        
+
         // Update the stay in UI to reflect new date without full refresh
         setSelectedStay({ ...selectedStay, checkOut: newCheckOut });
         setActiveStays(prev => prev.map(s => s.bookingId === selectedStay.bookingId ? { ...s, checkOut: newCheckOut } : s));
@@ -138,12 +138,12 @@ export default function ActiveStaysPage() {
             </div>
           ) : (
             activeStays.map(stay => (
-              <div 
+              <div
                 key={stay.bookingId}
                 onClick={() => setSelectedStay(stay)}
                 className={`p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
-                  selectedStay?.bookingId === stay.bookingId 
-                    ? 'bg-skynest-navy border-skynest-blue text-white shadow-xl scale-105' 
+                  selectedStay?.bookingId === stay.bookingId
+                    ? 'bg-skynest-navy border-skynest-blue text-white shadow-xl scale-105'
                     : 'bg-white border-slate-200 hover:border-skynest-blue text-skynest-navy shadow-sm hover:shadow-md'
                 }`}
               >
@@ -185,11 +185,11 @@ export default function ActiveStaysPage() {
                   <h3 className="text-xs font-semibold text-gray-500 tracking-widest uppercase mb-4">Add to Tab</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => setActiveModal('SERVICES')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
-                      <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
+                      <HiOutlinePlusCircle size={24} className="text-skynest-blue group-hover:text-white transition-colors" />
                       Services
                     </button>
                     <button onClick={() => setActiveModal('EXTEND')} className="py-6 bg-slate-50 border-2 border-slate-200 shadow-sm rounded-2xl font-semibold text-sm text-skynest-navy hover:bg-skynest-blue hover:text-white hover:border-skynest-blue transition-all flex flex-col items-center justify-center gap-2 group">
-                      <HiOutlineCalendar size={24} className="text-skynest-blue group-hover:text-white transition-colors" /> 
+                      <HiOutlineCalendar size={24} className="text-skynest-blue group-hover:text-white transition-colors" />
                       Extend Stay
                     </button>
                   </div>
@@ -218,29 +218,29 @@ export default function ActiveStaysPage() {
 
       {/* --- MODALS --- */}
       {activeModal !== 'NONE' && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-skynest-navy/50 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => setActiveModal('NONE')}
         >
-          <div 
+          <div
             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            
+
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
               <h2 className="font-black text-xl text-skynest-navy">
                 {activeModal === 'SERVICES' && 'Add Room Service'}
                 {activeModal === 'EXTEND' && 'Extend Stay'}
                 {activeModal === 'BILLING' && 'Final Billing Summary'}
               </h2>
-              <button 
+              <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setActiveModal('NONE');
                   setNewCheckOut('');
-                }} 
+                }}
                 className="text-gray-400 hover:text-skynest-navy bg-white p-2 rounded-full shadow-sm relative z-50 cursor-pointer"
               >
                 <HiX size={20} className="pointer-events-none" />
@@ -248,7 +248,7 @@ export default function ActiveStaysPage() {
             </div>
 
             <div className="p-6">
-              
+
               {/* Services Modal Content */}
               {activeModal === 'SERVICES' && (
                 <div className="space-y-3">
@@ -268,21 +268,21 @@ export default function ActiveStaysPage() {
                   <p className="text-sm text-gray-500">Querying room availability to ensure the room is free for the extended dates...</p>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">New Check-out Date</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={newCheckOut}
                       onChange={(e) => setNewCheckOut(e.target.value)}
-                      min={selectedStay?.checkOut} 
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-skynest-navy font-bold focus:outline-none focus:border-skynest-blue" 
+                      min={selectedStay?.checkOut}
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-skynest-navy font-bold focus:outline-none focus:border-skynest-blue"
                     />
                   </div>
-                  <button 
+                  <button
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
                       handleExtendStay();
-                    }} 
-                    disabled={!newCheckOut} 
+                    }}
+                    disabled={!newCheckOut}
                     className="w-full py-4 bg-skynest-blue text-white font-black rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50"
                   >
                     Confirm Extension
@@ -301,13 +301,13 @@ export default function ActiveStaysPage() {
                         <div className="flex justify-between"><span className="text-gray-500">Room Charges</span><span className="font-bold">LKR {invoice.totalRoomCharges.toLocaleString()}</span></div>
                         <div className="flex justify-between"><span className="text-gray-500">Room Services</span><span className="font-bold">LKR {invoice.totalServiceCharges.toLocaleString()}</span></div>
                         <div className="flex justify-between"><span className="text-gray-500">Taxes</span><span className="font-bold">LKR {invoice.totalTaxAmount.toLocaleString()}</span></div>
-                        
+
                         <hr className="my-2 border-gray-200" />
-                        
+
                         <div className="flex justify-between text-lg"><span className="font-black text-skynest-navy">Grand Total</span><span className="font-black text-skynest-blue">LKR {invoice.grandTotal.toLocaleString()}</span></div>
-                        
+
                         <div className="flex justify-between text-green-600"><span className="font-bold">Amount Paid</span><span className="font-bold">LKR {invoice.amountPaid.toLocaleString()}</span></div>
-                        
+
                         <hr className="my-2 border-gray-200" />
                         <div className="flex justify-between text-red-500 text-lg"><span className="font-black">Balance Due</span><span className="font-black">LKR {(invoice.grandTotal - invoice.amountPaid).toLocaleString()}</span></div>
                       </div>
@@ -320,8 +320,8 @@ export default function ActiveStaysPage() {
                         </select>
                       </div>
 
-                      <button 
-                        onClick={handleCheckout} 
+                      <button
+                        onClick={handleCheckout}
                         disabled={isCheckingOut}
                         className="w-full py-4 bg-green-500 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50"
                       >

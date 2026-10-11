@@ -57,7 +57,7 @@ export default function AdminBranchesPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Branch Management</h1>
           <p className="text-sm text-slate-600 mt-1 font-medium">Manage hotel branches, locations, and contact details.</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-sky-600/30 transition-colors"
         >
@@ -118,7 +118,7 @@ export default function AdminBranchesPage() {
               <h2 className="text-xl font-bold text-slate-800">Add New Branch</h2>
               <p className="text-sm text-slate-500 font-medium mt-1">Enter the details for the new hotel location.</p>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">Branch Name</label>
@@ -141,13 +141,13 @@ export default function AdminBranchesPage() {
             </div>
 
             <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors text-sm"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm"
               >

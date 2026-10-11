@@ -1,5 +1,6 @@
 import pytest
-from app.api.dependencies import get_booking_repo, get_otp_service
+from app.api.dependencies import get_booking_repo, get_current_user, get_otp_service
+from app.schemas.auth import StaffUser
 from app.main import app
 from fastapi.testclient import TestClient
 
@@ -20,7 +21,7 @@ def db_connection():
 def booking_repo(db_connection):
     repo = get_booking_repo(db=db_connection)
     repo.clear()
-    
+
     if repo.db:
         with repo.db.cursor() as cursor:
             cursor.execute("DELETE FROM billing_summary WHERE booking_id >= 90000;")
@@ -48,5 +49,14 @@ def otp_service():
 
 @pytest.fixture
 def client():
+    app.dependency_overrides[get_current_user] = lambda: StaffUser(
+        staff_id=1,
+        branch_id=None,
+        username="test_admin",
+        full_name="Test Administrator",
+        role="admin",
+        is_active=True,
+    )
     with TestClient(app) as test_client:
         yield test_client
+    app.dependency_overrides.pop(get_current_user, None)

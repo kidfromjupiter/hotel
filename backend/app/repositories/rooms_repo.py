@@ -31,13 +31,13 @@ class RoomsRepo:
             with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
                     """
-                    SELECT 
-                        rd.room_number, 
-                        rd.room_type_id as room_type, 
-                        rd.branch_id, 
-                        b.branch_name, 
-                        rt.daily_rate, 
-                        rd.room_status 
+                    SELECT
+                        rd.room_number,
+                        rd.room_type_id as room_type,
+                        rd.branch_id,
+                        b.branch_name,
+                        rt.daily_rate,
+                        rd.room_status
                     FROM room_details rd
                     JOIN branches b ON rd.branch_id = b.branch_id
                     JOIN room_types rt ON rd.room_type_id = rt.room_type_id

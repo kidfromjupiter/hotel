@@ -17,9 +17,9 @@ export default function AdminRoomsPage() {
   useEffect(() => {
     Promise.all([getAllRooms(), getBranches()]).then(([roomsData, branchesData]) => {
       setBranches(branchesData);
-      
+
       const branchMap = new Map(branchesData.map((b: BranchItem) => [b.branch_id, b.branch_name]));
-      
+
       const formattedRooms = roomsData.map(r => ({
         id: r.room_number,
         type: r.room_type || 'Standard',
@@ -44,20 +44,20 @@ export default function AdminRoomsPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-white/50 backdrop-blur-md p-1 rounded-xl border border-white/40 shadow-sm flex">
-            <button 
+            <button
               onClick={() => setActiveTab('rooms')}
               className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'rooms' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               All Rooms
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('types')}
               className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'types' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               Room Types & Pricing
             </button>
           </div>
-          <button 
+          <button
             onClick={() => activeTab === 'rooms' ? setShowAddRoomModal(true) : setShowAddTypeModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors"
           >
@@ -75,7 +75,7 @@ export default function AdminRoomsPage() {
               <HiOutlineFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input type="text" placeholder="Filter by room number or type..." className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-sky-500 outline-none" />
             </div>
-            <select 
+            <select
               value={filterBranch}
               onChange={(e) => setFilterBranch(e.target.value)}
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none"
@@ -132,12 +132,12 @@ export default function AdminRoomsPage() {
             <div key={i} className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl shadow-slate-200/50">
               <h3 className="text-lg font-bold text-slate-800">{type}</h3>
               <p className="text-sm text-slate-500 mt-1 font-medium">Max Occupancy: {i + 1 * 2} Adults</p>
-              
+
               <div className="mt-6 pt-6 border-t border-slate-200">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Base Price</p>
                 <p className="text-3xl font-black text-slate-900">${(i + 1) * 85}</p>
               </div>
-              
+
               <button className="w-full mt-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">
                 Edit Pricing & Features
               </button>

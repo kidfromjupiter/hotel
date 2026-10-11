@@ -47,7 +47,7 @@ BEGIN
   LEFT JOIN billing_summary bs ON bk.booking_id = bs.booking_id
   WHERE (p_branch_id IS NULL OR bk.branch_id = p_branch_id)
     AND (p_status IS NULL OR p_status = '' OR bk.booking_status ILIKE p_status);
-    
+
   RETURN result;
 END;
 $$;

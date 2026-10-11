@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { sendOTP, verifyOTP } from '@/lib/api';
 
 export default function GuestLogin() {
-  const router = useRouter();
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -24,8 +22,8 @@ export default function GuestLogin() {
       const res = await sendOTP(phone);
       toast.success(res.message || 'OTP sent to your phone', { duration: 6000 });
       setStep('OTP');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send OTP');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -46,8 +44,8 @@ export default function GuestLogin() {
         toast.success('Successfully logged in');
         window.location.href = '/dashboard';
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Invalid OTP');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Invalid OTP');
     } finally {
       setLoading(false);
     }

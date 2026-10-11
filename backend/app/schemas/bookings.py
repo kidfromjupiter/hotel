@@ -12,7 +12,7 @@ class BookingListItem(BaseModel):
     booking_status: str
     start_date: str
     end_date: str
-    guest_phone: Optional[str] = None 
+    guest_phone: Optional[str] = None
     is_member: bool = False
 
 
@@ -105,4 +105,4 @@ class AddServiceRequest(BaseModel):
     service_name: str
     service_total: float
     # We can default service_dates to 1 since they usually just click "Add Service" once
-    service_dates: int = 1 
+    service_dates: int = 1
