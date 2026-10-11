@@ -5,6 +5,7 @@ from app.api.private.billing import router as billing_router
 from app.api.private.bookings import router as bookings_router
 from app.api.private.guests import router as guests_router
 from app.api.private.reports import router as reports_router
+from app.api.private.rooms import router as rooms_router
 from app.api.private.services import router as services_router
 
 
@@ -16,6 +17,7 @@ private_router.include_router(
 private_router.include_router(
     reports_router, prefix="/reports", tags=["Staff - Reports"]
 )
+private_router.include_router(rooms_router, prefix="/rooms", tags=["Staff - Rooms"])
 private_router.include_router(
     billing_router, prefix="/billing", tags=["Staff - Billing & Invoices"]
 )

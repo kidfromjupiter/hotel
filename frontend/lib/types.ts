@@ -45,7 +45,7 @@ export interface Room {
   membershipDiscount?: number;
 }
 
-/** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */
+/** Room as returned by GET /api/v1/private/rooms/all — used in Receptionist & Admin room grids */
 export interface HotelRoom {
   room_number: number;
   branch_id: number;

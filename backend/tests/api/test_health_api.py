@@ -12,7 +12,7 @@ def test_health_endpoint(client):
 
 
 def test_branches_endpoint(client):
-    response = client.get("/api/v1/branches/")
+    response = client.get("/api/v1/public/branches/")
     assert response.status_code == 200
     branches = response.json()
     assert len(branches) == 3

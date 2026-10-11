@@ -10,8 +10,6 @@ def test_list_branches_public(client):
     assert "galle" in branch_names
 
 
-def test_list_branches_alias(client):
-    res = client.get("/api/v1/branches/")
-    assert res.status_code == 200
-    data = res.json()
-    assert len(data) >= 3
+def test_unprefixed_router_aliases_are_not_registered(client):
+    assert client.get("/api/v1/branches/").status_code == 404
+    assert client.get("/api/v1/reports/service-usage").status_code == 404

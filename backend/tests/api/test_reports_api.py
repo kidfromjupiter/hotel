@@ -1,6 +1,6 @@
 def test_get_occupancy_report(client):
     response = client.get(
-        "/api/v1/reports/occupancy?start_date=2026-10-01&end_date=2026-10-31"
+        "/api/v1/private/reports/occupancy?start_date=2026-10-01&end_date=2026-10-31"
     )
     assert response.status_code == 200
     data = response.json()
@@ -13,7 +13,7 @@ def test_get_occupancy_report(client):
 
 
 def test_get_guest_billing_report(client):
-    response = client.get("/api/v1/reports/guest-billing?payment_status=PARTIAL")
+    response = client.get("/api/v1/private/reports/guest-billing?payment_status=PARTIAL")
     assert response.status_code == 200
     data = response.json()
     assert "data" in data
@@ -24,7 +24,7 @@ def test_get_guest_billing_report(client):
 
 
 def test_get_service_usage_report(client):
-    response = client.get("/api/v1/reports/service-usage")
+    response = client.get("/api/v1/private/reports/service-usage")
     assert response.status_code == 200
     data = response.json()
     assert "data" in data
@@ -35,7 +35,7 @@ def test_get_service_usage_report(client):
 
 
 def test_get_monthly_revenue_report(client):
-    response = client.get("/api/v1/reports/monthly-revenue?year=2026")
+    response = client.get("/api/v1/private/reports/monthly-revenue?year=2026")
     assert response.status_code == 200
     data = response.json()
     assert data["year"] == 2026
@@ -48,7 +48,7 @@ def test_get_monthly_revenue_report(client):
 
 
 def test_get_service_trends_report(client):
-    response = client.get("/api/v1/reports/service-trends?limit=3")
+    response = client.get("/api/v1/private/reports/service-trends?limit=3")
     assert response.status_code == 200
     data = response.json()
     assert "top_services" in data

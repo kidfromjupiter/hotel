@@ -59,7 +59,7 @@ def test_create_booking_success(client, booking_repo):
         "totalPrice": 105000,
     }
 
-    response = client.post("/api/v1/bookings/", json=booking_payload)
+    response = client.post("/api/v1/public/bookings/", json=booking_payload)
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
@@ -91,14 +91,14 @@ def test_create_booking_create_path(client):
         "phone": "+94771234567",
         "totalPrice": 105000,
     }
-    response = client.post("/api/v1/bookings/create", json=booking_payload)
+    response = client.post("/api/v1/public/bookings/create", json=booking_payload)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
 
 def test_create_booking_rejects_unknown_branch_room_pair(client):
     response = client.post(
-        "/api/v1/bookings/",
+        "/api/v1/public/bookings/",
         json={
             "branchId": 999,
             "roomNumber": 201,
@@ -142,7 +142,7 @@ def test_list_bookings_filtered_by_status(client, sample_bookings):
 
 
 def test_get_booking_success(client, sample_bookings):
-    res = client.get("/api/v1/bookings/500101")
+    res = client.get("/api/v1/private/bookings/500101")
     assert res.status_code == 200
     data = res.json()
     assert data["booking_id"] == 500101
@@ -163,14 +163,14 @@ def test_receptionist_lookup_uses_stored_booking_reference(client, sample_bookin
 
 
 def test_get_booking_not_found(client):
-    res = client.get("/api/v1/bookings/999999")
+    res = client.get("/api/v1/private/bookings/999999")
     assert res.status_code == 404
     assert "Booking does not exist" in res.json()["detail"]
 
 
 def test_check_in_success(client, sample_bookings):
     res = client.post(
-        "/api/v1/bookings/500101/check-in", json={"check_in_time": "14:30:00"}
+        "/api/v1/private/bookings/500101/check-in", json={"check_in_time": "14:30:00"}
     )
     assert res.status_code == 200
     data = res.json()
@@ -180,14 +180,14 @@ def test_check_in_success(client, sample_bookings):
 
 def test_check_in_invalid_status_error(client, sample_bookings):
     # 500102 is already CHECKED_IN
-    res = client.post("/api/v1/bookings/500102/check-in")
+    res = client.post("/api/v1/private/bookings/500102/check-in")
     assert res.status_code == 400
     assert "not in 'CONFIRMED' status" in res.json()["detail"]
 
 
 def test_check_out_unpaid_balance_error(client, sample_bookings):
     # 500102 has amount_paid: 0.0 < grand_total: 84000.0
-    res = client.post("/api/v1/bookings/500102/check-out")
+    res = client.post("/api/v1/private/bookings/500102/check-out")
     assert res.status_code == 400
     assert "Outstanding unpaid balance exists" in res.json()["detail"]
 
@@ -207,7 +207,7 @@ def test_check_out_success_when_paid(client, booking_repo):
     if booking_repo.db:
         booking_repo.db.commit()
     res = client.post(
-        "/api/v1/bookings/500103/check-out", json={"check_out_time": "11:00:00"}
+        "/api/v1/private/bookings/500103/check-out", json={"check_out_time": "11:00:00"}
     )
     assert res.status_code == 200
     data = res.json()
@@ -227,7 +227,7 @@ def test_cancel_booking_success(client, booking_repo):
     )
     if booking_repo.db:
         booking_repo.db.commit()
-    res = client.post("/api/v1/bookings/500104/cancel")
+    res = client.post("/api/v1/private/bookings/500104/cancel")
     assert res.status_code == 200
     data = res.json()
     assert data["booking_status"] == "CANCELLED"
@@ -235,6 +235,6 @@ def test_cancel_booking_success(client, booking_repo):
 
 def test_cancel_booking_already_checked_in_error(client, sample_bookings):
     # 500102 is CHECKED_IN
-    res = client.post("/api/v1/bookings/500102/cancel")
+    res = client.post("/api/v1/private/bookings/500102/cancel")
     assert res.status_code == 400
     assert "Cannot cancel a booking that is already CHECKED_IN" in res.json()["detail"]

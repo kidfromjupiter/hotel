@@ -90,6 +90,15 @@ def test_private_reports_routes(client):
     assert "branches" in res.json()
 
 
+def test_all_rooms_is_private(client):
+    private_response = client.get("/api/v1/private/rooms/all")
+    assert private_response.status_code == 200
+    assert isinstance(private_response.json(), list)
+
+    public_response = client.get("/api/v1/public/rooms/all")
+    assert public_response.status_code == 404
+
+
 def test_public_rooms_availability_endpoints(client):
     # Test GET /api/v1/public/rooms/
     res_get = client.get("/api/v1/public/rooms/?branch=colombo&check_in=2026-10-01&check_out=2026-10-05&adults=2&children=0")
