@@ -5,11 +5,17 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.dependencies import (
     get_booking_service,
+    get_billing_service,
     get_current_user,
+    get_otp_service,
     enforce_branch_access,
+    require_admin,
 )
 from app.schemas.auth import StaffUser
+from app.schemas.booking_flow import CheckInOTPRequest
+from app.services.otp_service import OTPService
 from app.schemas.bookings import (
+    AdminReservationListItem,
     BookingDetailResponse,
     BookingListItem,
     CancelBookingResponse,
@@ -19,6 +25,7 @@ from app.schemas.bookings import (
     CheckOutResponse,
 )
 from app.services.booking_service import BookingService
+from app.services.billing_service import BillingService
 
 router = APIRouter()
 
@@ -48,6 +55,37 @@ def list_bookings(
     )
 
 
+@router.get("/admin-reservations", response_model=List[AdminReservationListItem])
+def get_admin_reservations(
+    branch_id: Optional[int] = Query(None, description="Filter by branch ID"),
+    status: Optional[str] = Query(None, description="Filter by booking status"),
+    booking_service: BookingService = Depends(get_booking_service),
+    _current_admin: StaffUser = Depends(require_admin),
+):
+    """Admin endpoint to search and filter bookings with financial info."""
+    return booking_service.get_admin_reservations_list(
+        branch_id=branch_id,
+        status=status,
+    )
+
+
+@router.post("/verify-otp")
+def verify_otp(
+    payload: CheckInOTPRequest,
+    otp_service: OTPService = Depends(get_otp_service),
+    booking_service: BookingService = Depends(get_booking_service),
+):
+    """Look up a pending booking by its SKN reference or a valid OTP."""
+    if payload.otp.startswith("SKN-"):
+        return booking_service.get_pending_booking_by_ref(payload.otp)
+
+    phone = otp_service.find_phone_by_otp(payload.otp)
+    if phone is None:
+        return {"success": False, "message": "Invalid OTP or booking not found."}
+
+    return booking_service.get_pending_booking_by_phone(phone)
+
+
 @router.get("/{booking_id}", response_model=BookingDetailResponse)
 def get_booking(
     booking_id: int,
@@ -72,11 +110,25 @@ def check_in(
 def check_out(
     booking_id: int,
     payload: Optional[CheckOutRequest] = None,
-    booking_service: BookingService = Depends(get_booking_service),
+    billing_service: BillingService = Depends(get_billing_service),
 ):
-    """Staff/Receptionist endpoint to check a guest out (enforces full payment)."""
+    """Staff/Receptionist endpoint to check a guest out (enforces full payment and releases room)."""
     check_out_time = payload.check_out_time if payload else None
-    return booking_service.check_out(booking_id, check_out_time=check_out_time)
+
+    res = billing_service.checkout(booking_id, payment_method="CASH")
+
+    if not res.get("success"):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=res.get("message", "Check-out failed."))
+
+    import datetime
+    out_time = check_out_time or datetime.datetime.now().strftime("%H:%M:%S")
+
+    return CheckOutResponse(
+        booking_id=booking_id,
+        booking_status="CHECKED_OUT",
+        checked_out_time=out_time
+    )
 
 
 @router.post("/{booking_id}/cancel", response_model=CancelBookingResponse)

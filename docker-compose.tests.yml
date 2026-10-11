@@ -29,14 +29,37 @@ services:
       - migrate
     volumes:
       - ./db/migrations:/flyway/sql:ro
-
+  seed:
+    image: postgres:17
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: app_password
+    volumes:
+      - ./db/seed:/seed:ro
+    command:
+      - psql
+      - -X
+      - -v
+      - ON_ERROR_STOP=1
+      - -h
+      - db
+      - -U
+      - app_user
+      - -d
+      - app_test_db
+      - -f
+      - /seed/seed.sql
   tests:
     build: ./backend
     depends_on:
       migrations:
         condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://app_user:app_password@db:5432/app_test_db
     volumes:
       - ./backend:/app:ro
-    command: ["python", "-m", "pytest", "-q", "tests/db"]
+    command: ["python", "-m", "pytest", "-q", "tests/db","-p", "no:cacheprovider"]

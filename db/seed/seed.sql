@@ -78,7 +78,7 @@ VALUES
 -- =====================================================================
 -- 5. AMENITIES
 -- =====================================================================
--- these amenities are what's included with the room. 
+-- these amenities are what's included with the room.
 INSERT INTO amenities (
     amenity_id,
     amenity_name
@@ -220,6 +220,7 @@ VALUES
 
 INSERT INTO booking (
     booking_id,
+    booking_ref,
     room_number,
     branch_id,
     guest_id,
@@ -236,6 +237,7 @@ VALUES
     -- Booking 1001 - Currently checked in
     (
         1001,
+        'SKN-1001',
         102,
         1,
         1,
@@ -251,6 +253,7 @@ VALUES
     -- Booking 1002 - Future booking
     (
         1002,
+        'SKN-1002',
         201,
         1,
         2,
@@ -266,6 +269,7 @@ VALUES
     -- Booking 1003 - Completed
     (
         1003,
+        'SKN-1003',
         201,
         2,
         3,
@@ -281,6 +285,7 @@ VALUES
     -- Booking 1004 - Completed
     (
         1004,
+        'SKN-1004',
         201,
         3,
         4,
@@ -296,6 +301,7 @@ VALUES
     -- Booking 1005 - Future booking
     (
         1005,
+        'SKN-1005',
         103,
         1,
         5,
@@ -311,6 +317,7 @@ VALUES
     -- Booking 1006 - Cancelled
     (
         1006,
+        'SKN-1006',
         301,
         2,
         6,
@@ -326,6 +333,7 @@ VALUES
     -- Booking 1007 - Future family booking
     (
         1007,
+        'SKN-1007',
         301,
         3,
         7,
@@ -341,6 +349,7 @@ VALUES
     -- Booking 1008 - Completed
     (
         1008,
+        'SKN-1008',
         101,
         2,
         8,
@@ -530,42 +539,6 @@ VALUES
 
 
 -- =====================================================================
--- 14. BOOKING EXTRA AMENITIES
--- =====================================================================
-
--- Chargeable extras catalogue
-INSERT INTO extra_amenities (
-    extra_amenity_id,
-    extra_amenity_name,
-    unit_price
-)
-VALUES
-    (3, 'Mini Bar', 0.00),
-    (5, 'Swimming Pool Access', 0.00);
-
--- Extras requested for each booking
-INSERT INTO booking_extra_amenities (
-    booking_id,
-    extra_amenity_id,
-    quantity,
-    unit_price
-)
-SELECT v.booking_id, v.extra_amenity_id, v.quantity, ea.unit_price
-FROM (
-    VALUES
-        (1001, 3, 1),
-        (1001, 5, 2),
-        (1002, 5, 3),
-        (1003, 3, 1),
-        (1004, 5, 4),
-        (1005, 3, 1),
-        (1007, 5, 4),
-        (1008, 3, 1)
-) AS v(booking_id, extra_amenity_id, quantity)
-JOIN extra_amenities AS ea
-    ON ea.extra_amenity_id = v.extra_amenity_id;
-
--- =====================================================================
 -- 15. TRANSACTIONS
 -- =====================================================================
 --
@@ -712,3 +685,47 @@ VALUES
 -- END OF SEED DATA
 -- =====================================================================
 
+
+-- Synchronize identity sequences after inserting explicit seed IDs.
+-- Run seeding before starting application traffic.
+BEGIN;
+LOCK TABLE booking, guests, service_charges, staff IN ACCESS EXCLUSIVE MODE;
+
+DO $$
+DECLARE
+    item RECORD;
+    sequence_name TEXT;
+    highest_id BIGINT;
+    sequence_value BIGINT;
+BEGIN
+    FOR item IN
+        SELECT *
+        FROM (VALUES
+            ('booking', 'booking_id'),
+            ('guests', 'guest_id'),
+            ('service_charges', 'service_log_id'),
+            ('staff', 'staff_id')
+        ) AS ids(table_name, column_name)
+    LOOP
+        sequence_name := pg_get_serial_sequence(
+            item.table_name, item.column_name
+        );
+
+        EXECUTE format(
+            'SELECT COALESCE(MAX(%I), 0) FROM %I',
+            item.column_name, item.table_name
+        ) INTO highest_id;
+
+        EXECUTE format(
+            'SELECT last_value FROM %s', sequence_name
+        ) INTO sequence_value;
+
+        PERFORM setval(
+            sequence_name::regclass,
+            GREATEST(highest_id, sequence_value, 1),
+            true
+        );
+    END LOOP;
+END;
+$$;
+COMMIT;

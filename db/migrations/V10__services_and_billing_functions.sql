@@ -40,7 +40,7 @@ BEGIN
     jsonb_agg(
       jsonb_build_object(
         'booking_id', b.booking_id,
-        'booking_ref', 'SKN-' || b.booking_id,
+        'booking_ref', b.booking_ref,
         'guest_id', b.guest_id,
         'guest_name', COALESCE(g.name, 'Valued Guest'),
         'guest_phone', COALESCE(g.phone_number::TEXT, ''),
@@ -173,7 +173,7 @@ BEGIN
       jsonb_build_object(
         'invoice_id', bs.invoice_id,
         'booking_id', bs.booking_id,
-        'booking_ref', 'SKN-' || bs.booking_id,
+        'booking_ref', b.booking_ref,
         'guest_name', COALESCE(g.name, 'Valued Guest'),
         'guest_phone', COALESCE(g.phone_number::TEXT, ''),
         'branch_id', b.branch_id,
@@ -255,7 +255,7 @@ BEGIN
     v_invoice_id := gen_random_uuid();
     v_room_charges := 50000.0;
     SELECT COALESCE(SUM(service_total), 0.0) INTO v_service_charges FROM service_charges WHERE booking_id = p_booking_id;
-    v_tax := ROUND((v_room_charges + v_service_charges) * 0.12, 2);
+    v_tax := ROUND((v_room_charges + v_service_charges) * 0.10, 2);
     v_grand_total := v_room_charges + v_service_charges + v_tax;
 
     INSERT INTO billing_summary (

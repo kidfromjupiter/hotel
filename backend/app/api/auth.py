@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_auth_service, get_current_user
-from app.schemas.auth import LoginRequest, TokenResponse, StaffUser
+from app.schemas.auth import LoginRequest, StaffUser, TokenResponse
 from app.services.auth_service import AuthService
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -46,9 +46,6 @@ def login(
         token_type="bearer",
         user=user_data,
     )
-
-from app.api.dependencies import get_auth_service, get_current_user
-
 
 @auth_router.get("/me", response_model=StaffUser)
 def get_current_staff_profile(

@@ -34,25 +34,3 @@ class ServicesRepo:
                     return json.loads(val) if isinstance(val, str) else val
 
         return {"success": False, "message": "Failed to charge service"}
-
-    def add_extra_amenity(
-        self, booking_id: int, amenity_id: int, quantity: int = 1
-    ) -> Dict[str, Any]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(
-                    "SELECT add_extra_amenity_to_booking(%s, %s, %s)",
-                    (booking_id, amenity_id, quantity),
-                )
-                row = cursor.fetchone()
-                if row and "add_extra_amenity_to_booking" in row:
-                    val = row["add_extra_amenity_to_booking"]
-                    return json.loads(val) if isinstance(val, str) else val
-
-        return {
-            "success": False,
-            "message": "Failed to add extra amenity",
-            "booking_id": booking_id,
-            "amenity_id": amenity_id,
-            "quantity": quantity,
-        }

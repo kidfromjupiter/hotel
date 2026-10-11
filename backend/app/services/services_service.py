@@ -18,12 +18,3 @@ class ServicesService:
             service_id=service_id,
             service_dates=service_dates,
         )
-
-    def add_extra_amenity(
-        self, booking_id: int, amenity_id: int, quantity: int = 1
-    ) -> Dict[str, Any]:
-        return self.repo.add_extra_amenity(
-            booking_id=booking_id,
-            amenity_id=amenity_id,
-            quantity=quantity,
-        )

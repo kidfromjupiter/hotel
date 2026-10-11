@@ -1,3 +1,4 @@
+from typing import Optional
 import random
 from typing import Dict, Tuple
 
@@ -36,3 +37,9 @@ class OTPService:
             self._store.pop(phone, None)
             return True
         return False
+
+    def find_phone_by_otp(self, otp: str) -> Optional[str]:
+        for phone, (stored_otp, _timestamp) in self._store.items():
+            if stored_otp == otp:
+                return phone
+        return None

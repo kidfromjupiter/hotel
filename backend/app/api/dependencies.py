@@ -1,10 +1,14 @@
-from typing import Optional, List
+from typing import Any, Dict, Optional
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+)
 from psycopg2.extensions import connection
 
 from app.db import get_db
-from app.repositories.amenities_repo import AmenitiesRepo
 from app.repositories.billing_repo import BillingRepo
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.branches_repo import BranchesRepo
@@ -12,7 +16,6 @@ from app.repositories.guests_repo import GuestsRepo
 from app.repositories.reports_repo import ReportsRepo
 from app.repositories.rooms_repo import RoomsRepo
 from app.repositories.services_repo import ServicesRepo
-from app.services.amenities_service import AmenitiesService
 from app.services.billing_service import BillingService
 from app.services.booking_service import BookingService
 from app.services.branch_service import BranchService
@@ -21,7 +24,6 @@ from app.services.otp_service import OTPService
 from app.services.report_service import ReportService
 from app.services.room_service import RoomService
 from app.services.services_service import ServicesService
-from app.config import get_settings
 from app.config import get_settings
 from app.schemas.auth import StaffUser
 from app.repositories.staff_repo import StaffRepo
@@ -79,16 +81,6 @@ def get_branch_service(
     return BranchService(repo=branches_repo)
 
 
-def get_amenities_repo(db: Optional[connection] = Depends(get_db)) -> AmenitiesRepo:
-    return AmenitiesRepo(db=db)
-
-
-def get_amenities_service(
-    amenities_repo: AmenitiesRepo = Depends(get_amenities_repo),
-) -> AmenitiesService:
-    return AmenitiesService(repo=amenities_repo)
-
-
 def get_guests_repo(db: Optional[connection] = Depends(get_db)) -> GuestsRepo:
     return GuestsRepo(db=db)
 
@@ -118,6 +110,7 @@ def get_billing_service(
 ) -> BillingService:
     return BillingService(repo=billing_repo)
 
+
 def get_staff_repo(db: Optional[connection] = Depends(get_db)) -> StaffRepo:
     return StaffRepo(db=db)
 
@@ -132,6 +125,7 @@ def get_auth_service(
         algorithm=settings.JWT_ALGORITHM,
         expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
     )
+
 
 # HTTPBearer adds the "Authorize" button and Bearer token parsing
 http_bearer = HTTPBearer(auto_error=False)
@@ -218,3 +212,27 @@ def enforce_branch_access(
         )
     return current_user.branch_id
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/public/otp/verify")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/v1/public/otp/verify", auto_error=False)
+
+
+def get_current_guest(
+    token: str = Depends(oauth2_scheme),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> Dict[str, Any]:
+    payload = auth_service.decode_token(token)
+    if not payload or payload.get("role") != "guest":
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload
+
+
+def get_current_guest_optional(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> Optional[Dict[str, Any]]:
+    if not token:
+        return None
+    payload = auth_service.decode_token(token)
+    if not payload or payload.get("role") != "guest":
+        return None
+    return payload

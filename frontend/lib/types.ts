@@ -25,6 +25,9 @@ export interface BookingFormData {
 // ─────────────────────────────────────────────
 export interface Room {
   id: string;
+  /** Composite database identity for a physical room. */
+  branchId: number;
+  roomNumber: number;
   type: string;
   name: string;
   description: string;
@@ -40,6 +43,16 @@ export interface Room {
   membershipPrice?: number;
   /** Discount percentage for members */
   membershipDiscount?: number;
+}
+
+/** Room as returned by GET /api/v1/rooms/all — used in Receptionist & Admin room grids */
+export interface HotelRoom {
+  room_number: number;
+  branch_id: number;
+  room_type_id: string;
+  room_status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE';
+  type_name?: string;
+  capacity: number | null;
 }
 
 // ─────────────────────────────────────────────
@@ -76,10 +89,6 @@ export interface Amenity {
   icon: string;
 }
 
-export interface AmenitiesResponse {
-  amenities: Amenity[];
-}
-
 // ─────────────────────────────────────────────
 //  OTP
 // ─────────────────────────────────────────────
@@ -100,19 +109,37 @@ export interface VerifyOTPPayload {
 export interface VerifyOTPResponse {
   success: boolean;
   message: string;
+  token?: string;
+  guest_id?: number;
+  has_membership?: boolean;
+}
+
+export interface StaffUser {
+  staff_id: number;
+  branch_id: number | null;
+  username: string;
+  full_name: string;
+  role: 'admin' | 'receptionist';
+  is_active: boolean;
+}
+
+export interface StaffLoginResponse {
+  access_token: string;
+  token_type: 'bearer';
+  user: StaffUser;
 }
 
 // ─────────────────────────────────────────────
 //  Booking Creation
 // ─────────────────────────────────────────────
 export interface CreateBookingPayload {
-  branch: string;
+  branchId: number;
   checkIn: string;
   checkOut: string;
   adults: number;
   children: number;
   nights: number;
-  roomId: string;
+  roomNumber: number;
   roomType: string;
   totalPrice: number;
   phone: string;
@@ -156,7 +183,7 @@ export interface GuestProfile {
   membershipId?: number;
 }
 
-export type BookingStatus = 'Booked' | 'Checked-In' | 'Checked-Out' | 'Cancelled';
+export type BookingStatus = 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
 
 export interface StaffBooking {
   bookingId: number;
@@ -187,5 +214,75 @@ export interface InvoiceSummary {
   totalTaxAmount: number;
   grandTotal: number;
   amountPaid: number;
-  paymentStatus: 'Paid' | 'Partial' | 'Unpaid';
+  paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID';
+}
+
+// ─────────────────────────────────────────────
+//  MANAGEMENT UI (ADMIN) TYPES
+// ─────────────────────────────────────────────
+
+export interface AdminReservationListItem {
+  booking_id: number;
+  booking_ref: string;
+  guest_id: number | null;
+  guest_name: string;
+  guest_contact: string | null;
+  room_number: number;
+  room_type_id: string | null;
+  branch_id: number | null;
+  branch_name: string;
+  booking_status: string;
+  start_date: string;
+  end_date: string;
+  nights: number;
+  adult_count: number;
+  children_count: number;
+  total_room_charges: number;
+  total_service_charges: number;
+  total_tax_amount: number;
+  grand_total: number;
+  amount_paid: number;
+  balance_amount: number;
+  invoice_status: string;
+  payment_method: string;
+}
+
+export interface AdminBranch {
+  id: number;
+  name: string;
+  location: string;
+  phone: string;
+  email: string;
+  rooms: number;
+  status: string;
+}
+
+export interface BranchItem {
+  branch_id: number;
+  branch_name: string;
+}
+
+export interface AdminRoom {
+  id: number;
+  type: string;
+  branch: string;
+  price: string;
+  status: string;
+}
+
+export interface FormattedService {
+  id: number;
+  name: string;
+  category: string;
+  price: string;
+  status: string;
+}
+
+export interface ExpectedGuest {
+  id: string;
+  guest: string;
+  checkInDate: string;
+  status: string;
+  phone: string;
+  isMember: boolean;
 }

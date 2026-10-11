@@ -5,12 +5,41 @@ from pydantic import BaseModel, Field
 
 class BookingListItem(BaseModel):
     booking_id: int
+    booking_ref: str
     guest_name: str
     room_number: int
     branch_name: str
     booking_status: str
     start_date: str
     end_date: str
+    guest_phone: Optional[str] = None
+    is_member: bool = False
+
+
+class AdminReservationListItem(BaseModel):
+    booking_id: int
+    booking_ref: str
+    guest_id: Optional[int] = None
+    guest_name: str
+    guest_contact: Optional[str] = None
+    room_number: int
+    room_type_id: Optional[str] = None
+    branch_id: Optional[int] = None
+    branch_name: str
+    booking_status: str
+    start_date: str
+    end_date: str
+    nights: int
+    adult_count: int
+    children_count: int
+    total_room_charges: float = 0.0
+    total_service_charges: float = 0.0
+    total_tax_amount: float = 0.0
+    grand_total: float
+    amount_paid: float
+    balance_amount: float
+    invoice_status: str
+    payment_method: str = "NONE"
 
 
 class CheckInRequest(BaseModel):
@@ -19,7 +48,7 @@ class CheckInRequest(BaseModel):
 
 class CheckInResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Checked-In"
+    booking_status: str = "CHECKED_IN"
     checked_in_time: str
 
 
@@ -29,13 +58,13 @@ class CheckOutRequest(BaseModel):
 
 class CheckOutResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Checked-Out"
+    booking_status: str = "CHECKED_OUT"
     checked_out_time: str
 
 
 class CancelBookingResponse(BaseModel):
     booking_id: int
-    booking_status: str = "Cancelled"
+    booking_status: str = "CANCELLED"
 
 
 class GuestProfileSummary(BaseModel):
@@ -57,6 +86,7 @@ class ServiceChargeItem(BaseModel):
 
 class BookingDetailResponse(BaseModel):
     booking_id: int
+    booking_ref: str
     guest: GuestProfileSummary
     room: RoomSummary
     booking_status: str
@@ -70,3 +100,9 @@ class BookingDetailResponse(BaseModel):
     invoice_status: str
     grand_total: float = 0.0
     amount_paid: float = 0.0
+
+class AddServiceRequest(BaseModel):
+    service_name: str
+    service_total: float
+    # We can default service_dates to 1 since they usually just click "Add Service" once
+    service_dates: int = 1

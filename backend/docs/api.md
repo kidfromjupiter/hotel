@@ -1,7 +1,7 @@
 # SkyNest Hotels — Backend API Documentation
 
-> **Base URL:** `/api/v1`  
-> **Framework:** FastAPI (Python)  
+> **Base URL:** `/api/v1`
+> **Framework:** FastAPI (Python)
 > **Auth:** _To be defined (JWT planned)_
 
 ---
@@ -302,10 +302,7 @@ Create a new room booking.
   "start_date": "2026-10-01",
   "end_date": "2026-10-05",
   "adult_count": 2,
-  "children_count": 0,
-  "extra_amenities": [
-    { "amenity_id": 3, "quantity": 2 }
-  ]
+  "children_count": 0
 }
 ```
 
@@ -318,7 +315,6 @@ Create a new room booking.
 | `end_date`        | `date`       | Yes      | Check-out date (`YYYY-MM-DD`)                  |
 | `adult_count`     | `int`        | Yes      | Number of adults                               |
 | `children_count`  | `int`        | Yes      | Number of children                             |
-| `extra_amenities` | `array`      | No       | Additional amenities requested                 |
 
 **Response** `201 Created`
 ```json
@@ -348,7 +344,6 @@ Create a new room booking.
   - `STANDARD` / `DELUXE` → max 2 people
   - `FAMILY` / `FAMILY_DELUXE` → max 5 people
 - Sets initial `booking_status` to `Confirmed`.
-- Saves any extra amenities requested into `booking_extra_amenities`.
 
 ---
 
@@ -884,5 +879,5 @@ Get the full invoice details with tax breakdown and transaction history.
 | `FAMILY`        | Family Room        | 2 Large Beds   | **5**        |
 | `FAMILY_DELUXE` | Deluxe Family Room | 2 Large Beds   | **5**        |
 
-> `DELUXE` shares the same bed config as `STANDARD` but includes additional amenities.  
+> `DELUXE` shares the same bed config as `STANDARD` but includes additional amenities.
 > `FAMILY_DELUXE` shares the same bed config as `FAMILY` but includes additional amenities.

@@ -81,6 +81,12 @@ export default function PhoneOTPForm({ bookingData, onBack, onComplete }: PhoneC
         return;
       }
 
+      if (verifyRes.has_membership && localStorage.getItem('guest_token')) {
+        toast.success("Phone verified! Membership discount applied! 🎉");
+      } else {
+        toast.success('Phone verified successfully!');
+      }
+
       // 2. Once verified, finalize the booking
       const bookingRes = await createBooking({ ...bookingData, phone: fullPhone });
       if (!bookingRes.success) {

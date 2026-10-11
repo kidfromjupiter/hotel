@@ -10,7 +10,7 @@ from app.repositories.staff_repo import StaffRepo
 class AuthService:
     def __init__(
         self,
-        repo: StaffRepo,
+        repo: Optional[StaffRepo],
         secret_key: str,
         algorithm: str = "HS256",
         expire_minutes: int = 720,
@@ -68,6 +68,8 @@ class AuthService:
         password: str,
     ) -> Optional[Dict[str, Any]]:
         """Verify username & password against database records."""
+        if self.repo is None:
+            return None
         user = self.repo.get_by_username(username)
         if not user:
             return None

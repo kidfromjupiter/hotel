@@ -1,13 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HiOutlineUserAdd, HiOutlineStar, HiOutlinePencilAlt, HiOutlineSearch, HiX, HiOutlineMail, HiOutlinePhone, HiOutlineUser } from 'react-icons/hi';
-import { createMembership } from '../../../lib/api';
-
-const MOCK_EXPECTED_GUESTS = [
-  { id: 'BKG-9930', guest: 'Nimal Fernando', checkInDate: 'Today', status: 'EXPECTED', phone: '+94711122334', isMember: false },
-  { id: 'BKG-9931', guest: 'Sarah Connor', checkInDate: 'Today', status: 'EXPECTED', phone: '+94779988776', isMember: true },
-];
+import { createMembership, getAllBookings } from '../../../lib/api';
+import type { ExpectedGuest } from '../../../lib/types';
 
 export default function GuestManagementPage() {
   const [activeTab, setActiveTab] = useState<'expected' | 'members'>('expected');
@@ -17,7 +13,25 @@ export default function GuestManagementPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE');
-  
+  const [expectedGuests, setExpectedGuests] = useState<ExpectedGuest[]>([]);
+
+  useEffect(() => {
+    getAllBookings().then(data => {
+      // Filter for expected arrivals
+      const expected = data
+        .filter(b => b.status === 'CONFIRMED')
+        .map(b => ({
+          id: b.bookingReference,
+          guest: b.guestName,
+          checkInDate: b.checkIn,
+          status: 'EXPECTED',
+          phone: b.phone,
+          isMember: false // simplified for now
+        }));
+      setExpectedGuests(expected);
+    });
+  }, []);
+
   // Handlers for mock APIs
   const handleUpdatePhone = () => {
     const newPhone = prompt("Enter new phone number:");
@@ -63,13 +77,13 @@ export default function GuestManagementPage() {
       </div>
 
       <div className="flex gap-2 mb-6 bg-white/60 backdrop-blur-md p-1.5 rounded-xl border border-white/50 w-fit shadow-sm">
-        <button 
+        <button
           onClick={() => setActiveTab('expected')}
           className={`px-6 py-2.5 text-sm font-bold tracking-wide uppercase rounded-lg transition-all ${activeTab === 'expected' ? 'bg-skynest-blue text-white shadow-md' : 'text-skynest-navy/70 hover:text-skynest-navy hover:bg-white/50'}`}
         >
           Expected Arrivals
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('members')}
           className={`px-6 py-2.5 text-sm font-bold tracking-wide uppercase rounded-lg transition-all ${activeTab === 'members' ? 'bg-skynest-blue text-white shadow-md' : 'text-skynest-navy/70 hover:text-skynest-navy hover:bg-white/50'}`}
         >
@@ -80,19 +94,19 @@ export default function GuestManagementPage() {
       {activeTab === 'expected' && (
         <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-white/50 overflow-hidden">
           <div className="p-6 bg-white/40 border-b border-white/50 flex justify-between items-center">
-            <h3 className="font-semibold text-skynest-navy">Today's Expected Guests</h3>
+            <h3 className="font-semibold text-skynest-navy">Expected Guests</h3>
           </div>
           <div className="divide-y divide-gray-100">
-            {MOCK_EXPECTED_GUESTS.map(guest => (
+            {expectedGuests.map(guest => (
               <div key={guest.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-lg font-semibold text-skynest-navy">{guest.guest}</h4>
                     {guest.isMember && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><HiOutlineStar /> MEMBER</span>}
                   </div>
-                  <p className="text-sm text-gray-500">Booking Ref: {guest.id} • Phone: {guest.phone}</p>
+                  <p className="text-sm text-gray-500">Booking Ref: {guest.id} • Phone: {guest.phone} • Check-In: {guest.checkInDate}</p>
                 </div>
-                
+
                 <div className="flex gap-3">
                   <button onClick={handleCheckPaymentStatus} className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-skynest-navy text-xs font-semibold rounded-lg transition-colors shadow-sm">
                     Check Payment Status
@@ -103,6 +117,11 @@ export default function GuestManagementPage() {
                 </div>
               </div>
             ))}
+            {expectedGuests.length === 0 && (
+              <div className="p-6 text-center text-gray-500 text-sm">
+                No expected arrivals right now.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -127,12 +146,12 @@ export default function GuestManagementPage() {
             <h3 className="text-lg font-bold text-skynest-navy mb-2">Search Guest Records</h3>
             <p className="text-sm text-gray-500 mb-6">Look up previous bookings, previous payments, and historical data for returning guests.</p>
             <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Enter Guest ID or Phone" 
+              <input
+                type="text"
+                placeholder="Enter Guest ID or Phone"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-skynest-blue" 
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-skynest-blue"
               />
               <button onClick={handleCheckPaymentStatus} className="px-6 py-3 bg-skynest-blue text-white font-semibold rounded-xl hover:bg-skynest-blue-hover transition-colors">
                 Search
@@ -155,7 +174,7 @@ export default function GuestManagementPage() {
                   <p className="text-xs text-gray-500">Enroll guest in loyalty program</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setIsMembershipModalOpen(false); }}
                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-colors relative z-50"
@@ -163,15 +182,15 @@ export default function GuestManagementPage() {
                 <HiX size={20} className="pointer-events-none" />
               </button>
             </div>
-            
+
             <form onSubmit={submitMembership} className="p-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-skynest-navy mb-1">Full Name</label>
                   <div className="relative">
                     <HiOutlineUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={membershipData.name}
                       onChange={(e) => setMembershipData({...membershipData, name: e.target.value})}
@@ -185,8 +204,8 @@ export default function GuestManagementPage() {
                   <label className="block text-sm font-bold text-skynest-navy mb-1">Phone Number</label>
                   <div className="relative">
                     <HiOutlinePhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       required
                       value={membershipData.phone}
                       onChange={(e) => setMembershipData({...membershipData, phone: e.target.value})}
@@ -200,8 +219,8 @@ export default function GuestManagementPage() {
                   <label className="block text-sm font-bold text-skynest-navy mb-1">Email Address</label>
                   <div className="relative">
                     <HiOutlineMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       required
                       value={membershipData.email}
                       onChange={(e) => setMembershipData({...membershipData, email: e.target.value})}
@@ -213,14 +232,14 @@ export default function GuestManagementPage() {
               </div>
 
               <div className="mt-8 flex gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIsMembershipModalOpen(false); }}
                   className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-skynest-navy font-bold rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   disabled={isSubmitting}
                   className="flex-1 py-3 bg-skynest-blue text-white font-bold rounded-xl hover:bg-skynest-blue-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -238,7 +257,7 @@ export default function GuestManagementPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-scale-up">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-skynest-navy">Guest Records</h3>
-              <button 
+              <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setIsPaymentModalOpen(false); }}
                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-colors relative z-50"
@@ -246,7 +265,7 @@ export default function GuestManagementPage() {
                 <HiX size={20} className="pointer-events-none" />
               </button>
             </div>
-            
+
             <div className="p-8 flex flex-col items-center text-center">
               {paymentStatus === 'LOADING' ? (
                 <>
@@ -263,8 +282,8 @@ export default function GuestManagementPage() {
                   </div>
                   <h4 className="font-bold text-skynest-navy mb-2">PAID IN FULL</h4>
                   <p className="text-sm text-gray-500 mb-6">No outstanding balances found for {searchQuery || 'this guest'}.</p>
-                  
-                  <button 
+
+                  <button
                     onClick={() => setIsPaymentModalOpen(false)}
                     className="w-full py-3 bg-skynest-navy text-white font-bold rounded-xl hover:bg-skynest-blue transition-colors"
                   >

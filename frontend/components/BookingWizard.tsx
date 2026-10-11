@@ -266,7 +266,7 @@ export default function BookingWizard({ branch }: Props) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {availableRooms.map(room => (
                   <RoomCard
-                    key={room.id}
+                    key={room.roomNumber}
                     room={room}
                     nights={state.nights}
                     hasMembership={state.hasMembership}
@@ -293,13 +293,13 @@ export default function BookingWizard({ branch }: Props) {
         {step === 'phone' && state.selectedRoom && (
           <PhoneOTPForm
             bookingData={{
-              branch: state.branch,
+              branchId: state.selectedRoom.branchId,
               checkIn: state.checkIn,
               checkOut: state.checkOut,
               adults: state.adults,
               children: state.children,
               nights: state.nights,
-              roomId: state.selectedRoom.id,
+              roomNumber: state.selectedRoom.roomNumber,
               roomType: state.selectedRoom.name,
               totalPrice: state.totalPrice,
             }}

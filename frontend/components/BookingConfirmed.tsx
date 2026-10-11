@@ -48,7 +48,7 @@ export default function BookingConfirmed({ booking }: BookingConfirmedProps) {
         <div className="mt-5 inline-flex items-center gap-3 bg-skynest-navy rounded-full px-6 py-2.5 shadow-xl">
           <span className="text-skynest-blue-light text-xs tracking-wide">Booking Reference</span>
           <span className="text-white font-black text-lg tracking-[0.2em]">
-            {booking.bookingRef || 'SKN-CONFIRMED'}
+            {booking.bookingRef}
           </span>
         </div>
       </div>

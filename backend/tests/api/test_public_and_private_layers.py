@@ -1,11 +1,3 @@
-def test_public_amenities_route(client):
-    res = client.get("/api/v1/public/amenities?branch=colombo")
-    assert res.status_code == 200
-    data = res.json()
-    assert "amenities" in data
-    assert len(data["amenities"]) > 0
-
-
 def test_public_otp_routes(client, otp_service):
     # Test send OTP
     res_send = client.post("/api/v1/public/otp/send", json={"phone": "+94771234567"})
@@ -26,18 +18,16 @@ def test_public_otp_routes(client, otp_service):
 
 def test_public_create_booking_flow(client, booking_repo):
     booking_payload = {
-        "branch": "colombo",
-        "checkIn": "2026-10-15T00:00:00.000Z",
-        "checkOut": "2026-10-18T00:00:00.000Z",
+        "branchId": 1,
+        "checkIn": "2026-12-15T00:00:00.000Z",
+        "checkOut": "2026-12-18T00:00:00.000Z",
         "adults": 2,
         "children": 0,
         "nights": 3,
-        "roomId": "deluxe-101",
+        "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
         "totalPrice": 105000,
-        "amenityIds": [],
-        "amenities": [],
     }
     res = client.post("/api/v1/public/bookings/", json=booking_payload)
     assert res.status_code == 200
@@ -51,19 +41,21 @@ def test_private_booking_staff_operations(client, booking_repo):
     saved = booking_repo.save_booking(
         {
             "booking_id": 99901,
-            "bookingRef": "SKN-99901",
+            "guest_id": 1,
             "guest_name": "Test Guest",
-            "room_number": 101,
+            "room_number": 103,
             "branch_id": 1,
             "branch_name": "Colombo",
-            "booking_status": "Confirmed",
-            "start_date": "2026-10-01",
-            "end_date": "2026-10-05",
+            "booking_status": "CONFIRMED",
+            "start_date": "2027-10-01",
+            "end_date": "2027-10-05",
             "grand_total": 50000.0,
             "amount_paid": 50000.0,
             "invoice_status": "PAID",
         }
     )
+    if booking_repo.db:
+        booking_repo.db.commit()
 
     # 1. Staff search/list
     res_list = client.get("/api/v1/private/bookings/")
@@ -81,7 +73,7 @@ def test_private_booking_staff_operations(client, booking_repo):
         json={"check_in_time": "14:30:00"},
     )
     assert res_checkin.status_code == 200
-    assert res_checkin.json()["booking_status"] == "Checked-In"
+    assert res_checkin.json()["booking_status"] == "CHECKED_IN"
 
     # 4. Staff check-out
     res_checkout = client.post(
@@ -89,7 +81,7 @@ def test_private_booking_staff_operations(client, booking_repo):
         json={"check_out_time": "11:00:00"},
     )
     assert res_checkout.status_code == 200
-    assert res_checkout.json()["booking_status"] == "Checked-Out"
+    assert res_checkout.json()["booking_status"] == "CHECKED_OUT"
 
 
 def test_private_reports_routes(client):

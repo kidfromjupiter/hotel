@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HiOutlineSearch, HiOutlineKey, HiOutlineViewGrid, HiOutlineUserGroup, HiOutlineChatAlt2 } from 'react-icons/hi';
+import StaffRouteGuard from '@/components/StaffRouteGuard';
 
 const NAV_LINKS = [
   { name: 'Check-In (OTP)', href: '/receptionist', icon: HiOutlineKey },
@@ -15,7 +16,8 @@ export default function ReceptionistLayout({ children }: { children: React.React
   const pathname = usePathname();
 
   return (
-    <div 
+    <StaffRouteGuard>
+    <div
       className="flex h-screen pt-16 overflow-hidden font-sans relative"
       style={{
         backgroundImage: 'url("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80")',
@@ -23,7 +25,7 @@ export default function ReceptionistLayout({ children }: { children: React.React
         backgroundPosition: 'center',
       }}
     >
-      
+
       {/* Background Overlay for the entire receptionist portal */}
       <div className="absolute inset-0 z-0 bg-white/20" />
 
@@ -81,5 +83,6 @@ export default function ReceptionistLayout({ children }: { children: React.React
       </main>
 
     </div>
+    </StaffRouteGuard>
   );
 }

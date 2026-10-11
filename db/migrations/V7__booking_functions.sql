@@ -11,7 +11,7 @@ CREATE OR REPLACE FUNCTION get_available_rooms(
 RETURNS JSONB
 LANGUAGE plpgsql
 AS $$
-DECLARE 
+DECLARE
   result JSONB;
 BEGIN
   SELECT COALESCE(
@@ -30,7 +30,7 @@ BEGIN
     ),
     '[]'::JSONB
   )
-  INTO result 
+  INTO result
   FROM room_details r
   JOIN branches b ON r.branch_id = b.branch_id
   LEFT JOIN room_types rt ON r.room_type_id = rt.room_type_id
@@ -38,11 +38,11 @@ BEGIN
     AND (r.capacity >= (COALESCE(p_adults, 0) + COALESCE(p_children, 0)))
     AND r.room_status != 'MAINTENANCE'
     AND NOT EXISTS (
-      SELECT 1 
+      SELECT 1
       FROM booking bk
       WHERE bk.room_number = r.room_number
         AND bk.branch_id = r.branch_id
-        AND bk.booking_status != 'Cancelled'
+        AND bk.booking_status != 'CANCELLED'
         AND bk.start_date < p_check_out
         AND bk.end_date > p_check_in
     );
@@ -70,6 +70,7 @@ BEGIN
     jsonb_agg(
       jsonb_build_object(
         'booking_id', bk.booking_id,
+        'booking_ref', bk.booking_ref,
         'guest_id', bk.guest_id,
         'guest_name', COALESCE(g.name, 'Guest'),
         'room_number', bk.room_number,
@@ -118,6 +119,7 @@ DECLARE
 BEGIN
   SELECT jsonb_build_object(
     'booking_id', bk.booking_id,
+    'booking_ref', bk.booking_ref,
     'guest_id', bk.guest_id,
     'guest_name', COALESCE(g.name, 'Guest'),
     'room_number', bk.room_number,
@@ -175,7 +177,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   UPDATE booking
-  SET 
+  SET
     booking_status = p_status,
     checked_in_time = COALESCE(p_check_in_time, checked_in_time),
     checked_out_time = COALESCE(p_check_out_time, checked_out_time)
@@ -209,6 +211,7 @@ DECLARE
 BEGIN
   INSERT INTO booking (
     booking_id,
+    booking_ref,
     room_number,
     branch_id,
     guest_id,
@@ -219,6 +222,7 @@ BEGIN
     children_count
   ) VALUES (
     p_booking_id,
+    'SKN-' || p_booking_id,
     p_room_number,
     p_branch_id,
     p_guest_id,
