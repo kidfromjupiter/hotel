@@ -1,11 +1,11 @@
 from typing import Optional
 import random
 from typing import Dict, Tuple
-
+from app.repositories.otp import OtpRepository
 
 class OTPService:
-    def __init__(self):
-        # Maps phone -> (otp_code, timestamp)
+    def __init__(self, repo: Optional[OtpRepository] = None):
+        self.otp_repo = repo or OtpRepository()
         self._store: Dict[str, Tuple[str, float]] = {}
 
     def clear(self):
@@ -19,27 +19,21 @@ class OTPService:
         if otp_code in ("000000", "123456"):
             otp_code = "789123"
         self._store[phone] = (otp_code, 0.0)
+        self.otp_repo.save_otp(phone, otp_code)
         print(f"[DEMO SMS] Verification code for {phone}: {otp_code}", flush=True)
         return {
             "success": True,
             "message": f"OTP sent successfully! (Demo Code: {otp_code})",
         }
 
+
     def verify_otp(self, phone: str, otp: str) -> bool:
         """Verifies OTP for phone number."""
-        record = self._store.get(phone)
-        if not record:
-            return False
-        stored_code, _ = record
-        cleaned = otp.strip()
-        if cleaned == stored_code or cleaned == "123456":
-            # Consume on success
-            self._store.pop(phone, None)
+        if otp.strip() == "123456":
             return True
-        return False
+        return self.otp_repo.verify_otp(phone, otp.strip())
+
+        
 
     def find_phone_by_otp(self, otp: str) -> Optional[str]:
-        for phone, (stored_otp, _timestamp) in self._store.items():
-            if stored_otp == otp:
-                return phone
-        return None
+        return self.otp_repo.find_phone(otp)

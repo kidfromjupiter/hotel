@@ -28,7 +28,7 @@ from app.config import get_settings
 from app.schemas.auth import StaffUser
 from app.repositories.staff_repo import StaffRepo
 from app.services.auth_service import AuthService
-
+from app.repositories.otp import OtpRepository
 
 otp_service = OTPService()
 
@@ -67,8 +67,14 @@ def get_booking_flow_service(
     return booking_service
 
 
-def get_otp_service() -> OTPService:
-    return otp_service
+
+
+def get_otp_repo(db: Optional[connection] = Depends(get_db)) -> OtpRepository:
+    return OtpRepository(db=db)
+
+def get_otp_service(otp_repo: OtpRepository = Depends(get_otp_repo)) -> OTPService:
+    return OTPService(repo=otp_repo)
+
 
 
 def get_branches_repo(db: Optional[connection] = Depends(get_db)) -> BranchesRepo:
