@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineCurrencyDollar, HiOutlineUsers, HiOutlineHome, HiOutlineCube } from 'react-icons/hi';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getMonthlyRevenue, getBranches } from '@/lib/api';
+import { getMonthlyRevenue, getBranches, getOccupancyReport } from '@/lib/api';
 
 const STATIC_METRICS = [
   { title: 'Overall Occupancy', value: '—', trend: 'Live', trendUp: true, icon: HiOutlineHome },
@@ -56,10 +56,46 @@ export default function AdminDashboardPage() {
     return () => { active = false; };
   }, [reloadKey]);
 
+  const [occupancy, setOccupancy] = useState<Awaited<ReturnType<typeof getOccupancyReport>> | null>(null);
+  const [occupancyLoading, setOccupancyLoading] = useState(true);
+  const [occupancyError, setOccupancyError] = useState('');
+  const [occupancyReloadKey, setOccupancyReloadKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setOccupancyLoading(true);
+    setOccupancyError('');
+    setOccupancy(null);
+    const now = new Date();
+    const localDate = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const start = localDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    const end = localDate(now);
+    const result = now.getDate() === 1
+      ? Promise.resolve({ period: { start_date: start, end_date: end }, branches: [] })
+      : getOccupancyReport(start, end);
+
+    result.then(data => {
+      if (active) setOccupancy(data);
+    }).catch(() => {
+      if (active) setOccupancyError('Could not load occupancy data.');
+    }).finally(() => {
+      if (active) setOccupancyLoading(false);
+    });
+    return () => { active = false; };
+  }, [occupancyReloadKey]);
+
+  const occupiedNights = occupancy?.branches.reduce((sum, b) => sum + b.occupied_nights, 0) ?? 0;
+  const possibleNights = occupancy?.branches.reduce((sum, b) => sum + b.total_possible_nights, 0) ?? 0;
+  const occupancyValue = occupancyLoading ? '...' : possibleNights > 0
+    ? `${((occupiedNights / possibleNights) * 100).toFixed(2)}%` : '\u2014';
+  const occupancyStatus = occupancyLoading ? 'Loading' : occupancyError
+    ? 'Unavailable' : possibleNights > 0 ? 'Month to date' : 'No data';
+
   const dataStatus = chartLoading ? 'Loading' : loadError ? 'Unavailable' : 'Live';
   const metrics = [
     { title: 'Total Revenue (YTD)', value: chartLoading ? '...' : totalRevenue, trend: dataStatus, trendUp: !loadError, icon: HiOutlineCurrencyDollar },
-    { title: 'Overall Occupancy', value: '\u2014', trend: 'Not available', trendUp: true, icon: HiOutlineHome },
+    { title: 'Occupancy (Month to Date)', value: occupancyValue, trend: occupancyStatus, trendUp: !occupancyError, icon: HiOutlineHome },
     { title: 'Active Branches', value: chartLoading ? '...' : branchCount, trend: dataStatus, trendUp: !loadError, icon: HiOutlineCube },
     { title: 'New Guests Today', value: '\u2014', trend: 'Not available', trendUp: true, icon: HiOutlineUsers },
   ];
@@ -150,8 +186,45 @@ export default function AdminDashboardPage() {
         <div className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl shadow-slate-200/50">
           <h3 className="text-lg font-bold text-slate-800 mb-4">Branch Status</h3>
           <div className="space-y-4">
-            <p className="text-sm text-slate-500 font-medium">Fetching live occupancy data from the Reports module...</p>
-            <p className="text-xs text-slate-400">Visit <span className="font-bold text-sky-600">Reports</span> for detailed branch occupancy analytics.</p>
+            <p className="text-xs text-slate-500">
+              Completed nights this month; today is excluded.
+            </p>
+            {occupancyLoading ? (
+              <p role="status" className="text-sm text-slate-600">Loading occupancy...</p>
+            ) : occupancyError ? (
+              <div role="alert" className="text-sm text-red-700">
+                <p>{occupancyError}</p>
+                <button onClick={() => setOccupancyReloadKey(key => key + 1)}
+                  className="mt-2 rounded-lg px-3 py-2 font-bold hover:bg-red-50">
+                  Retry occupancy
+                </button>
+              </div>
+            ) : occupancy?.period.start_date === occupancy?.period.end_date ? (
+              <p className="text-sm text-slate-600">No completed nights yet this month.</p>
+            ) : !occupancy?.branches.length ? (
+              <p className="text-sm text-slate-600">No branch occupancy data available.</p>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">
+                  {occupancy.period.start_date} to {occupancy.period.end_date} (end excluded)
+                </p>
+                {occupancy.branches.map(branch => (
+                  <div key={branch.branch_name} className="border-b border-slate-200 pb-3">
+                    <div className="flex justify-between gap-3 text-sm font-bold text-slate-800">
+                      <span>{branch.branch_name}</span>
+                      <span>{branch.total_possible_nights > 0
+                        ? `${branch.occupancy_rate_percent.toFixed(2)}%` : 'No rooms'}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {branch.total_rooms} rooms; {branch.occupied_nights} occupied nights / {branch.total_possible_nights} possible nights
+                    </p>
+                  </div>
+                ))}
+              </>
+            )}
+            <a href="/admin/reports" className="inline-block text-sm font-bold text-sky-600 hover:underline">
+              View detailed reports
+            </a>
           </div>
         </div>
       </div>
