@@ -5,6 +5,17 @@ import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalend
 import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, extendStay, getServices } from '@/lib/api';
 import type { StaffBooking, InvoiceSummary } from '@/lib/types';
 
+function getPaymentAmountError(value: string, outstandingBalance: number): string {
+  if (!value.trim()) return 'Enter a payment amount.';
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return 'Payment amount must be greater than zero.';
+  if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Payment amount can have at most two decimal places.';
+  if (amount > outstandingBalance) return 'Payment amount cannot exceed the balance due.';
+
+  return '';
+}
+
 
 export default function ActiveStaysPage() {
   const [selectedStay, setSelectedStay] = useState<StaffBooking | null>(null);
@@ -15,6 +26,8 @@ export default function ActiveStaysPage() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentAmountError, setPaymentAmountError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +64,8 @@ export default function ActiveStaysPage() {
     if (!selectedStay) return;
     setActiveModal('BILLING');
     setInvoice(null); // Show loading
+    setPaymentAmount('');
+    setPaymentAmountError('');
     try {
       const billData = await getBill(selectedStay.bookingId);
       setInvoice(billData);
@@ -62,6 +77,16 @@ export default function ActiveStaysPage() {
 
   const handleCheckout = async () => {
     if (!selectedStay || !invoice) return;
+
+    const outstandingBalance = Math.max(0, invoice.grandTotal - invoice.amountPaid);
+    if (outstandingBalance > 0) {
+      const validationError = getPaymentAmountError(paymentAmount, outstandingBalance);
+      if (validationError) {
+        setPaymentAmountError(validationError);
+        return;
+      }
+    }
+
     setIsCheckingOut(true);
     try {
       const result = await checkOutGuest(selectedStay.bookingId);
@@ -132,6 +157,9 @@ export default function ActiveStaysPage() {
       setIsExtending(false);
     }
   };
+
+  const outstandingBalance = invoice ? Math.max(0, invoice.grandTotal - invoice.amountPaid) : 0;
+  const hasValidPaymentAmount = outstandingBalance === 0 || getPaymentAmountError(paymentAmount, outstandingBalance) === '';
 
   return (
     <div className="animate-slide-up relative">
@@ -238,7 +266,11 @@ export default function ActiveStaysPage() {
       {activeModal !== 'NONE' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-skynest-navy/50 backdrop-blur-sm p-4 animate-fade-in"
-          onClick={() => setActiveModal('NONE')}
+          onClick={() => {
+            setActiveModal('NONE');
+            setPaymentAmount('');
+            setPaymentAmountError('');
+          }}
         >
           <div
             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up"
@@ -258,6 +290,8 @@ export default function ActiveStaysPage() {
                   e.stopPropagation();
                   setActiveModal('NONE');
                   setNewCheckOut('');
+                  setPaymentAmount('');
+                  setPaymentAmountError('');
                 }}
                 className="text-gray-400 hover:text-skynest-navy bg-white p-2 rounded-full shadow-sm relative z-50 cursor-pointer"
               >
@@ -327,7 +361,43 @@ export default function ActiveStaysPage() {
                         <div className="flex justify-between text-green-600"><span className="font-bold">Amount Paid</span><span className="font-bold">LKR {invoice.amountPaid.toLocaleString()}</span></div>
 
                         <hr className="my-2 border-gray-200" />
-                        <div className="flex justify-between text-red-500 text-lg"><span className="font-black">Balance Due</span><span className="font-black">LKR {(invoice.grandTotal - invoice.amountPaid).toLocaleString()}</span></div>
+                        <div className="flex justify-between text-red-500 text-lg"><span className="font-black">Balance Due</span><span className="font-black">LKR {outstandingBalance.toLocaleString()}</span></div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="payment-amount" className="block text-xs font-bold text-gray-500 mb-2">Payment Amount (LKR)</label>
+                        <input
+                          id="payment-amount"
+                          type="number"
+                          inputMode="decimal"
+                          min="0.01"
+                          max={outstandingBalance || undefined}
+                          step="0.01"
+                          required={outstandingBalance > 0}
+                          value={paymentAmount}
+                          disabled={outstandingBalance === 0}
+                          aria-invalid={Boolean(paymentAmountError)}
+                          aria-describedby={paymentAmountError ? 'payment-amount-error' : undefined}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setPaymentAmount(value);
+                            if (paymentAmountError) {
+                              setPaymentAmountError(getPaymentAmountError(value, outstandingBalance));
+                            }
+                          }}
+                          onBlur={() => {
+                            if (outstandingBalance > 0) {
+                              setPaymentAmountError(getPaymentAmountError(paymentAmount, outstandingBalance));
+                            }
+                          }}
+                          placeholder={outstandingBalance > 0 ? '0.00' : 'Fully paid'}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue disabled:bg-gray-100 disabled:text-gray-500"
+                        />
+                        {paymentAmountError && (
+                          <p id="payment-amount-error" role="alert" className="mt-2 text-sm font-semibold text-red-600">
+                            {paymentAmountError}
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -340,7 +410,7 @@ export default function ActiveStaysPage() {
 
                       <button
                         onClick={handleCheckout}
-                        disabled={isCheckingOut}
+                        disabled={isCheckingOut || !hasValidPaymentAmount}
                         className="w-full py-4 bg-green-500 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50"
                       >
                         {isCheckingOut ? 'Processing...' : 'Complete Checkout'}
