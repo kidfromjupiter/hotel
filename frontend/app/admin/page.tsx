@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { HiOutlineCurrencyDollar, HiOutlineUsers, HiOutlineHome, HiOutlineCube } from 'react-icons/hi';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getMonthlyRevenue, getBranches } from '@/lib/api';
@@ -59,9 +60,9 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
           <p className="text-sm text-slate-600 mt-1 font-medium">Overview of hotel operations and financial performance.</p>
         </div>
-        <button className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
-          Download Full Report
-        </button>
+        <Link href="/admin/reports" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
+          View Reports &amp; Export
+        </Link>
       </div>
 
       {/* Metrics Grid */}
