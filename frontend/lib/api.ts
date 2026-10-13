@@ -403,9 +403,21 @@ export async function addServiceToBooking(bookingId: number, serviceId: number):
   });
 }
 
-// These endpoints are not yet implemented in the backend — kept as stubs
 export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Stay extended' }), 500));
+  return request<{
+    success: boolean;
+    message: string;
+    booking_id: number;
+    previous_check_out_date: string;
+    new_check_out_date: string;
+    added_nights: number;
+    added_room_charge: number;
+    grand_total: number;
+    payment_status: string;
+  }>(`/api/v1/private/bookings/${bookingId}/extend`, {
+    method: 'POST',
+    body: JSON.stringify({ new_check_out_date: newCheckOutDate }),
+  });
 }
 
 /**

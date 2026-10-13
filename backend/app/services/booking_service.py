@@ -11,6 +11,7 @@ from app.schemas.bookings import (
     CancelBookingResponse,
     CheckInResponse,
     CheckOutResponse,
+    ExtendStayResponse,
     GuestProfileSummary,
     RoomSummary,
     ServiceChargeItem,
@@ -237,6 +238,25 @@ class BookingService:
             grand_total=float(b.get("grand_total", 0.0)),
             amount_paid=float(b.get("amount_paid", 0.0)),
         )
+
+    def get_booking_record(self, booking_id: int) -> Dict[str, Any]:
+        booking = self.booking_repo.find_booking_by_id(booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking does not exist.")
+        return booking
+
+    def extend_stay(
+        self, booking_id: int, new_check_out_date: date
+    ) -> ExtendStayResponse:
+        result = self.booking_repo.extend_stay(booking_id, new_check_out_date)
+        if not result.get("success"):
+            error_code = result.get("error_code")
+            status_code = 404 if error_code == "NOT_FOUND" else 409 if error_code == "OVERLAP" else 400
+            raise HTTPException(
+                status_code=status_code,
+                detail=result.get("message", "The stay could not be extended."),
+            )
+        return ExtendStayResponse(**result)
 
     def check_in(
         self, booking_id: int, check_in_time: Optional[str] = None

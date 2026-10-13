@@ -233,3 +233,24 @@ class BookingRepository:
         except Exception:
             self.db.rollback()
             raise
+
+    def extend_stay(
+        self, booking_id: int, new_check_out_date: date
+    ) -> Dict[str, Any]:
+        if self.db is None:
+            raise RuntimeError("Database connection is unavailable")
+
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "SELECT extend_booking_stay(%s, %s)",
+                (booking_id, new_check_out_date),
+            )
+            row = cursor.fetchone()
+            if row and row.get("extend_booking_stay") is not None:
+                return row["extend_booking_stay"]
+
+        return {
+            "success": False,
+            "error_code": "UNKNOWN",
+            "message": "The stay could not be extended.",
+        }
