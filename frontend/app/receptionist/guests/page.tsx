@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HiOutlineUserAdd, HiOutlineStar, HiOutlinePencilAlt, HiOutlineSearch, HiX, HiOutlineMail, HiOutlinePhone, HiOutlineUser } from 'react-icons/hi';
-import { createMembership, getAllBookings } from '../../../lib/api';
-import type { ExpectedGuest } from '../../../lib/types';
+import { createMembership, getAllBookings, getGuestPaymentHistory } from '../../../lib/api';
+import type { ExpectedGuest, GuestPaymentHistory } from '../../../lib/types';
+
+const formatLkr = (amount: number) =>
+  new Intl.NumberFormat('en-LK', {
+    style: 'currency',
+    currency: 'LKR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+
+const formatStatus = (status: string) => status.replaceAll('_', ' ');
 
 export default function GuestManagementPage() {
   const [activeTab, setActiveTab] = useState<'expected' | 'members'>('expected');
@@ -12,7 +22,10 @@ export default function GuestManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS'>('IDLE');
+  const [paymentStatus, setPaymentStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [paymentResult, setPaymentResult] = useState<GuestPaymentHistory | null>(null);
+  const [paymentError, setPaymentError] = useState('');
+  const paymentRequestId = useRef(0);
   const [expectedGuests, setExpectedGuests] = useState<ExpectedGuest[]>([]);
 
   useEffect(() => {
@@ -22,11 +35,12 @@ export default function GuestManagementPage() {
         .filter(b => b.status === 'CONFIRMED')
         .map(b => ({
           id: b.bookingReference,
+          guestId: b.guestId,
           guest: b.guestName,
           checkInDate: b.checkIn,
           status: 'EXPECTED',
           phone: b.phone,
-          isMember: false // simplified for now
+          isMember: false // membership is not currently exposed by the booking list endpoint
         }));
       setExpectedGuests(expected);
     });
@@ -61,12 +75,36 @@ export default function GuestManagementPage() {
     }
   };
 
-  const handleCheckPaymentStatus = () => {
+  const handleCheckPaymentStatus = async (identifier = searchQuery) => {
+    const query = identifier.trim();
     setIsPaymentModalOpen(true);
+    setPaymentResult(null);
+    setPaymentError('');
+
+    if (!query) {
+      setPaymentStatus('ERROR');
+      setPaymentError('Enter a guest ID or phone number to search.');
+      return;
+    }
+
+    const requestId = ++paymentRequestId.current;
     setPaymentStatus('LOADING');
-    setTimeout(() => {
+
+    try {
+      const result = await getGuestPaymentHistory(query);
+      if (paymentRequestId.current !== requestId) return;
+      setPaymentResult(result);
       setPaymentStatus('SUCCESS');
-    }, 1500);
+    } catch (error) {
+      if (paymentRequestId.current !== requestId) return;
+      setPaymentError(error instanceof Error ? error.message : 'Unable to retrieve guest payment records.');
+      setPaymentStatus('ERROR');
+    }
+  };
+
+  const closePaymentModal = () => {
+    paymentRequestId.current += 1;
+    setIsPaymentModalOpen(false);
   };
 
   return (
@@ -108,7 +146,10 @@ export default function GuestManagementPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button onClick={handleCheckPaymentStatus} className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-skynest-navy text-xs font-semibold rounded-lg transition-colors shadow-sm">
+                  <button
+                    onClick={() => handleCheckPaymentStatus(guest.guestId ? String(guest.guestId) : guest.phone)}
+                    className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-skynest-navy text-xs font-semibold rounded-lg transition-colors shadow-sm"
+                  >
                     Check Payment Status
                   </button>
                   <button onClick={handleUpdatePhone} className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-skynest-navy text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-sm">
@@ -153,7 +194,7 @@ export default function GuestManagementPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-skynest-blue"
               />
-              <button onClick={handleCheckPaymentStatus} className="px-6 py-3 bg-skynest-blue text-white font-semibold rounded-xl hover:bg-skynest-blue-hover transition-colors">
+              <button onClick={() => handleCheckPaymentStatus()} className="px-6 py-3 bg-skynest-blue text-white font-semibold rounded-xl hover:bg-skynest-blue-hover transition-colors">
                 Search
               </button>
             </div>
@@ -254,42 +295,106 @@ export default function GuestManagementPage() {
 
       {isPaymentModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-scale-up">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden animate-scale-up flex flex-col">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h3 className="font-bold text-skynest-navy">Guest Records</h3>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setIsPaymentModalOpen(false); }}
+                onClick={(e) => { e.stopPropagation(); closePaymentModal(); }}
                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-colors relative z-50"
               >
                 <HiX size={20} className="pointer-events-none" />
               </button>
             </div>
 
-            <div className="p-8 flex flex-col items-center text-center">
+            <div className="p-8 overflow-y-auto">
               {paymentStatus === 'LOADING' ? (
-                <>
+                <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 border-4 border-skynest-blue border-t-transparent rounded-full animate-spin mb-4"></div>
                   <h4 className="font-bold text-skynest-navy mb-2">Searching Records</h4>
                   <p className="text-sm text-gray-500">Retrieving previous bookings and payment status...</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                </div>
+              ) : paymentStatus === 'ERROR' ? (
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                    <HiX size={32} />
                   </div>
-                  <h4 className="font-bold text-skynest-navy mb-2">PAID IN FULL</h4>
-                  <p className="text-sm text-gray-500 mb-6">No outstanding balances found for {searchQuery || 'this guest'}.</p>
-
+                  <h4 className="font-bold text-skynest-navy mb-2">Unable to Find Records</h4>
+                  <p className="text-sm text-gray-500 mb-6">{paymentError}</p>
                   <button
-                    onClick={() => setIsPaymentModalOpen(false)}
+                    onClick={closePaymentModal}
                     className="w-full py-3 bg-skynest-navy text-white font-bold rounded-xl hover:bg-skynest-blue transition-colors"
                   >
                     Close
                   </button>
-                </>
+                </div>
+              ) : paymentStatus === 'SUCCESS' && paymentResult ? (
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                      <h4 className="text-xl font-bold text-skynest-navy">{paymentResult.guest.name}</h4>
+                      <p className="text-sm text-gray-500">
+                        Guest #{paymentResult.guest.guest_id} • {paymentResult.guest.phone_number}
+                      </p>
+                    </div>
+                    <span className={`self-start px-3 py-1.5 rounded-full text-xs font-bold ${paymentResult.summary.outstanding_balance > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {paymentResult.summary.outstanding_balance > 0 ? 'BALANCE OUTSTANDING' : 'NO OUTSTANDING BALANCE'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 text-left">
+                    <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+                      <p className="text-xs font-bold text-gray-500 uppercase">Total Billed</p>
+                      <p className="font-bold text-skynest-navy mt-1">{formatLkr(paymentResult.summary.grand_total)}</p>
+                    </div>
+                    <div className="rounded-xl bg-green-50 border border-green-100 p-4">
+                      <p className="text-xs font-bold text-green-700 uppercase">Amount Paid</p>
+                      <p className="font-bold text-green-700 mt-1">{formatLkr(paymentResult.summary.amount_paid)}</p>
+                    </div>
+                    <div className="rounded-xl bg-red-50 border border-red-100 p-4">
+                      <p className="text-xs font-bold text-red-700 uppercase">Balance Due</p>
+                      <p className="font-bold text-red-700 mt-1">{formatLkr(paymentResult.summary.outstanding_balance)}</p>
+                    </div>
+                  </div>
+
+                  {paymentResult.bookings.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
+                      No booking or invoice records are available for this guest at your branch.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 text-left">
+                      {paymentResult.bookings.map(booking => (
+                        <div key={booking.booking_id} className="rounded-xl border border-gray-200 p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                            <div>
+                              <p className="font-bold text-skynest-navy">{booking.booking_ref}</p>
+                              <p className="text-xs text-gray-500">
+                                {booking.branch_name} • {new Date(booking.start_date).toLocaleDateString('en-LK')} – {new Date(booking.end_date).toLocaleDateString('en-LK')}
+                              </p>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${booking.outstanding_balance > 0 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                              {formatStatus(booking.payment_status)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div><span className="text-gray-500 block">Total</span><span className="font-semibold">{formatLkr(booking.grand_total)}</span></div>
+                            <div><span className="text-gray-500 block">Paid</span><span className="font-semibold text-green-700">{formatLkr(booking.amount_paid)}</span></div>
+                            <div><span className="text-gray-500 block">Balance</span><span className="font-semibold text-red-700">{formatLkr(booking.outstanding_balance)}</span></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={closePaymentModal}
+                    className="w-full mt-6 py-3 bg-skynest-navy text-white font-bold rounded-xl hover:bg-skynest-blue transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <div />
               )}
             </div>
           </div>

@@ -16,6 +16,11 @@ class GuestService:
     def lookup_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
         return self.repo.get_guest_by_phone(phone)
 
+    def get_payment_history(
+        self, query: str, branch_id: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
+        return self.repo.get_payment_history(query=query, branch_id=branch_id)
+
     def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
         return self.repo.create_guest(phone, name)
 

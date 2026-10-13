@@ -1,11 +1,34 @@
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.dependencies import get_guest_service
-from app.schemas.guests import EnrollMembershipRequest, UpdatePhoneRequest
+from app.api.dependencies import (
+    enforce_branch_access,
+    get_current_user,
+    get_guest_service,
+)
+from app.schemas.auth import StaffUser
+from app.schemas.guests import (
+    EnrollMembershipRequest,
+    GuestPaymentHistoryResponse,
+    UpdatePhoneRequest,
+)
 from app.services.guest_service import GuestService
 
 router = APIRouter()
+
+
+@router.get("/payment-status", response_model=GuestPaymentHistoryResponse)
+def get_guest_payment_status(
+    query: str = Query(..., min_length=1, description="Exact guest ID or phone number"),
+    guest_service: GuestService = Depends(get_guest_service),
+    current_user: StaffUser = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Return a guest's booking and invoice history within the staff member's branch scope."""
+    branch_id = enforce_branch_access(None, current_user)
+    result = guest_service.get_payment_history(query=query, branch_id=branch_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    return result
 
 
 @router.get("/")

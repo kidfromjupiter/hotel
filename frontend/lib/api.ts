@@ -9,6 +9,7 @@ import type {
   BookingStatus,
   InvoiceSummary,
   AdminReservationListItem,
+  GuestPaymentHistory,
   StaffLoginResponse,
   StaffUser
 } from './types';
@@ -291,7 +292,10 @@ export async function getAllBookings(): Promise<StaffBooking[]> {
   const raw = await request<Array<{
     booking_id: number;
     booking_ref: string;
+    guest_id?: number;
     guest_name: string;
+    guest_phone?: string;
+    is_member?: boolean;
     room_number: number;
     branch_id: number;
     branch_name: string;
@@ -305,8 +309,9 @@ export async function getAllBookings(): Promise<StaffBooking[]> {
 
   return raw.map(b => ({
     bookingId: b.booking_id,
+    guestId: b.guest_id,
     guestName: b.guest_name,
-    phone: '',
+    phone: b.guest_phone ?? '',
     branchId: b.branch_id,
     bookingReference: b.booking_ref,
     roomNumber: b.room_number,
@@ -317,6 +322,17 @@ export async function getAllBookings(): Promise<StaffBooking[]> {
     adults: b.adult_count ?? 0,
     children: b.children_count ?? 0,
   }));
+}
+
+/**
+ * GET /api/v1/private/guests/payment-status?query=...
+ * Returns branch-scoped booking and invoice history for an exact guest ID or phone.
+ */
+export async function getGuestPaymentHistory(query: string): Promise<GuestPaymentHistory> {
+  return request<GuestPaymentHistory>(
+    `/api/v1/private/guests/payment-status?query=${encodeURIComponent(query.trim())}`,
+    { method: 'GET' },
+  );
 }
 
 /**
