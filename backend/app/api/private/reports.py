@@ -84,10 +84,14 @@ def get_monthly_revenue_report(
 @router.get("/service-trends", response_model=ServiceTrendsReportResponse)
 def get_service_trends_report(
     limit: int = Query(5, ge=1, le=20, description="Number of top services to return"),
+    branch_id: Optional[int] = Query(None, description="Optional branch ID filter"),
+    current_user: StaffUser = Depends(get_current_user),
     report_service: ReportService = Depends(get_report_service),
 ):
     """Returns the top N most utilized services ranked by total booking count."""
+    effective_branch = enforce_branch_access(branch_id, current_user)
     return report_service.get_service_trends_report(
         limit=limit,
+        branch_id=effective_branch,
     )
 

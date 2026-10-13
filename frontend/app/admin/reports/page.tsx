@@ -12,23 +12,32 @@ export default function AdminReportsPage() {
   const [revenueData, setRevenueData] = useState<{ room: number; service: number; total: number } | null>(null);
   const [occupancyBranches, setOccupancyBranches] = useState<Array<{ branch_name: string; occupancy_rate_percent: number }>>([]);
 
+  const [occupancyPeriod, setOccupancyPeriod] = useState<{ start: string; end: string } | null>(null);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       const now = new Date();
       const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const today = now.toISOString().split('T')[0];
+      const localDate = (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const today = localDate(now);
+
 
       const [revenue, occupancy] = await Promise.all([
         getMonthlyRevenue(CURRENT_YEAR),
-        getOccupancyReport(startOfMonth, today),
+        now.getDate() === 1
+          ? Promise.resolve({ branches: [] })
+          : getOccupancyReport(startOfMonth, today),
       ]);
 
       const totalRoom = revenue.data.reduce((s, r) => s + r.room_revenue, 0);
       const totalService = revenue.data.reduce((s, r) => s + r.service_revenue, 0);
-      setRevenueData({ room: totalRoom, service: totalService, total: totalRoom + totalService });
+      const totalRevenue = revenue.data.reduce((sum, row) => sum + row.total_revenue, 0);
+      setRevenueData({ room: totalRoom, service: totalService, total: totalRevenue });
       setOccupancyBranches(occupancy.branches);
+      setOccupancyPeriod({ start: startOfMonth, end: today });
     } catch (e: any) {
       setError(e.message ?? 'Failed to load report data');
     } finally {
@@ -38,7 +47,52 @@ export default function AdminReportsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const total = revenueData?.total || 1;
+
+  function exportCsv() {
+    if (loading || error || !revenueData || !occupancyPeriod) return;
+
+    const rows: Array<Array<string | number>> = [
+      ['Report', 'Year', 'Period start', 'Period end (exclusive)', 'Branch', 'Metric', 'Value', 'Unit'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Room charges', revenueData.room, 'LKR'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Service charges', revenueData.service, 'LKR'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Invoice total including tax', revenueData.total, 'LKR'],
+    ];
+
+    for (const branch of occupancyBranches) {
+      rows.push([
+        'Occupancy', CURRENT_YEAR, occupancyPeriod.start, occupancyPeriod.end,
+        branch.branch_name, 'Occupancy rate', branch.occupancy_rate_percent, '%',
+      ]);
+    }
+
+    if (!occupancyBranches.length) {
+      rows.push([
+        'Occupancy', CURRENT_YEAR, occupancyPeriod.start, occupancyPeriod.end,
+        'All branches', 'No completed-night occupancy data', '', '',
+      ]);
+    }
+
+    const escapeCell = (value: string | number) => {
+      const raw = String(value);
+      const safe = typeof value === 'string' && /^[=+@\-\t\r\n]/.test(raw)
+        ? "'" + raw : raw;
+      return '"' + safe.replace(/"/g, '""') + '"';
+    };
+    const csv = rows.map(row => row.map(escapeCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hotel-reports-${CURRENT_YEAR}-${occupancyPeriod.end}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const total = revenueData?.total ?? 0;
+  const breakdownTotal = (revenueData?.room ?? 0) + (revenueData?.service ?? 0);
+  const breakdownDenominator = breakdownTotal || 1;
 
   return (
     <div className="space-y-6">
@@ -55,7 +109,7 @@ export default function AdminReportsPage() {
             <HiOutlineRefresh size={18} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
+          <button onClick={exportCsv} disabled={loading || !!error || !revenueData || !occupancyPeriod} className="disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
             <HiOutlineDownload size={20} />
             Export CSV
           </button>
@@ -94,7 +148,7 @@ export default function AdminReportsPage() {
                     <span className="text-sky-600">LKR {revenueData.room.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div className="bg-sky-500 h-3 rounded-full" style={{ width: `${(revenueData.room / total) * 100}%` }} />
+                    <div className="bg-sky-500 h-3 rounded-full" style={{ width: `${(revenueData.room / breakdownDenominator) * 100}%` }} />
                   </div>
                 </div>
                 <div>
@@ -103,11 +157,11 @@ export default function AdminReportsPage() {
                     <span className="text-teal-600">LKR {revenueData.service.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div className="bg-teal-500 h-3 rounded-full" style={{ width: `${(revenueData.service / total) * 100}%` }} />
+                    <div className="bg-teal-500 h-3 rounded-full" style={{ width: `${(revenueData.service / breakdownDenominator) * 100}%` }} />
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
-                  <span className="font-bold text-slate-500">Total Revenue</span>
+                  <span className="font-bold text-slate-500">Total Invoice Value (Including Tax)</span>
                   <span className="text-2xl font-black text-slate-900">LKR {total.toLocaleString()}</span>
                 </div>
               </div>
@@ -122,7 +176,7 @@ export default function AdminReportsPage() {
               <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><HiOutlineTrendingUp size={24} /></div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Branch Occupancy</h3>
-                <p className="text-xs text-slate-500 font-medium">This month — Live data</p>
+                <p className="text-xs text-slate-500 font-medium">Completed nights this month — Live data</p>
               </div>
             </div>
             {occupancyBranches.length > 0 ? (
@@ -145,7 +199,7 @@ export default function AdminReportsPage() {
                 })}
               </div>
             ) : (
-              <p className="text-slate-400 text-sm">No occupancy data available for this period.</p>
+              <p className="text-slate-400 text-sm">No completed-night occupancy data available for this period.</p>
             )}
           </div>
         </div>

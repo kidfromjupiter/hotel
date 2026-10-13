@@ -29,6 +29,12 @@ class ReportService:
         end_date: date,
         branch_id: Optional[int] = None,
     ) -> OccupancyReportResponse:
+        if end_date <= start_date:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=422,
+                detail="End date must be later than start date",
+            )
         data = self.repo.get_occupancy_data(start_date, end_date, branch_id)
         items = [BranchOccupancyItem(**{**b, "branch_name": b["branch_name"].title()}) for b in data]
         return OccupancyReportResponse(
@@ -70,8 +76,9 @@ class ReportService:
         limit: int = 5,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        branch_id: Optional[int] = None,
     ) -> ServiceTrendsReportResponse:
-        data = self.repo.get_service_trends_data(limit, start_date, end_date)
+        data = self.repo.get_service_trends_data(limit, start_date, end_date, branch_id)
         items = [ServiceTrendItem(**t) for t in data]
         period = (
             PeriodSchema(start_date=start_date, end_date=end_date)
