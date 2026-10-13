@@ -187,6 +187,7 @@ export type BookingStatus = 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCEL
 
 export interface StaffBooking {
   bookingId: number;
+  guestId?: number;
   guestName: string;
   phone: string;
   branchId: number;
@@ -215,6 +216,37 @@ export interface InvoiceSummary {
   grandTotal: number;
   amountPaid: number;
   paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID';
+}
+
+export interface GuestPaymentBooking {
+  booking_id: number;
+  booking_ref: string;
+  branch_id: number | null;
+  branch_name: string;
+  start_date: string;
+  end_date: string;
+  booking_status: string;
+  invoice_id: string | null;
+  payment_method: string;
+  payment_status: string;
+  grand_total: number;
+  amount_paid: number;
+  outstanding_balance: number;
+}
+
+export interface GuestPaymentHistory {
+  guest: {
+    guest_id: number;
+    name: string;
+    phone_number: string;
+  };
+  summary: {
+    booking_count: number;
+    grand_total: number;
+    amount_paid: number;
+    outstanding_balance: number;
+  };
+  bookings: GuestPaymentBooking[];
 }
 
 // ─────────────────────────────────────────────
@@ -280,6 +312,7 @@ export interface FormattedService {
 
 export interface ExpectedGuest {
   id: string;
+  guestId?: number;
   guest: string;
   checkInDate: string;
   status: string;

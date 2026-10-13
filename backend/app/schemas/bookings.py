@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class BookingListItem(BaseModel):
     booking_id: int
     booking_ref: str
+    guest_id: Optional[int] = None
     guest_name: str
     room_number: int
     branch_name: str

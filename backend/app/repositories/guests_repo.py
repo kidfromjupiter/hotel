@@ -68,6 +68,21 @@ class GuestsRepo:
                     return json.loads(val) if isinstance(val, str) else val
         return None
 
+    def get_payment_history(
+        self, query: str, branch_id: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
+        if self.db is not None:
+            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT get_guest_payment_history(%s, %s)",
+                    (query.strip(), branch_id),
+                )
+                row = cursor.fetchone()
+                if row and "get_guest_payment_history" in row:
+                    val = row["get_guest_payment_history"]
+                    return json.loads(val) if isinstance(val, str) else val
+        return None
+
     def update_guest_phone(self, guest_id: int, phone: str) -> Dict[str, Any]:
         if self.db is not None:
             with self.db.cursor(cursor_factory=RealDictCursor) as cursor:

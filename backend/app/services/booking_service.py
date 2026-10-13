@@ -147,6 +147,7 @@ class BookingService:
                 BookingListItem(
                     booking_id=b.get("booking_id", 0),
                     booking_ref=b["booking_ref"],
+                    guest_id=b.get("guest_id"),
                     guest_name=b.get("guest_name", "Guest"),
                     room_number=b.get("room_number", 101),
                     branch_name=b.get("branch_name", "Colombo"),
