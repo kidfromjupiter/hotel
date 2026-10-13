@@ -85,13 +85,15 @@ export default function ActiveStaysPage() {
     try {
       const result = await addServiceToBooking(selectedStay.bookingId, service.id);
       if (result.success) {
-        // alert(`Successfully added ${service.name} to guest's tab!`);
+        setInvoice(null);
         setActiveModal('NONE');
+        alert(result.message || `${service.name} was added to the guest's tab.`);
       } else {
-        console.error(`Failed: ${result.message}`);
+        alert(`Unable to add ${service.name}: ${result.message}`);
       }
-    } catch (err) {
-      console.error('Error connecting to the database to add service.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not connect to the server.';
+      alert(`Unable to add ${service.name}: ${message}`);
     }
   };
 
