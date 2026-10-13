@@ -10,14 +10,14 @@ class ServicesRepo:
         self.db = db
 
     def get_services(self) -> List[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT get_all_services()")
-                row = cursor.fetchone()
-                if row and "get_all_services" in row:
-                    val = row["get_all_services"]
-                    return json.loads(val) if isinstance(val, str) else (val or [])
-        return []
+        if self.db is None:
+            return []
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "SELECT service_id, service_name, day_rate, description "
+                "FROM service_catalogue ORDER BY service_id"
+            )
+            return list(cursor.fetchall())
 
     def charge_service(
         self, booking_id: int, service_id: int, service_dates: int = 1

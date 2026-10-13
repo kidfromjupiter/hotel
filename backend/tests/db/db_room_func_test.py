@@ -1,4 +1,5 @@
 from datetime import date
+from app.repositories.rooms_repo import RoomsRepo
 
 
 def test_overlapping_booking_excludes_room(db_connection):
@@ -34,10 +35,8 @@ def test_overlapping_booking_excludes_room(db_connection):
                  'CONFIRMED', '2026-10-01', '2026-10-03', 2, 0);
         """)
 
-        cursor.execute(
-            "SELECT get_available_rooms(%s, %s, %s, %s, %s)",
-            (date(2026, 10, 2), date(2026, 10, 4), "test-kandy", 0, 2),
+        rooms = RoomsRepo(db_connection).get_rooms(
+            date(2026, 10, 2), date(2026, 10, 4), "test-kandy", 0, 2
         )
-        rooms = cursor.fetchone()[0]
 
     assert {(room["branch_id"], room["room_number"]) for room in rooms} == {(9001, 101)}

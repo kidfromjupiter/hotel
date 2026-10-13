@@ -8,4 +8,5 @@ class BranchService:
         self.repo = repo
 
     def list_branches(self) -> List[Dict[str, Any]]:
-        return self.repo.get_branches()
+        return [{**row, "branch_name": row["branch_name"].title()}
+                for row in self.repo.get_branches()]

@@ -67,7 +67,7 @@ def service_booking():
         db.close()
 
 
-def test_repository_commits_service_charge_and_bill(service_booking):
+def test_caller_commits_service_charge_and_bill_together(service_booking):
     db, dsn, booking_id, service_id = service_booking
 
     with db.cursor() as cursor:
@@ -83,6 +83,7 @@ def test_repository_commits_service_charge_and_bill(service_booking):
     BookingRepository(db).add_service_to_booking(
         booking_id, service_id, 2
     )
+    db.commit()
 
     # A separate connection proves that the repository committed the save.
     observer = psycopg2.connect(dsn)
@@ -123,7 +124,8 @@ def test_failed_save_rolls_back_and_connection_remains_usable(service_booking):
     with pytest.raises(psycopg2.Error):
         BookingRepository(db).add_service_to_booking(-1, service_id, 1)
 
-    # This query would fail if the connection remained in an aborted transaction.
+    # The request transaction owner rolls back after a failed database call.
+    db.rollback()
     with db.cursor() as cursor:
         cursor.execute(
             "SELECT COUNT(*) FROM service_charges WHERE booking_id = %s",

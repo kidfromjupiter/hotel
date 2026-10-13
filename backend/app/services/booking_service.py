@@ -2,8 +2,10 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 
 from app.repositories.booking_repo import BookingRepository
+from app.repositories.rooms_repo import RoomsRepo
 from app.schemas.bookings import (
     AdminReservationListItem,
     BookingDetailResponse,
@@ -19,8 +21,9 @@ from app.schemas.bookings import (
 
 
 class BookingService:
-    def __init__(self, *, booking_repo: BookingRepository):
+    def __init__(self, *, booking_repo: BookingRepository, rooms_repo: Optional[RoomsRepo] = None):
         self.booking_repo = booking_repo
+        self.rooms_repo = rooms_repo
 
     def create_booking(self, request: Any, guest_token: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if hasattr(request, "model_dump"):
@@ -60,7 +63,7 @@ class BookingService:
         }
 
     def check_availability(self, request: Any) -> Dict[str, Any]:
-        """Calculates room availability using database function get_available_rooms."""
+        """Calculates room availability from room repository rows."""
         adults = getattr(request, "adults", 1)
         children = getattr(request, "children", 0)
         branch = getattr(request, "branch", "colombo")
@@ -88,8 +91,9 @@ class BookingService:
         if nights < 1:
             nights = 1
 
-        # Query available rooms from database function
-        raw_rooms = self.booking_repo.get_available_rooms(
+        if self.rooms_repo is None:
+            raise RuntimeError("Rooms repository is unavailable")
+        raw_rooms = self.rooms_repo.get_rooms(
             check_in=d_in,
             check_out=d_out,
             branch=branch,
@@ -100,6 +104,7 @@ class BookingService:
         available_rooms = []
         for room in raw_rooms:
             r_data = dict(room)
+            r_data["branch_name"] = (r_data.get("branch_name") or "").title()
             price_per_night = (
                 r_data.get("pricePerNight")
                 or r_data.get("price_per_night")
@@ -107,21 +112,22 @@ class BookingService:
                 or 25000
             )
             r_data["nights"] = nights
-            r_data["pricePerNight"] = price_per_night
-            r_data["totalPrice"] = price_per_night * nights
+            r_data["price_per_night"] = float(price_per_night)
+            r_data["pricePerNight"] = float(price_per_night)
+            r_data["totalPrice"] = float(price_per_night) * nights
             if "id" not in r_data and "room_number" in r_data:
                 r_data["id"] = f"room-{r_data['room_number']}"
             if "name" not in r_data:
                 r_data["name"] = f"Room {r_data.get('room_number', '')} ({r_data.get('room_type_id', 'STANDARD')})"
             available_rooms.append(r_data)
 
-        return {
+        return jsonable_encoder({
             "available": len(available_rooms) > 0,
             "rooms": available_rooms,
             "message": "Rooms available"
             if available_rooms
             else "No rooms available for the selected dates.",
-        }
+        })
 
     # ── Booking Lifecycle & Management Methods ──
 
@@ -148,9 +154,9 @@ class BookingService:
                     booking_id=b.get("booking_id", 0),
                     booking_ref=b["booking_ref"],
                     guest_id=b.get("guest_id"),
-                    guest_name=b.get("guest_name", "Guest"),
+                    guest_name=b.get("guest_name") or "Guest",
                     room_number=b.get("room_number", 101),
-                    branch_name=b.get("branch_name", "Colombo"),
+                    branch_name=(b.get("branch_name") or "Colombo").title(),
                     booking_status=b.get("booking_status", "CONFIRMED"),
                     start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
                     end_date=str(b.get("end_date") or b.get("checkOut", "")[:10]),
@@ -159,6 +165,17 @@ class BookingService:
                 )
             )
         return results
+
+    def list_guest_bookings(self, guest_id: int) -> List[Dict[str, Any]]:
+        rows = self.booking_repo.list_all_bookings(guest_id=guest_id)
+        return jsonable_encoder([
+            {**row, "guest_name": row.get("guest_name") or "Guest",
+             "branch_name": (row.get("branch_name") or "Colombo").title(),
+             "invoice_status": row.get("invoice_status") or "UNPAID",
+             "grand_total": row.get("grand_total") or 0,
+             "amount_paid": row.get("amount_paid") or 0}
+            for row in rows
+        ])
 
     def get_admin_reservations_list(
         self,
@@ -177,12 +194,12 @@ class BookingService:
                     booking_id=b.get("booking_id", 0),
                     booking_ref=b["booking_ref"],
                     guest_id=b.get("guest_id"),
-                    guest_name=b.get("guest_name", "Unknown Guest"),
+                    guest_name=b.get("guest_name") or "Unknown Guest",
                     guest_contact=b.get("guest_contact"),
                     room_number=b.get("room_number", 0),
                     room_type_id=b.get("room_type_id"),
                     branch_id=b.get("branch_id"),
-                    branch_name=b.get("branch_name", "Unknown"),
+                    branch_name=(b.get("branch_name") or "Unknown").title(),
                     booking_status=b.get("booking_status", "CONFIRMED"),
                     start_date=str(b.get("start_date") or ""),
                     end_date=str(b.get("end_date") or ""),
@@ -195,7 +212,7 @@ class BookingService:
                     grand_total=float(b.get("grand_total", 0.0)),
                     amount_paid=float(b.get("amount_paid", 0.0)),
                     balance_amount=float(b.get("balance_amount", 0.0)),
-                    invoice_status=b.get("invoice_status", "UNPAID"),
+                    invoice_status=b.get("invoice_status") or "UNPAID",
                     payment_method=b.get("payment_method", "NONE"),
                 )
             )
@@ -208,11 +225,11 @@ class BookingService:
 
         services = [
             ServiceChargeItem(
-                service_name=s.get("service_name", "Service"),
+                service_name=s.get("service_name") or "Service",
                 service_dates=s.get("service_dates", 1),
                 service_total=float(s.get("service_total", 0.0)),
             )
-            for s in b.get("service_charges", [])
+            for s in self.booking_repo.get_service_charges(booking_id)
         ]
 
         return BookingDetailResponse(
@@ -221,12 +238,12 @@ class BookingService:
             invoice_id=str(b["invoice_id"]) if b.get("invoice_id") else None,
             guest=GuestProfileSummary(
                 guest_id=b.get("guest_id", 1001),
-                name=b.get("guest_name", "Guest"),
+                name=b.get("guest_name") or "Guest",
             ),
             room=RoomSummary(
                 room_number=b.get("room_number", 101),
-                branch_name=b.get("branch_name", "Colombo"),
-                room_type_id=b.get("room_type_id", "STANDARD"),
+                branch_name=(b.get("branch_name") or "Colombo").title(),
+                room_type_id=b.get("room_type_id") or "STANDARD",
             ),
             booking_status=b.get("booking_status", "CONFIRMED"),
             start_date=str(b.get("start_date") or b.get("checkIn", "")[:10]),
@@ -236,7 +253,7 @@ class BookingService:
             adult_count=b.get("adult_count", 2),
             children_count=b.get("children_count", 0),
             service_charges=services,
-            invoice_status=b.get("invoice_status", "PENDING"),
+            invoice_status=b.get("invoice_status") or "UNPAID",
             grand_total=float(b.get("grand_total", 0.0)),
             amount_paid=float(b.get("amount_paid", 0.0)),
             total_room_charges=float(b.get("total_room_charges", 0.0)),
@@ -278,10 +295,12 @@ class BookingService:
             )
 
         in_time = check_in_time or datetime.now().strftime("%H:%M:%S")
-        self.booking_repo.update_booking(
+        updated = self.booking_repo.update_booking(
             booking_id,
             {"booking_status": "CHECKED_IN", "checked_in_time": in_time},
         )
+        if not updated:
+            raise HTTPException(status_code=409, detail="Booking status changed before check-in.")
         return CheckInResponse(
             booking_id=booking_id,
             booking_status="CHECKED_IN",
@@ -302,7 +321,9 @@ class BookingService:
                 detail="Cannot cancel a booking that is already CHECKED_IN or CHECKED_OUT.",
             )
 
-        self.booking_repo.update_booking(booking_id, {"booking_status": "CANCELLED"})
+        updated = self.booking_repo.update_booking(booking_id, {"booking_status": "CANCELLED"})
+        if not updated:
+            raise HTTPException(status_code=409, detail="Booking status changed before cancellation.")
         return CancelBookingResponse(
             booking_id=booking_id,
             booking_status="CANCELLED",

@@ -1,4 +1,11 @@
 import pytest
+from datetime import date, timedelta
+from uuid import uuid4
+
+
+def unused_stay_dates():
+    start = date(2100, 1, 1) + timedelta(days=uuid4().int % 100000)
+    return start.isoformat(), (start + timedelta(days=3)).isoformat()
 
 
 @pytest.fixture
@@ -46,10 +53,11 @@ def sample_bookings(booking_repo):
 
 
 def test_create_booking_success(client, booking_repo):
+    check_in, check_out = unused_stay_dates()
     booking_payload = {
         "branchId": 1,
-        "checkIn": "2026-10-15T00:00:00.000Z",
-        "checkOut": "2026-10-18T00:00:00.000Z",
+        "checkIn": check_in,
+        "checkOut": check_out,
         "adults": 2,
         "children": 0,
         "nights": 3,
@@ -79,10 +87,11 @@ def test_create_booking_success(client, booking_repo):
 
 
 def test_create_booking_create_path(client):
+    check_in, check_out = unused_stay_dates()
     booking_payload = {
         "branchId": 1,
-        "checkIn": "2026-11-15T00:00:00.000Z",
-        "checkOut": "2026-11-18T00:00:00.000Z",
+        "checkIn": check_in,
+        "checkOut": check_out,
         "adults": 2,
         "children": 0,
         "nights": 3,

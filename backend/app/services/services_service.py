@@ -1,4 +1,5 @@
 from typing import Any, Dict, List
+from fastapi.encoders import jsonable_encoder
 
 from app.repositories.services_repo import ServicesRepo
 
@@ -8,7 +9,10 @@ class ServicesService:
         self.repo = repo
 
     def list_services(self) -> List[Dict[str, Any]]:
-        return self.repo.get_services()
+        return jsonable_encoder([
+            {**row, "description": row.get("description") or row["service_name"]}
+            for row in self.repo.get_services()
+        ])
 
     def charge_service(
         self, booking_id: int, service_id: int, service_dates: int = 1

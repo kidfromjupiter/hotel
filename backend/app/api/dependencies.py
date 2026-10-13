@@ -57,8 +57,9 @@ def get_booking_repo(db: Optional[connection] = Depends(get_db)) -> BookingRepos
 
 def get_booking_service(
     booking_repo: BookingRepository = Depends(get_booking_repo),
+    rooms_repo: RoomsRepo = Depends(get_room_repo),
 ) -> BookingService:
-    return BookingService(booking_repo=booking_repo)
+    return BookingService(booking_repo=booking_repo, rooms_repo=rooms_repo)
 
 
 def get_booking_flow_service(

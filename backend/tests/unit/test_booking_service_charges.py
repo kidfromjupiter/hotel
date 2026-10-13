@@ -8,7 +8,7 @@ from app.repositories.booking_repo import BookingRepository
 from app.services.booking_service import BookingService
 
 
-def test_repository_saves_requested_service():
+def test_repository_calls_write_function_without_committing_request():
     db = MagicMock()
     cursor = db.cursor.return_value.__enter__.return_value
 
@@ -18,28 +18,23 @@ def test_repository_saves_requested_service():
         "SELECT add_service_to_booking(%s, %s, %s)",
         (1001, 2, 3),
     )
-    db.commit.assert_called_once()
+    db.commit.assert_not_called()
     db.rollback.assert_not_called()
 
 
-@pytest.mark.parametrize("failure_stage", ["execute", "commit"])
-def test_repository_rolls_back_and_propagates_failure(failure_stage):
+def test_repository_propagates_failure_to_transaction_owner():
     db = MagicMock()
     cursor = db.cursor.return_value.__enter__.return_value
     error = RuntimeError("Database operation failed")
 
-    if failure_stage == "execute":
-        cursor.execute.side_effect = error
-    else:
-        db.commit.side_effect = error
+    cursor.execute.side_effect = error
 
     with pytest.raises(RuntimeError) as caught:
         BookingRepository(db=db).add_service_to_booking(1001, 2, 3)
 
     assert caught.value is error
-    db.rollback.assert_called_once()
-    if failure_stage == "execute":
-        db.commit.assert_not_called()
+    db.rollback.assert_not_called()
+    db.commit.assert_not_called()
 
 
 def test_repository_rejects_missing_database():

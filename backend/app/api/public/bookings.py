@@ -41,4 +41,4 @@ def get_my_bookings(
     """Public customer endpoint to retrieve their own reservations."""
     if not current_guest.get("guest_id"):
         return []
-    return booking_service.booking_repo.list_all_bookings(guest_id=current_guest["guest_id"])
+    return booking_service.list_guest_bookings(current_guest["guest_id"])
