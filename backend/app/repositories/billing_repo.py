@@ -1,4 +1,6 @@
 from typing import Any, Dict, List, Optional
+from decimal import Decimal
+from uuid import UUID
 import json
 
 from psycopg2.extensions import connection
@@ -31,18 +33,31 @@ class BillingRepo:
                     return json.loads(val) if isinstance(val, str) else (val or [])
         return []
 
-    def checkout_booking(
-        self, booking_id: int, payment_method: str = "CREDIT_CARD"
+    def record_payment(
+        self, invoice_id: UUID, amount: Decimal, payment_method: str
     ) -> Dict[str, Any]:
         if self.db is not None:
             with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
-                    "SELECT checkout_booking(%s, %s)",
-                    (booking_id, payment_method),
+                    "SELECT record_invoice_payment(%s, %s, %s)",
+                    (str(invoice_id), amount, payment_method),
+                )
+                row = cursor.fetchone()
+                if row and "record_invoice_payment" in row:
+                    val = row["record_invoice_payment"]
+                    return json.loads(val) if isinstance(val, str) else val
+        return {"success": False, "error_code": "NOT_FOUND", "message": "Invoice not found."}
+
+    def checkout_booking(self, booking_id: int) -> Dict[str, Any]:
+        if self.db is not None:
+            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT checkout_booking(%s)",
+                    (booking_id,),
                 )
                 row = cursor.fetchone()
                 if row and "checkout_booking" in row:
                     val = row["checkout_booking"]
                     return json.loads(val) if isinstance(val, str) else val
 
-        return {"success": False, "message": "Booking not found"}
+        return {"success": False, "error_code": "NOT_FOUND", "message": "Booking not found"}

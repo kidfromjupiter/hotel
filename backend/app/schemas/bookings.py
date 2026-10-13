@@ -88,6 +88,7 @@ class ServiceChargeItem(BaseModel):
 class BookingDetailResponse(BaseModel):
     booking_id: int
     booking_ref: str
+    invoice_id: Optional[str] = None
     guest: GuestProfileSummary
     room: RoomSummary
     booking_status: str
@@ -101,6 +102,9 @@ class BookingDetailResponse(BaseModel):
     invoice_status: str
     grand_total: float = 0.0
     amount_paid: float = 0.0
+    total_room_charges: float = 0.0
+    total_service_charges: float = 0.0
+    total_tax_amount: float = 0.0
 
 class AddServiceRequest(BaseModel):
     service_name: str

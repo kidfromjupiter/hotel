@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineCash, HiOutlineCalendar, HiX } from 'react-icons/hi';
-import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, extendStay, getServices } from '@/lib/api';
+import { getAllBookings, getBill, checkOutGuest, addServiceToBooking, extendStay, getServices, recordPayment } from '@/lib/api';
 import type { StaffBooking, InvoiceSummary } from '@/lib/types';
 
 function getPaymentAmountError(value: string, outstandingBalance: number): string {
@@ -24,10 +24,14 @@ export default function ActiveStaysPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentAmountError, setPaymentAmountError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Card');
+  const [billingMessage, setBillingMessage] = useState('');
+  const [billingLoadError, setBillingLoadError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,47 +64,74 @@ export default function ActiveStaysPage() {
   // Modals state
   const [activeModal, setActiveModal] = useState<'NONE' | 'SERVICES' | 'EXTEND' | 'BILLING'>('NONE');
 
+  const refreshBill = async (bookingId: number) => {
+    setBillingLoadError('');
+    setInvoice(null);
+    try {
+      setInvoice(await getBill(bookingId));
+    } catch (error: unknown) {
+      setBillingLoadError(error instanceof Error ? error.message : 'Could not load the bill.');
+    }
+  };
+
   const handleOpenBilling = async () => {
     if (!selectedStay) return;
     setActiveModal('BILLING');
-    setInvoice(null); // Show loading
     setPaymentAmount('');
     setPaymentAmountError('');
+    setPaymentMethod('Card');
+    setBillingMessage('');
+    await refreshBill(selectedStay.bookingId);
+  };
+
+  const handleRecordPayment = async () => {
+    if (!selectedStay || !invoice || isRecordingPayment || isCheckingOut) return;
+    const outstandingBalance = Math.max(0, invoice.grandTotal - invoice.amountPaid);
+    const validationError = getPaymentAmountError(paymentAmount, outstandingBalance);
+    if (validationError) {
+      setPaymentAmountError(validationError);
+      return;
+    }
+
+    setIsRecordingPayment(true);
+    setBillingMessage('');
     try {
-      const billData = await getBill(selectedStay.bookingId);
-      setInvoice(billData);
-    } catch (error) {
-      console.error("Failed to fetch bill", error);
-      alert("Could not fetch bill details from the server.");
+      const result = await recordPayment(invoice.invoiceId, paymentAmount, paymentMethod);
+      setPaymentAmount('');
+      setPaymentAmountError('');
+      setBillingMessage(`Payment recorded (${result.transaction_id}).`);
+      await refreshBill(selectedStay.bookingId);
+    } catch (error: unknown) {
+      setBillingMessage(error instanceof Error ? error.message : 'Payment could not be recorded.');
+    } finally {
+      setIsRecordingPayment(false);
     }
   };
 
   const handleCheckout = async () => {
-    if (!selectedStay || !invoice) return;
+    if (!selectedStay || !invoice || isCheckingOut || isRecordingPayment) return;
 
     const outstandingBalance = Math.max(0, invoice.grandTotal - invoice.amountPaid);
     if (outstandingBalance > 0) {
-      const validationError = getPaymentAmountError(paymentAmount, outstandingBalance);
-      if (validationError) {
-        setPaymentAmountError(validationError);
-        return;
-      }
+      setBillingMessage('Record the remaining balance before checkout.');
+      return;
     }
 
     setIsCheckingOut(true);
     try {
       const result = await checkOutGuest(selectedStay.bookingId);
       if (result.success) {
-        alert('Checkout successful!\nDatabase updated:\n- booking.booking_status = CHECKED_OUT\n- room_details.room_status = AVAILABLE\n- billing_summary created.');
+        alert('Checkout completed successfully.');
         setActiveModal('NONE');
         // Remove from list
         setActiveStays(prev => prev.filter(b => b.bookingId !== selectedStay.bookingId));
         setSelectedStay(null);
       } else {
-        alert(`Checkout blocked: ${result.message}`);
+        setBillingMessage(`Checkout blocked: ${result.message}`);
+        await refreshBill(selectedStay.bookingId);
       }
-    } catch (err) {
-      alert('Checkout failed! Database rejected the transaction (Does the guest still owe money?).');
+    } catch (error: unknown) {
+      setBillingMessage(error instanceof Error ? error.message : 'Checkout failed.');
     } finally {
       setIsCheckingOut(false);
     }
@@ -159,7 +190,7 @@ export default function ActiveStaysPage() {
   };
 
   const outstandingBalance = invoice ? Math.max(0, invoice.grandTotal - invoice.amountPaid) : 0;
-  const hasValidPaymentAmount = outstandingBalance === 0 || getPaymentAmountError(paymentAmount, outstandingBalance) === '';
+  const hasValidPaymentAmount = outstandingBalance > 0 && getPaymentAmountError(paymentAmount, outstandingBalance) === '';
 
   return (
     <div className="animate-slide-up relative">
@@ -245,7 +276,7 @@ export default function ActiveStaysPage() {
                 <div className="pt-6 border-t border-gray-200">
                   <h3 className="text-xs font-semibold text-gray-500 tracking-widest uppercase mb-4">Finalize</h3>
                   <button onClick={handleOpenBilling} className="w-full py-4 bg-skynest-navy text-white font-bold rounded-xl hover:bg-skynest-blue transition-colors shadow-lg shadow-skynest-navy/20 tracking-wide uppercase text-sm flex items-center justify-center gap-2">
-                    <HiOutlineCash size={20} /> Generate Bill & Check-Out
+                    <HiOutlineCash size={20} /> View Bill & Payments
                   </button>
                 </div>
               </div>
@@ -267,6 +298,7 @@ export default function ActiveStaysPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-skynest-navy/50 backdrop-blur-sm p-4 animate-fade-in"
           onClick={() => {
+            if (isRecordingPayment || isCheckingOut) return;
             setActiveModal('NONE');
             setPaymentAmount('');
             setPaymentAmountError('');
@@ -286,6 +318,7 @@ export default function ActiveStaysPage() {
               <button
                 type="button"
                 onClick={(e) => {
+                  if (isRecordingPayment || isCheckingOut) return;
                   e.preventDefault();
                   e.stopPropagation();
                   setActiveModal('NONE');
@@ -345,7 +378,13 @@ export default function ActiveStaysPage() {
               {/* Billing Summary Modal Content */}
               {activeModal === 'BILLING' && (
                 <div className="space-y-6">
-                  {!invoice ? (
+                  {billingMessage && <p role="status" className="text-sm font-semibold text-skynest-navy">{billingMessage}</p>}
+                  {billingLoadError ? (
+                    <div className="space-y-3">
+                      <p role="alert" className="text-sm text-red-600">{billingLoadError}</p>
+                      <button onClick={() => selectedStay && refreshBill(selectedStay.bookingId)} className="w-full p-3 rounded-xl bg-skynest-navy text-white font-bold">Retry loading bill</button>
+                    </div>
+                  ) : !invoice ? (
                     <div className="p-8 text-center text-gray-500 font-bold animate-pulse">Calculating final bill...</div>
                   ) : (
                     <>
@@ -375,7 +414,7 @@ export default function ActiveStaysPage() {
                           step="0.01"
                           required={outstandingBalance > 0}
                           value={paymentAmount}
-                          disabled={outstandingBalance === 0}
+                          disabled={outstandingBalance === 0 || isRecordingPayment || isCheckingOut}
                           aria-invalid={Boolean(paymentAmountError)}
                           aria-describedby={paymentAmountError ? 'payment-amount-error' : undefined}
                           onChange={(event) => {
@@ -401,16 +440,30 @@ export default function ActiveStaysPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-2">Payment Method</label>
-                        <select className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue">
-                          <option>Credit Card</option>
-                          <option>Cash</option>
+                        <label htmlFor="payment-method" className="block text-xs font-bold text-gray-500 mb-2">Payment Method</label>
+                        <select
+                          id="payment-method"
+                          value={paymentMethod}
+                          onChange={(event) => setPaymentMethod(event.target.value as 'Cash' | 'Card')}
+                          disabled={outstandingBalance === 0 || isRecordingPayment || isCheckingOut}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl font-bold text-skynest-navy focus:outline-none focus:border-skynest-blue disabled:bg-gray-100"
+                        >
+                          <option value="Card">Card</option>
+                          <option value="Cash">Cash</option>
                         </select>
                       </div>
 
                       <button
+                        onClick={handleRecordPayment}
+                        disabled={isRecordingPayment || isCheckingOut || !hasValidPaymentAmount}
+                        className="w-full py-4 bg-skynest-blue text-white font-black uppercase tracking-widest rounded-xl hover:bg-skynest-navy transition-colors disabled:opacity-50"
+                      >
+                        {isRecordingPayment ? 'Recording...' : 'Record Payment'}
+                      </button>
+
+                      <button
                         onClick={handleCheckout}
-                        disabled={isCheckingOut || !hasValidPaymentAmount}
+                        disabled={isCheckingOut || isRecordingPayment || outstandingBalance > 0}
                         className="w-full py-4 bg-green-500 text-white font-black uppercase tracking-widest rounded-xl hover:bg-green-600 transition-colors shadow-lg shadow-green-500/30 disabled:opacity-50"
                       >
                         {isCheckingOut ? 'Processing...' : 'Complete Checkout'}

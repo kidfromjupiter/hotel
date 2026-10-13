@@ -218,6 +218,7 @@ class BookingService:
         return BookingDetailResponse(
             booking_id=b["booking_id"],
             booking_ref=b["booking_ref"],
+            invoice_id=str(b["invoice_id"]) if b.get("invoice_id") else None,
             guest=GuestProfileSummary(
                 guest_id=b.get("guest_id", 1001),
                 name=b.get("guest_name", "Guest"),
@@ -238,6 +239,9 @@ class BookingService:
             invoice_status=b.get("invoice_status", "PENDING"),
             grand_total=float(b.get("grand_total", 0.0)),
             amount_paid=float(b.get("amount_paid", 0.0)),
+            total_room_charges=float(b.get("total_room_charges", 0.0)),
+            total_service_charges=float(b.get("total_service_charges", 0.0)),
+            total_tax_amount=float(b.get("total_tax_amount", 0.0)),
         )
 
     def get_booking_record(self, booking_id: int) -> Dict[str, Any]:

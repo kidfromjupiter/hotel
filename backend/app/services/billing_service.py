@@ -1,4 +1,6 @@
 from typing import Any, Dict, List, Optional
+from decimal import Decimal
+from uuid import UUID
 
 from app.repositories.billing_repo import BillingRepo
 
@@ -15,10 +17,10 @@ class BillingService:
     def list_active_stays(self) -> List[Dict[str, Any]]:
         return self.repo.get_active_stays()
 
-    def checkout(
-        self, booking_id: int, payment_method: str = "CREDIT_CARD"
+    def record_payment(
+        self, invoice_id: UUID, amount: Decimal, payment_method: str
     ) -> Dict[str, Any]:
-        return self.repo.checkout_booking(
-            booking_id=booking_id,
-            payment_method=payment_method,
-        )
+        return self.repo.record_payment(invoice_id, amount, payment_method)
+
+    def checkout(self, booking_id: int) -> Dict[str, Any]:
+        return self.repo.checkout_booking(booking_id=booking_id)

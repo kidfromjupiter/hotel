@@ -458,6 +458,7 @@ Check a guest out.
 
 **Business Logic**
 - **Enforces full payment before checkout** — if any unpaid balance remains, checkout is blocked and the outstanding amount is returned in the error message.
+- Checkout does not collect money or create a payment transaction.
 - Sets `booking_status` → `Checked-Out`.
 - Sets `checked_out_time` to provided time or server's current time.
 - Sets `room_status` → `Available`.
@@ -632,7 +633,7 @@ Generate the official invoice for a booking. Snapshots the current tax rates.
 
 ---
 
-### `POST /invoices/{invoice_id}/payments`
+### `POST /api/v1/private/billing/invoices/{invoice_id}/payments`
 
 Record a payment (full or partial) against an invoice.
 
@@ -647,30 +648,34 @@ Record a payment (full or partial) against an invoice.
 | Field            | Type      | Required | Description              |
 | :--------------- | :-------- | :------: | :----------------------- |
 | `amount`         | `decimal` | Yes      | Amount being paid now    |
-| `payment_method` | `string`  | Yes      | `Card`, `Cash`, `Bank Transfer` |
+| `payment_method` | `string`  | Yes      | `Card` or `Cash` |
 
 **Response** `201 Created`
 ```json
 {
+  "success": true,
   "transaction_id": "uuid-here",
   "invoice_id": "550e8400-...",
   "payment_date": "2026-10-05T11:00:00",
   "amount": 300.00,
+  "payment_method": "Cash",
   "new_amount_paid": 300.00,
   "outstanding_balance": 457.56,
-  "payment_status": "PARTIAL"
+  "payment_status": "PARTIALLY_PAID"
 }
 ```
 
 **Error Responses**
 - `400 Bad Request` — Payment amount exceeds outstanding balance.
+- `409 Conflict` — Booking is not checked in.
+- `422 Unprocessable Entity` — Invalid amount or payment method.
 - `404 Not Found` — Invoice does not exist.
 
 **Business Logic**
 - Creates a new record in the `transactions` table.
 - Updates `amount_paid` in `billing_summary`.
 - If `amount_paid >= grand_total`, sets `payment_status` → `PAID`.
-- If `amount_paid > 0` but less than `grand_total`, sets `payment_status` → `PARTIAL`.
+- If `amount_paid > 0` but less than `grand_total`, sets `payment_status` → `PARTIALLY_PAID`.
 
 ---
 
