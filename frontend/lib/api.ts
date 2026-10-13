@@ -535,3 +535,16 @@ export function createRoom(data: {
     body: JSON.stringify(data),
   });
 }
+
+export interface ServiceUsageReportItem {
+  service_name: string;
+  total_bookings_used: number;
+  total_days_used: number;
+  total_revenue: number;
+}
+
+export function getServiceUsageReport(): Promise<{
+  data: ServiceUsageReportItem[];
+}> {
+  return request('/api/v1/private/reports/service-usage');
+}

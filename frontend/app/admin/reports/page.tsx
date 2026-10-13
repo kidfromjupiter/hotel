@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ServiceUsageReport from '@/components/ServiceUsageReport';
 import { HiOutlineDownload, HiOutlineChartPie, HiOutlineTrendingUp, HiOutlineRefresh } from 'react-icons/hi';
 import { getMonthlyRevenue, getOccupancyReport } from '@/lib/api';
 
@@ -204,6 +205,7 @@ export default function AdminReportsPage() {
           </div>
         </div>
       )}
+      <ServiceUsageReport />
     </div>
   );
 }
