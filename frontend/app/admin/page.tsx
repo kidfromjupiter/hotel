@@ -17,13 +17,19 @@ export default function AdminDashboardPage() {
   const [totalRevenue, setTotalRevenue] = useState<string>('—');
   const [branchCount, setBranchCount] = useState<string>('—');
   const [chartLoading, setChartLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    setChartLoading(true);
+    setLoadError('');
     const year = new Date().getFullYear();
     Promise.all([
       getMonthlyRevenue(year),
       getBranches(),
     ]).then(([revenue, branches]) => {
+      if (!active) return;
       // Build chart data — aggregate all branches per month
       const monthMap: Record<string, number> = {};
       revenue.data.forEach(r => {
@@ -39,17 +45,23 @@ export default function AdminDashboardPage() {
       setTotalRevenue(`LKR ${total.toLocaleString()}`);
       setBranchCount(String(branches.length));
     }).catch(() => {
+      if (!active) return;
       setChartData([]);
+      setTotalRevenue('\u2014');
+      setBranchCount('\u2014');
+      setLoadError('Could not load dashboard data. Please try again.');
     }).finally(() => {
-      setChartLoading(false);
+      if (active) setChartLoading(false);
     });
-  }, []);
+    return () => { active = false; };
+  }, [reloadKey]);
 
+  const dataStatus = chartLoading ? 'Loading' : loadError ? 'Unavailable' : 'Live';
   const metrics = [
-    { title: 'Total Revenue (YTD)', value: totalRevenue, trend: 'Live', trendUp: true, icon: HiOutlineCurrencyDollar },
-    { title: 'Overall Occupancy', value: '—', trend: 'Live', trendUp: true, icon: HiOutlineHome },
-    { title: 'Active Branches', value: branchCount, trend: 'Live', trendUp: true, icon: HiOutlineCube },
-    { title: 'New Guests Today', value: '—', trend: 'Live', trendUp: true, icon: HiOutlineUsers },
+    { title: 'Total Revenue (YTD)', value: chartLoading ? '...' : totalRevenue, trend: dataStatus, trendUp: !loadError, icon: HiOutlineCurrencyDollar },
+    { title: 'Overall Occupancy', value: '\u2014', trend: 'Not available', trendUp: true, icon: HiOutlineHome },
+    { title: 'Active Branches', value: chartLoading ? '...' : branchCount, trend: dataStatus, trendUp: !loadError, icon: HiOutlineCube },
+    { title: 'New Guests Today', value: '\u2014', trend: 'Not available', trendUp: true, icon: HiOutlineUsers },
   ];
 
   return (
@@ -63,6 +75,16 @@ export default function AdminDashboardPage() {
           Download Full Report
         </button>
       </div>
+
+      {loadError && (
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p>{loadError}</p>
+          <button onClick={() => setReloadKey(key => key + 1)}
+            className="rounded-lg px-4 py-2 font-bold hover:bg-red-100">
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -92,6 +114,14 @@ export default function AdminDashboardPage() {
             {chartLoading ? (
               <div className="flex items-center justify-center h-80">
                 <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : loadError ? (
+              <div className="flex items-center justify-center h-80 text-sm text-slate-600">
+                Revenue chart unavailable. Use Retry above to reload.
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="flex items-center justify-center h-80 text-sm text-slate-600">
+                No revenue data available for this year.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={320}>
