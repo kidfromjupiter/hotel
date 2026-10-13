@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
-from fastapi.testclient import TestClient
-
-from app.main import app
+from decimal import Decimal
+from uuid import UUID
 from app.repositories.billing_repo import BillingRepo
 from app.repositories.services_repo import ServicesRepo
 from app.services.billing_service import BillingService
@@ -88,9 +87,19 @@ def test_billing_repo_calls_db():
             "payment_status": "PAID",
         }
     }
-    checkout_res = b_repo.checkout_booking(booking_id=101, payment_method="CREDIT_CARD")
+    checkout_res = b_repo.checkout_booking(booking_id=101)
     assert checkout_res["success"] is True
     assert "checkout_booking" in mock_cursor.execute.call_args[0][0]
+
+    mock_cursor.fetchone.return_value = {
+        "record_invoice_payment": {"success": True, "new_amount_paid": 125.0}
+    }
+    payment = b_repo.record_payment(
+        UUID("a0000000-0000-0000-0000-000000000099"), Decimal("25.00"), "Cash"
+    )
+    assert payment["new_amount_paid"] == 125.0
+    assert "record_invoice_payment" in mock_cursor.execute.call_args[0][0]
+    assert mock_cursor.execute.call_args[0][1][1:] == (Decimal("25.00"), "Cash")
 
 
 def test_services_and_billing_service_delegation():
@@ -103,9 +112,12 @@ def test_services_and_billing_service_delegation():
     mock_b_repo.get_active_stays.return_value = [{"booking_id": 99}]
     b_service = BillingService(repo=mock_b_repo)
     assert len(b_service.list_active_stays()) == 1
+    invoice_id = UUID("a0000000-0000-0000-0000-000000000099")
+    b_service.record_payment(invoice_id, Decimal("25.00"), "Card")
+    mock_b_repo.record_payment.assert_called_once_with(invoice_id, Decimal("25.00"), "Card")
 
 
-def test_services_and_billing_endpoints(monkeypatch):
+def test_services_and_billing_endpoints(monkeypatch, client):
     monkeypatch.setattr(
         ServicesRepo,
         "get_services",
@@ -134,7 +146,7 @@ def test_services_and_billing_endpoints(monkeypatch):
     monkeypatch.setattr(
         BillingRepo,
         "checkout_booking",
-        lambda self, booking_id, payment_method="CREDIT_CARD": {
+        lambda self, booking_id: {
             "success": True,
             "message": "Booking checked out successfully",
             "booking_id": booking_id,
@@ -144,8 +156,6 @@ def test_services_and_billing_endpoints(monkeypatch):
             "amount_paid": 55000.0,
         },
     )
-    client = TestClient(app)
-
     # 1. GET /api/v1/private/services/
     res_s = client.get("/api/v1/private/services/")
     assert res_s.status_code == 200
@@ -176,3 +186,55 @@ def test_services_and_billing_endpoints(monkeypatch):
     )
     assert res_co.status_code == 200
     assert res_co.json()["success"] is True
+
+
+def test_payment_endpoint_validates_and_returns_recorded_payment(monkeypatch, client):
+    invoice_id = "a0000000-0000-0000-0000-000000000099"
+    calls = []
+
+    def record(self, received_invoice_id, amount, payment_method):
+        calls.append((received_invoice_id, amount, payment_method))
+        return {
+            "success": True,
+            "transaction_id": "b0000000-0000-0000-0000-000000000099",
+            "invoice_id": invoice_id,
+            "amount": float(amount),
+            "payment_method": payment_method,
+            "new_amount_paid": 25.0,
+            "outstanding_balance": 75.0,
+            "payment_status": "PARTIALLY_PAID",
+        }
+
+    monkeypatch.setattr(BillingRepo, "record_payment", record)
+    path = f"/api/v1/private/billing/invoices/{invoice_id}/payments"
+
+    response = client.post(path, json={"amount": "25.00", "payment_method": "Cash"})
+    assert response.status_code == 201
+    assert response.json()["outstanding_balance"] == 75.0
+    assert calls == [(UUID(invoice_id), Decimal("25.00"), "Cash")]
+
+    for payload in [
+        {"amount": "0", "payment_method": "Cash"},
+        {"amount": "1.001", "payment_method": "Cash"},
+        {"amount": "1.00", "payment_method": "Bank Transfer"},
+    ]:
+        assert client.post(path, json=payload).status_code == 422
+    assert len(calls) == 1
+
+
+def test_payment_endpoint_rejects_overpayment(monkeypatch, client):
+    monkeypatch.setattr(
+        BillingRepo,
+        "record_payment",
+        lambda self, invoice_id, amount, payment_method: {
+            "success": False,
+            "error_code": "OVERPAYMENT",
+            "message": "Payment amount exceeds the outstanding balance.",
+        },
+    )
+    response = client.post(
+        "/api/v1/private/billing/invoices/a0000000-0000-0000-0000-000000000099/payments",
+        json={"amount": "200.00", "payment_method": "Card"},
+    )
+    assert response.status_code == 400
+    assert "outstanding balance" in response.json()["detail"]

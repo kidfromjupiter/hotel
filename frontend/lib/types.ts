@@ -215,7 +215,19 @@ export interface InvoiceSummary {
   totalTaxAmount: number;
   grandTotal: number;
   amountPaid: number;
-  paymentStatus: 'PAID' | 'PARTIAL' | 'UNPAID';
+  paymentStatus: 'PAID' | 'PARTIALLY_PAID' | 'UNPAID';
+}
+
+export interface RecordedPayment {
+  success: boolean;
+  transaction_id: string;
+  invoice_id: string;
+  payment_date: string;
+  amount: number;
+  payment_method: 'Cash' | 'Card';
+  new_amount_paid: number;
+  outstanding_balance: number;
+  payment_status: 'PAID' | 'PARTIALLY_PAID';
 }
 
 export interface GuestPaymentBooking {

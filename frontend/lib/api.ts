@@ -11,7 +11,8 @@ import type {
   AdminReservationListItem,
   GuestPaymentHistory,
   StaffLoginResponse,
-  StaffUser
+  StaffUser,
+  RecordedPayment
 } from './types';
 
 const BASE_URL = typeof window !== 'undefined' ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000') : (process.env.INTERNAL_API_URL ?? 'http://backend:8000');
@@ -342,25 +343,40 @@ export async function getGuestPaymentHistory(query: string): Promise<GuestPaymen
 export async function getBookingDetail(bookingId: number): Promise<InvoiceSummary> {
   const b = await request<{
     booking_id: number;
+    invoice_id: string | null;
     booking_status: string;
     service_charges: Array<{ service_name: string; service_total: number }>;
     invoice_status: string;
     grand_total: number;
     amount_paid: number;
+    total_room_charges: number;
+    total_service_charges: number;
+    total_tax_amount: number;
   }>(`/api/v1/private/bookings/${bookingId}`);
 
-  const totalServiceCharges = b.service_charges.reduce((sum, s) => sum + s.service_total, 0);
+  if (!b.invoice_id) throw new Error('This booking does not have an invoice.');
 
   return {
-    invoiceId: `INV-${bookingId}`,
+    invoiceId: b.invoice_id,
     bookingId: b.booking_id,
-    totalRoomCharges: b.grand_total - totalServiceCharges,
-    totalServiceCharges,
-    totalTaxAmount: 0,
+    totalRoomCharges: b.total_room_charges,
+    totalServiceCharges: b.total_service_charges,
+    totalTaxAmount: b.total_tax_amount,
     grandTotal: b.grand_total,
     amountPaid: b.amount_paid,
-    paymentStatus: b.invoice_status as 'PAID' | 'PARTIAL' | 'UNPAID',
+    paymentStatus: b.invoice_status as InvoiceSummary['paymentStatus'],
   };
+}
+
+export async function recordPayment(
+  invoiceId: string,
+  amount: string,
+  paymentMethod: 'Cash' | 'Card',
+): Promise<RecordedPayment> {
+  return request<RecordedPayment>(`/api/v1/private/billing/invoices/${encodeURIComponent(invoiceId)}/payments`, {
+    method: 'POST',
+    body: JSON.stringify({ amount, payment_method: paymentMethod }),
+  });
 }
 
 /**

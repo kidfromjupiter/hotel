@@ -117,7 +117,7 @@ def check_out(
     """Staff/Receptionist endpoint to check a guest out (enforces full payment and releases room)."""
     check_out_time = payload.check_out_time if payload else None
 
-    res = billing_service.checkout(booking_id, payment_method="CASH")
+    res = billing_service.checkout(booking_id)
 
     if not res.get("success"):
         from fastapi import HTTPException
