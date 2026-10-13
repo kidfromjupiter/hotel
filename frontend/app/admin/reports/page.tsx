@@ -12,6 +12,8 @@ export default function AdminReportsPage() {
   const [revenueData, setRevenueData] = useState<{ room: number; service: number; total: number } | null>(null);
   const [occupancyBranches, setOccupancyBranches] = useState<Array<{ branch_name: string; occupancy_rate_percent: number }>>([]);
 
+  const [occupancyPeriod, setOccupancyPeriod] = useState<{ start: string; end: string } | null>(null);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
@@ -35,6 +37,7 @@ export default function AdminReportsPage() {
       const totalRevenue = revenue.data.reduce((sum, row) => sum + row.total_revenue, 0);
       setRevenueData({ room: totalRoom, service: totalService, total: totalRevenue });
       setOccupancyBranches(occupancy.branches);
+      setOccupancyPeriod({ start: startOfMonth, end: today });
     } catch (e: any) {
       setError(e.message ?? 'Failed to load report data');
     } finally {
@@ -43,6 +46,49 @@ export default function AdminReportsPage() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+
+  function exportCsv() {
+    if (loading || error || !revenueData || !occupancyPeriod) return;
+
+    const rows: Array<Array<string | number>> = [
+      ['Report', 'Year', 'Period start', 'Period end (exclusive)', 'Branch', 'Metric', 'Value', 'Unit'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Room charges', revenueData.room, 'LKR'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Service charges', revenueData.service, 'LKR'],
+      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Invoice total including tax', revenueData.total, 'LKR'],
+    ];
+
+    for (const branch of occupancyBranches) {
+      rows.push([
+        'Occupancy', CURRENT_YEAR, occupancyPeriod.start, occupancyPeriod.end,
+        branch.branch_name, 'Occupancy rate', branch.occupancy_rate_percent, '%',
+      ]);
+    }
+
+    if (!occupancyBranches.length) {
+      rows.push([
+        'Occupancy', CURRENT_YEAR, occupancyPeriod.start, occupancyPeriod.end,
+        'All branches', 'No completed-night occupancy data', '', '',
+      ]);
+    }
+
+    const escapeCell = (value: string | number) => {
+      const raw = String(value);
+      const safe = typeof value === 'string' && /^[=+@\-\t\r\n]/.test(raw)
+        ? "'" + raw : raw;
+      return '"' + safe.replace(/"/g, '""') + '"';
+    };
+    const csv = rows.map(row => row.map(escapeCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hotel-reports-${CURRENT_YEAR}-${occupancyPeriod.end}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
   const total = revenueData?.total ?? 0;
   const breakdownTotal = (revenueData?.room ?? 0) + (revenueData?.service ?? 0);
@@ -63,7 +109,7 @@ export default function AdminReportsPage() {
             <HiOutlineRefresh size={18} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
+          <button onClick={exportCsv} disabled={loading || !!error || !revenueData || !occupancyPeriod} className="disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
             <HiOutlineDownload size={20} />
             Export CSV
           </button>
