@@ -29,9 +29,13 @@ export default function AdminDashboardPage() {
       revenue.data.forEach(r => {
         monthMap[r.month] = (monthMap[r.month] ?? 0) + r.total_revenue;
       });
-      const data = Object.entries(monthMap).map(([month, rev]) => ({
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ];
+      const data = months.map(month => ({
         name: month,
-        revenue: rev,
+        revenue: monthMap[month] ?? 0,
       }));
       setChartData(data);
 
@@ -103,7 +107,7 @@ export default function AdminDashboardPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} height={40} tickMargin={10} />
+                  <XAxis dataKey="name" interval={0} tickFormatter={(month: string) => month.slice(0, 3)} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} height={40} tickMargin={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(v) => `LKR ${(v/1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
