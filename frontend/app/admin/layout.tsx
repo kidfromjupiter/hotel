@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { HiOutlineChartBar, HiOutlineOfficeBuilding, HiOutlineViewGrid, HiOutlineCube, HiOutlineDocumentReport, HiOutlineClipboardList } from 'react-icons/hi';
 import StaffRouteGuard from '@/components/StaffRouteGuard';
@@ -16,6 +17,53 @@ const NAV_LINKS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [apiStatus, setApiStatus] = useState<'checking' | 'reachable' | 'unavailable'>('checking');
+
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    let controller: AbortController | null = null;
+
+    async function checkApi() {
+      if (pending) return;
+      pending = true;
+      const requestController = new AbortController();
+      controller = requestController;
+      const timeout = setTimeout(() => requestController.abort(), 5000);
+      try {
+        const baseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+        const response = await fetch(`${baseUrl}/health`, {
+          signal: requestController.signal,
+          cache: 'no-store',
+        });
+        if (!response.ok) throw new Error('Health check failed');
+        const body = await response.json();
+        if (active) setApiStatus(body.status === 'healthy' ? 'reachable' : 'unavailable');
+      } catch {
+        if (active) setApiStatus('unavailable');
+      } finally {
+        clearTimeout(timeout);
+        pending = false;
+        if (controller === requestController) controller = null;
+      }
+    }
+
+    void checkApi();
+    const interval = setInterval(() => { void checkApi(); }, 15000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      controller?.abort();
+    };
+  }, []);
+
+  const statusLabel = apiStatus === 'checking' ? 'Checking'
+    : apiStatus === 'reachable' ? 'Reachable' : 'Unavailable';
+  const statusStyle = apiStatus === 'checking'
+    ? 'bg-slate-100 text-slate-700 border-slate-200'
+    : apiStatus === 'reachable'
+      ? 'bg-green-100 text-green-700 border-green-200'
+      : 'bg-red-100 text-red-700 border-red-200';
 
   return (
     <StaffRouteGuard requiredRole="admin">
@@ -74,8 +122,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {NAV_LINKS.find(l => l.href === pathname)?.name || 'Dashboard'}
           </h2>
           <div className="flex items-center gap-4">
-            <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold border border-green-200 shadow-sm">
-              System Status: Online
+            <div role="status" aria-live="polite"
+              title="API reachability only; checked every 15 seconds. Database health is not checked."
+              className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${statusStyle}`}>
+              API Status: {statusLabel}
             </div>
           </div>
         </header>
