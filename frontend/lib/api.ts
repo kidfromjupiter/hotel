@@ -392,11 +392,18 @@ export async function cancelBooking(bookingId: number): Promise<{ success: boole
   }
 }
 
-// These endpoints are not yet implemented in the backend — kept as stubs
 export async function addServiceToBooking(bookingId: number, serviceId: number): Promise<{ success: boolean; message: string }> {
-  return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Service added' }), 500));
+  return request<{ success: boolean; message: string }>('/api/v1/private/services/charge', {
+    method: 'POST',
+    body: JSON.stringify({
+      booking_id: bookingId,
+      service_id: serviceId,
+      service_dates: 1,
+    }),
+  });
 }
 
+// These endpoints are not yet implemented in the backend — kept as stubs
 export async function extendStay(bookingId: number, newCheckOutDate: string): Promise<{ success: boolean; message: string }> {
   return new Promise(resolve => setTimeout(() => resolve({ success: true, message: 'Stay extended' }), 500));
 }
