@@ -10,5 +10,3 @@ CREATE TABLE staff (
     FOREIGN KEY (branch_id)
         REFERENCES branches(branch_id)
 );
-
-CREATE INDEX idx_staff_username ON staff (username);
