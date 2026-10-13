@@ -13,36 +13,7 @@ class BookingRepository:
         """No-op kept for test fixture compatibility; real database cleans up via SQL."""
         pass
 
-    # ── Database-Backed Availability ──
-
-    def get_available_rooms(
-        self,
-        check_in: date,
-        check_out: date,
-        branch: str,
-        children: int,
-        adults: int,
-    ) -> List[Dict[str, Any]]:
-        branch_clean = branch.lower() if branch else "colombo"
-
-        if self.db is not None:
-            try:
-                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute(
-                        "SELECT get_available_rooms(%s, %s, %s, %s, %s)",
-                        (check_in, check_out, branch_clean, children, adults),
-                    )
-                    row = cursor.fetchone()
-                    if row and "get_available_rooms" in row and row["get_available_rooms"] is not None:
-                        rooms = row["get_available_rooms"]
-                        if isinstance(rooms, list):
-                            return rooms
-            except Exception as e:
-                print(f"Error in get_available_rooms: {e}")
-
-        return []
-
-    # ── Database-Backed Booking Operations ──
+    # Booking writes remain in database functions; reads return ordinary rows.
 
     def room_exists(self, branch_id: int, room_number: int) -> bool:
         if self.db is None:
@@ -118,13 +89,10 @@ class BookingRepository:
                     if not row or row.get("create_booking") is None:
                         raise RuntimeError("Database did not return the created booking")
                     saved = row["create_booking"]
-                self.db.commit()
             except Exception as e:
                 print(f"Exception in save_booking: {e}")
                 import traceback
                 traceback.print_exc()
-                if self.db:
-                    self.db.rollback()
                 raise
 
         if self.db is None:
@@ -132,29 +100,56 @@ class BookingRepository:
         return saved
 
     def find_booking_by_id(self, booking_id: int) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            try:
-                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute("SELECT get_booking_by_id(%s)", (booking_id,))
-                    row = cursor.fetchone()
-                    if row and "get_booking_by_id" in row and row["get_booking_by_id"] is not None:
-                        return row["get_booking_by_id"]
-            except Exception:
-                pass
-        return None
+        if self.db is None:
+            return None
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT bk.booking_id, bk.booking_ref, bk.guest_id, g.name AS guest_name,
+                       g.phone_number::TEXT AS guest_phone,
+                       (g.membership_id IS NOT NULL) AS is_member,
+                       bk.room_number, bk.branch_id, br.branch_name, rd.room_type_id,
+                       bk.booking_status, bk.start_date, bk.end_date,
+                       bk.checked_in_time, bk.checked_out_time, bk.adult_count,
+                       bk.children_count, bs.invoice_id, bs.total_room_charges,
+                       bs.total_service_charges, bs.total_tax_amount, bs.grand_total,
+                       bs.amount_paid, bs.payment_status AS invoice_status
+                FROM booking bk
+                LEFT JOIN guests g ON g.guest_id = bk.guest_id
+                LEFT JOIN branches br ON br.branch_id = bk.branch_id
+                LEFT JOIN room_details rd
+                  ON rd.room_number = bk.room_number AND rd.branch_id = bk.branch_id
+                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
+                WHERE bk.booking_id = %s
+                """,
+                (booking_id,),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_service_charges(self, booking_id: int) -> List[Dict[str, Any]]:
+        if self.db is None:
+            return []
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT cat.service_name, sc.service_dates, sc.service_total
+                FROM service_charges sc
+                LEFT JOIN service_catalogue cat ON cat.service_id = sc.service_id
+                WHERE sc.booking_id = %s
+                ORDER BY sc.service_log_id
+                """,
+                (booking_id,),
+            )
+            return list(cursor.fetchall())
 
     def find_booking_by_ref(self, booking_ref: str) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(
-                    "SELECT get_booking_by_id(booking_id) AS booking "
-                    "FROM booking WHERE booking_ref = %s",
-                    (booking_ref,),
-                )
-                row = cursor.fetchone()
-                if row and row.get("booking") is not None:
-                    return row["booking"]
-        return None
+        if self.db is None:
+            return None
+        with self.db.cursor() as cursor:
+            cursor.execute("SELECT booking_id FROM booking WHERE booking_ref = %s", (booking_ref,))
+            row = cursor.fetchone()
+        return self.find_booking_by_id(row[0]) if row else None
 
     def list_all_bookings(
         self,
@@ -164,58 +159,98 @@ class BookingRepository:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        if self.db is not None:
-            try:
-                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute(
-                        "SELECT get_all_bookings(%s, %s, %s, %s, %s)",
-                        (branch_id, guest_id, status, start_date, end_date),
-                    )
-                    row = cursor.fetchone()
-                    if row and "get_all_bookings" in row and row["get_all_bookings"] is not None:
-                        return row["get_all_bookings"]
-            except Exception:
-                pass
-        return []
+        if self.db is None:
+            return []
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT bk.booking_id, bk.booking_ref, bk.guest_id, g.name AS guest_name,
+                       g.phone_number::TEXT AS guest_phone,
+                       (g.membership_id IS NOT NULL) AS is_member,
+                       bk.room_number, bk.branch_id, br.branch_name, rd.room_type_id,
+                       bk.booking_status, bk.start_date, bk.end_date,
+                       bk.checked_in_time, bk.checked_out_time, bk.adult_count,
+                       bk.children_count, bs.grand_total, bs.amount_paid,
+                       bs.payment_status AS invoice_status
+                FROM booking bk
+                LEFT JOIN guests g ON g.guest_id = bk.guest_id
+                LEFT JOIN branches br ON br.branch_id = bk.branch_id
+                LEFT JOIN room_details rd
+                  ON rd.room_number = bk.room_number AND rd.branch_id = bk.branch_id
+                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
+                WHERE (%s::INT IS NULL OR bk.branch_id = %s)
+                  AND (%s::INT IS NULL OR bk.guest_id = %s)
+                  AND (%s::TEXT IS NULL OR LOWER(bk.booking_status) = LOWER(%s))
+                  AND (%s::DATE IS NULL OR bk.start_date >= %s::DATE)
+                  AND (%s::DATE IS NULL OR bk.end_date <= %s::DATE)
+                ORDER BY bk.booking_id DESC
+                """,
+                (branch_id, branch_id, guest_id, guest_id, status, status,
+                 start_date, start_date, end_date, end_date),
+            )
+            return list(cursor.fetchall())
 
     def get_admin_reservations_list(
         self,
         branch_id: Optional[int] = None,
         status: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        if self.db is not None:
-            try:
-                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute(
-                        "SELECT get_admin_reservations(%s, %s)",
-                        (branch_id, status),
-                    )
-                    row = cursor.fetchone()
-                    if row and "get_admin_reservations" in row and row["get_admin_reservations"] is not None:
-                        return row["get_admin_reservations"]
-            except Exception as e:
-                print(f"Error fetching admin reservations: {e}")
-        return []
+        if self.db is None:
+            return []
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT bk.booking_id, bk.booking_ref, bk.guest_id, g.name AS guest_name,
+                       g.phone_number::TEXT AS guest_contact, bk.room_number,
+                       rd.room_type_id, bk.branch_id, br.branch_name,
+                       bk.booking_status, bk.start_date, bk.end_date,
+                       (bk.end_date - bk.start_date) AS nights,
+                       bk.adult_count, bk.children_count,
+                       COALESCE(bs.total_room_charges, 0) AS total_room_charges,
+                       COALESCE(bs.total_service_charges, 0) AS total_service_charges,
+                       COALESCE(bs.total_tax_amount, 0) AS total_tax_amount,
+                       COALESCE(bs.grand_total, 0) AS grand_total,
+                       COALESCE(bs.amount_paid, 0) AS amount_paid,
+                       GREATEST(COALESCE(bs.grand_total, 0) - COALESCE(bs.amount_paid, 0), 0) AS balance_amount,
+                       COALESCE(bs.payment_status, 'UNPAID') AS invoice_status,
+                       COALESCE(bs.payment_method, 'NONE') AS payment_method
+                FROM booking bk
+                LEFT JOIN guests g ON g.guest_id = bk.guest_id
+                LEFT JOIN branches br ON br.branch_id = bk.branch_id
+                LEFT JOIN room_details rd
+                  ON rd.room_number = bk.room_number AND rd.branch_id = bk.branch_id
+                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
+                WHERE (%s::INT IS NULL OR bk.branch_id = %s)
+                  AND (%s::TEXT IS NULL OR %s = '' OR bk.booking_status ILIKE %s)
+                ORDER BY bk.booking_id DESC
+                """,
+                (branch_id, branch_id, status, status, status),
+            )
+            return list(cursor.fetchall())
 
     def update_booking(
         self, booking_id: int, updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            try:
-                with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                    status = updates.get("booking_status")
-                    check_in_time = updates.get("checked_in_time")
-                    check_out_time = updates.get("checked_out_time")
-                    cursor.execute(
-                        "SELECT update_booking_status(%s, %s, %s, %s)",
-                        (booking_id, status, check_in_time, check_out_time),
-                    )
-                    row = cursor.fetchone()
-                    if row and "update_booking_status" in row and row["update_booking_status"] is not None:
-                        return row["update_booking_status"]
-            except Exception:
-                pass
-        return None
+        if self.db is None:
+            return None
+        status = updates.get("booking_status")
+        expected_status = {"CHECKED_IN": "CONFIRMED", "CANCELLED": "CONFIRMED"}.get(status)
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                UPDATE booking
+                SET booking_status = %s,
+                    checked_in_time = COALESCE(%s::TIME, checked_in_time),
+                    checked_out_time = COALESCE(%s::TIME, checked_out_time)
+                WHERE booking_id = %s
+                  AND (%s::TEXT IS NULL OR booking_status = %s)
+                RETURNING booking_id
+                """,
+                (status, updates.get("checked_in_time"), updates.get("checked_out_time"),
+                 booking_id, expected_status, expected_status),
+            )
+            row = cursor.fetchone()
+        return self.find_booking_by_id(row["booking_id"]) if row else None
 
     def add_service_to_booking(
         self, booking_id: int, service_id: int, service_dates: int
@@ -223,16 +258,11 @@ class BookingRepository:
         if self.db is None:
             raise RuntimeError("Database connection is unavailable")
 
-        try:
-            with self.db.cursor() as cursor:
-                cursor.execute(
-                    "SELECT add_service_to_booking(%s, %s, %s)",
-                    (booking_id, service_id, service_dates),
-                )
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "SELECT add_service_to_booking(%s, %s, %s)",
+                (booking_id, service_id, service_dates),
+            )
 
     def extend_stay(
         self, booking_id: int, new_check_out_date: date

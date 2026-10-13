@@ -8,103 +8,41 @@ from app.schemas.auth import StaffUser
 from app.services.guest_service import GuestService
 
 
-def test_guests_repo_calls_db_functions():
+def test_guests_repo_uses_row_queries_and_updates():
     mock_db = MagicMock()
-    mock_cursor = MagicMock()
-    mock_db.cursor.return_value.__enter__.return_value = mock_cursor
-
-    # 1. get_all_guests
-    mock_cursor.fetchone.return_value = {
-        "get_all_guests": [
-            {
-                "guest_id": 101,
-                "name": "Sunil Silva",
-                "national_id": "199012345678",
-                "phone_number": "771112233",
-                "membership_id": 1,
-                "membership_name": "Gold",
-                "room_discount_percentage": 10.0,
-                "service_discount_percentage": 5.0,
-            }
-        ]
-    }
+    cursor = mock_db.cursor.return_value.__enter__.return_value
     repo = GuestsRepo(db=mock_db)
-    guests = repo.get_all_guests(search="Sunil")
-    assert len(guests) == 1
-    assert guests[0]["name"] == "Sunil Silva"
-    assert "get_all_guests" in mock_cursor.execute.call_args[0][0]
 
-    # 2. get_guest_by_phone
-    mock_cursor.fetchone.return_value = {
-        "get_guest_by_phone": {
-            "guest_id": 101,
-            "name": "Sunil Silva",
-            "phone_number": "771112233",
-            "has_membership": True,
-            "room_discount_percentage": 10.0,
-        }
-    }
-    guest = repo.get_guest_by_phone("+94771112233")
-    assert guest is not None
-    assert guest["has_membership"] is True
-    assert "get_guest_by_phone" in mock_cursor.execute.call_args[0][0]
+    cursor.fetchall.return_value = [{"guest_id": 101, "name": "Sunil Silva"}]
+    assert repo.get_all_guests(search="Sunil")[0]["name"] == "Sunil Silva"
+    assert "FROM guests g" in cursor.execute.call_args.args[0]
 
-    # 3. get_guest_by_id
-    mock_cursor.fetchone.return_value = {
-        "get_guest_by_id": {
-            "guest_id": 101,
-            "name": "Sunil Silva",
-            "has_membership": True,
-        }
-    }
-    g_id = repo.get_guest_by_id(101)
-    assert g_id["guest_id"] == 101
-    assert "get_guest_by_id" in mock_cursor.execute.call_args[0][0]
+    cursor.fetchone.return_value = {"guest_id": 101, "has_membership": True}
+    assert repo.get_guest_by_phone("+94771112233")["has_membership"] is True
+    assert cursor.execute.call_args.args[1] == (771112233,)
+    assert repo.get_guest_by_id(101)["guest_id"] == 101
 
-    # 4. get_payment_history
-    payment_history = {
-        "guest": {"guest_id": 101, "name": "Sunil Silva", "phone_number": "771112233"},
-        "summary": {
-            "booking_count": 1,
-            "grand_total": 1000.0,
-            "amount_paid": 400.0,
-            "outstanding_balance": 600.0,
-        },
-        "bookings": [],
-    }
-    mock_cursor.fetchone.return_value = {
-        "get_guest_payment_history": payment_history
-    }
-    history = repo.get_payment_history(" 101 ", branch_id=2)
-    assert history == payment_history
-    assert "get_guest_payment_history" in mock_cursor.execute.call_args[0][0]
-    assert mock_cursor.execute.call_args[0][1] == ("101", 2)
+    cursor.fetchone.return_value = {"guest_id": 101, "phone_number": "778889900"}
+    assert repo.update_guest_phone(101, 778889900)["phone_number"] == "778889900"
+    assert "UPDATE guests" in cursor.execute.call_args.args[0]
+    cursor.fetchone.return_value = {"guest_id": 101, "membership_id": 2}
+    assert repo.enroll_guest_membership(101, 2)["membership_id"] == 2
+    assert "RETURNING guest_id, membership_id" in cursor.execute.call_args.args[0]
 
-    # 5. update_guest_phone
-    mock_cursor.fetchone.return_value = {
-        "update_guest_phone": {
-            "success": True,
-            "message": "Phone number updated successfully",
-            "guest_id": 101,
-            "phone_number": "778889900",
-        }
-    }
-    res_up = repo.update_guest_phone(101, "0778889900")
-    assert res_up["success"] is True
-    assert "update_guest_phone" in mock_cursor.execute.call_args[0][0]
 
-    # 6. enroll_guest_membership
-    mock_cursor.fetchone.return_value = {
-        "enroll_guest_membership": {
-            "success": True,
-            "message": "Guest enrolled in membership successfully",
-            "guest_id": 101,
-            "membership_id": 2,
-        }
-    }
-    res_enroll = repo.enroll_guest_membership(101, 2)
-    assert res_enroll["success"] is True
-    assert "enroll_guest_membership" in mock_cursor.execute.call_args[0][0]
+def test_guest_payment_history_queries_rows():
+    mock_db = MagicMock()
+    cursor = mock_db.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = [
+        {"guest_id": 101, "name": "Sunil", "phone_number": "771112233"},
+        {"booking_count": 1, "grand_total": 1000},
+    ]
+    cursor.fetchall.return_value = [{"booking_id": 1001, "branch_name": "kandy"}]
+    rows = GuestsRepo(mock_db).get_payment_history_rows(" 101 ", branch_id=2)
+    assert rows[0]["guest_id"] == 101
+    assert rows[1]["booking_count"] == 1
+    assert rows[2][0]["booking_id"] == 1001
+    assert cursor.execute.call_args.args[1] == (101, 2, 2)
 
 
 def test_guests_repo_without_db():
@@ -112,7 +50,7 @@ def test_guests_repo_without_db():
     assert repo.get_all_guests() == []
     assert repo.get_guest_by_id(1) is None
     assert repo.get_guest_by_phone("0771234567") is None
-    assert repo.get_payment_history("1", branch_id=1) is None
+    assert repo.get_payment_history_rows("1", branch_id=1) is None
 
 
 def test_guest_service_delegates_to_repo():
@@ -120,18 +58,16 @@ def test_guest_service_delegates_to_repo():
     mock_repo.get_all_guests.return_value = [{"guest_id": 1, "name": "Alice"}]
     mock_repo.get_guest_by_id.return_value = {"guest_id": 1, "name": "Alice"}
     mock_repo.get_guest_by_phone.return_value = {"guest_id": 1, "has_membership": True}
-    mock_repo.get_payment_history.return_value = {
-        "guest": {"guest_id": 1},
-        "summary": {"booking_count": 0},
-        "bookings": [],
-    }
+    mock_repo.get_payment_history_rows.return_value = (
+        {"guest_id": 1}, {"booking_count": 0}, []
+    )
 
     svc = GuestService(repo=mock_repo)
     assert len(svc.list_guests()) == 1
     assert svc.get_guest(1)["name"] == "Alice"
     assert svc.lookup_by_phone("0771234567")["has_membership"] is True
     assert svc.get_payment_history("1", branch_id=3)["guest"]["guest_id"] == 1
-    mock_repo.get_payment_history.assert_called_once_with(query="1", branch_id=3)
+    mock_repo.get_payment_history_rows.assert_called_once_with(query="1", branch_id=3)
 
 
 def test_guest_payment_status_api_is_branch_scoped(monkeypatch):
@@ -169,9 +105,9 @@ def test_guest_payment_status_api_is_branch_scoped(monkeypatch):
 
     def fake_history(self, query, branch_id=None):
         captured.update(query=query, branch_id=branch_id)
-        return payment_history
+        return payment_history["guest"], payment_history["summary"], payment_history["bookings"]
 
-    monkeypatch.setattr(GuestsRepo, "get_payment_history", fake_history)
+    monkeypatch.setattr(GuestsRepo, "get_payment_history_rows", fake_history)
     app.dependency_overrides[get_current_user] = lambda: StaffUser(
         staff_id=5,
         branch_id=2,
@@ -195,7 +131,7 @@ def test_guest_payment_status_api_is_branch_scoped(monkeypatch):
 def test_guest_payment_status_api_returns_404(monkeypatch):
     monkeypatch.setattr(
         GuestsRepo,
-        "get_payment_history",
+        "get_payment_history_rows",
         lambda self, query, branch_id=None: None,
     )
     app.dependency_overrides[get_current_user] = lambda: StaffUser(

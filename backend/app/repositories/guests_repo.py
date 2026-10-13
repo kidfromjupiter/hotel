@@ -1,8 +1,16 @@
-from typing import Any, Dict, List, Optional
-import json
+from typing import Any, Dict, List, Optional, Tuple
 
 from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
+
+
+GUEST_COLUMNS = """
+    g.guest_id, g.name, g.national_id, g.phone_number::TEXT AS phone_number,
+    g.membership_id, (g.membership_id IS NOT NULL) AS has_membership,
+    COALESCE(m.membership_name, 'None') AS membership_name,
+    COALESCE(m.room_discount_percentage, 0) AS room_discount_percentage,
+    COALESCE(m.service_discount_percentage, 0) AS service_discount_percentage
+"""
 
 
 class GuestsRepo:
@@ -10,95 +18,155 @@ class GuestsRepo:
         self.db = db
 
     def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            try:
-                with self.db.cursor() as cursor:
-                    v_digits = "".join(c for c in phone if c.isdigit())
-                    if v_digits.startswith("94"):
-                        v_digits = v_digits[2:]
-                    elif v_digits.startswith("0"):
-                        v_digits = v_digits[1:]
-
-                    phone_int = int(v_digits) if v_digits else 0
-
-                    cursor.execute(
-                        """
-                        INSERT INTO guests (name, phone_number)
-                        VALUES (%s, %s)
-                        RETURNING guest_id
-                        """,
-                        (name, phone_int),
-                    )
-                    new_id = cursor.fetchone()[0]
-
-                self.db.commit()
-                return self.get_guest_by_id(new_id)
-            except Exception:
-                self.db.rollback()
-                raise
-        return None
+        if self.db is None:
+            return None
+        digits = "".join(c for c in phone if c.isdigit())
+        if digits.startswith("94"):
+            digits = digits[2:]
+        elif digits.startswith("0"):
+            digits = digits[1:]
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO guests (name, phone_number) VALUES (%s, %s) RETURNING guest_id",
+                (name, int(digits) if digits else 0),
+            )
+            guest_id = cursor.fetchone()[0]
+        return self.get_guest_by_id(guest_id)
 
     def get_all_guests(self, search: Optional[str] = None) -> List[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT get_all_guests(%s)", (search,))
-                row = cursor.fetchone()
-                if row and "get_all_guests" in row:
-                    val = row["get_all_guests"]
-                    return json.loads(val) if isinstance(val, str) else (val or [])
-        return []
+        if self.db is None:
+            return []
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                f"""
+                SELECT {GUEST_COLUMNS}
+                FROM guests g
+                LEFT JOIN skynest_membership m ON m.membership_id = g.membership_id
+                WHERE (%s::TEXT IS NULL OR g.name ILIKE '%%' || %s || '%%'
+                    OR g.national_id ILIKE '%%' || %s || '%%'
+                    OR g.phone_number::TEXT ILIKE '%%' || %s || '%%')
+                ORDER BY g.guest_id
+                """,
+                (search, search, search, search),
+            )
+            return list(cursor.fetchall())
 
     def get_guest_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT get_guest_by_phone(%s)", (phone,))
-                row = cursor.fetchone()
-                if row and "get_guest_by_phone" in row:
-                    val = row["get_guest_by_phone"]
-                    return json.loads(val) if isinstance(val, str) else val
-        return None
+        if self.db is None:
+            return None
+        digits = "".join(c for c in phone if c.isdigit())
+        if digits.startswith("94"):
+            digits = digits[2:]
+        elif digits.startswith("0"):
+            digits = digits[1:]
+        if not digits or not digits.isdigit() or int(digits) > 2147483647:
+            return None
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                f"""
+                SELECT {GUEST_COLUMNS}
+                FROM guests g
+                LEFT JOIN skynest_membership m ON m.membership_id = g.membership_id
+                WHERE g.phone_number = %s
+                LIMIT 1
+                """,
+                (int(digits),),
+            )
+            return cursor.fetchone()
 
     def get_guest_by_id(self, guest_id: int) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT get_guest_by_id(%s)", (guest_id,))
-                row = cursor.fetchone()
-                if row and "get_guest_by_id" in row:
-                    val = row["get_guest_by_id"]
-                    return json.loads(val) if isinstance(val, str) else val
-        return None
+        if self.db is None:
+            return None
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                f"""
+                SELECT {GUEST_COLUMNS}
+                FROM guests g
+                LEFT JOIN skynest_membership m ON m.membership_id = g.membership_id
+                WHERE g.guest_id = %s
+                """,
+                (guest_id,),
+            )
+            return cursor.fetchone()
 
-    def get_payment_history(
+    def get_payment_history_rows(
         self, query: str, branch_id: Optional[int] = None
-    ) -> Optional[Dict[str, Any]]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+    ) -> Optional[Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]]:
+        if self.db is None or not query.strip():
+            return None
+        lookup = query.strip()
+        digits = "".join(c for c in lookup if c.isdigit())
+        if digits.startswith("94"):
+            digits = digits[2:]
+        elif digits.startswith("0"):
+            digits = digits[1:]
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "SELECT guest_id, name, phone_number::TEXT AS phone_number "
+                "FROM guests WHERE guest_id::TEXT = %s LIMIT 1",
+                (lookup,),
+            )
+            guest = cursor.fetchone()
+            if guest is None and digits:
                 cursor.execute(
-                    "SELECT get_guest_payment_history(%s, %s)",
-                    (query.strip(), branch_id),
+                    "SELECT guest_id, name, phone_number::TEXT AS phone_number "
+                    "FROM guests WHERE phone_number::TEXT = %s LIMIT 1",
+                    (digits,),
                 )
-                row = cursor.fetchone()
-                if row and "get_guest_payment_history" in row:
-                    val = row["get_guest_payment_history"]
-                    return json.loads(val) if isinstance(val, str) else val
-        return None
+                guest = cursor.fetchone()
+            if guest is None:
+                return None
+            guest_id = guest["guest_id"]
+            cursor.execute(
+                """
+                SELECT COUNT(bk.booking_id) AS booking_count,
+                       COALESCE(SUM(COALESCE(bs.grand_total, 0)), 0) AS grand_total,
+                       COALESCE(SUM(COALESCE(bs.amount_paid, 0)), 0) AS amount_paid,
+                       COALESCE(SUM(GREATEST(0, COALESCE(bs.grand_total, 0) - COALESCE(bs.amount_paid, 0))), 0) AS outstanding_balance
+                FROM booking bk
+                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
+                WHERE bk.guest_id = %s AND (%s::INT IS NULL OR bk.branch_id = %s)
+                """,
+                (guest_id, branch_id, branch_id),
+            )
+            summary = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT bk.booking_id, bk.booking_ref, bk.branch_id, br.branch_name,
+                       bk.start_date, bk.end_date, bk.booking_status, bs.invoice_id,
+                       COALESCE(bs.payment_method, 'NONE') AS payment_method,
+                       COALESCE(bs.payment_status, 'UNPAID') AS payment_status,
+                       COALESCE(bs.grand_total, 0) AS grand_total,
+                       COALESCE(bs.amount_paid, 0) AS amount_paid,
+                       GREATEST(0, COALESCE(bs.grand_total, 0) - COALESCE(bs.amount_paid, 0)) AS outstanding_balance
+                FROM booking bk
+                LEFT JOIN branches br ON br.branch_id = bk.branch_id
+                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
+                WHERE bk.guest_id = %s AND (%s::INT IS NULL OR bk.branch_id = %s)
+                ORDER BY bk.start_date DESC, bk.booking_id DESC
+                """,
+                (guest_id, branch_id, branch_id),
+            )
+            return dict(guest), dict(summary), list(cursor.fetchall())
 
-    def update_guest_phone(self, guest_id: int, phone: str) -> Dict[str, Any]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT update_guest_phone(%s, %s)", (guest_id, phone))
-                row = cursor.fetchone()
-                if row and "update_guest_phone" in row:
-                    val = row["update_guest_phone"]
-                    return json.loads(val) if isinstance(val, str) else val
-        return {"success": False, "message": "Guest not found"}
+    def update_guest_phone(self, guest_id: int, phone_number: int) -> Optional[Dict[str, Any]]:
+        if self.db is None:
+            return None
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "UPDATE guests SET phone_number = %s WHERE guest_id = %s "
+                "RETURNING guest_id, phone_number::TEXT AS phone_number",
+                (phone_number, guest_id),
+            )
+            return cursor.fetchone()
 
-    def enroll_guest_membership(self, guest_id: int, membership_id: int = 1) -> Dict[str, Any]:
-        if self.db is not None:
-            with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("SELECT enroll_guest_membership(%s, %s)", (guest_id, membership_id))
-                row = cursor.fetchone()
-                if row and "enroll_guest_membership" in row:
-                    val = row["enroll_guest_membership"]
-                    return json.loads(val) if isinstance(val, str) else val
-        return {"success": False, "message": "Guest not found"}
+    def enroll_guest_membership(self, guest_id: int, membership_id: int = 1) -> Optional[Dict[str, Any]]:
+        if self.db is None:
+            return None
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "UPDATE guests SET membership_id = %s WHERE guest_id = %s "
+                "RETURNING guest_id, membership_id",
+                (membership_id, guest_id),
+            )
+            return cursor.fetchone()

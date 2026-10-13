@@ -30,7 +30,7 @@ class ReportService:
         branch_id: Optional[int] = None,
     ) -> OccupancyReportResponse:
         data = self.repo.get_occupancy_data(start_date, end_date, branch_id)
-        items = [BranchOccupancyItem(**b) for b in data]
+        items = [BranchOccupancyItem(**{**b, "branch_name": b["branch_name"].title()}) for b in data]
         return OccupancyReportResponse(
             period=PeriodSchema(start_date=start_date, end_date=end_date),
             branches=items,
@@ -42,7 +42,7 @@ class ReportService:
         branch_id: Optional[int] = None,
     ) -> GuestBillingReportResponse:
         data = self.repo.get_guest_billing_data(payment_status, branch_id)
-        items = [GuestBillingItem(**b) for b in data]
+        items = [GuestBillingItem(**{**b, "guest_name": b.get("guest_name") or "Guest"}) for b in data]
         return GuestBillingReportResponse(data=items)
 
     def get_service_usage_report(
@@ -62,7 +62,7 @@ class ReportService:
         branch_id: Optional[int] = None,
     ) -> MonthlyRevenueReportResponse:
         data = self.repo.get_monthly_revenue_data(year, branch_id)
-        items = [MonthlyRevenueItem(**m) for m in data]
+        items = [MonthlyRevenueItem(**{**m, "branch_name": m["branch_name"].title()}) for m in data]
         return MonthlyRevenueReportResponse(year=year, data=items)
 
     def get_service_trends_report(

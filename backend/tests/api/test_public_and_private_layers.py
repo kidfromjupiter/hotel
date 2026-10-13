@@ -1,3 +1,7 @@
+from datetime import date, timedelta
+from uuid import uuid4
+
+
 def test_public_otp_routes(client, otp_service):
     # Test send OTP
     res_send = client.post("/api/v1/public/otp/send", json={"phone": "+94771234567"})
@@ -6,7 +10,7 @@ def test_public_otp_routes(client, otp_service):
     assert send_data["success"] is True
 
     # Test verify OTP
-    code = otp_service._store["+94771234567"][0]
+    code = send_data["message"].split("Demo Code: ")[1].split(")")[0]
     res_verify = client.post(
         "/api/v1/public/otp/verify",
         json={"phone": "+94771234567", "otp": code},
@@ -17,10 +21,11 @@ def test_public_otp_routes(client, otp_service):
 
 
 def test_public_create_booking_flow(client, booking_repo):
+    check_in = date(2100, 1, 1) + timedelta(days=uuid4().int % 100000)
     booking_payload = {
         "branchId": 1,
-        "checkIn": "2026-12-15T00:00:00.000Z",
-        "checkOut": "2026-12-18T00:00:00.000Z",
+        "checkIn": check_in.isoformat(),
+        "checkOut": (check_in + timedelta(days=3)).isoformat(),
         "adults": 2,
         "children": 0,
         "nights": 3,

@@ -107,11 +107,14 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
                         "+94770000112", prefix + "_" + str(index)
                     )
                     assert result is not None
+                    db.commit()
                     return result["guest_id"]
                 if kind == "booking":
-                    return BookingRepository(db).save_booking(booking_payload(index))[
+                    booking_id = BookingRepository(db).save_booking(booking_payload(index))[
                         "booking_id"
                     ]
+                    db.commit()
+                    return booking_id
                 with db.cursor() as cursor:
                     cursor.execute(
                         "SELECT add_service_to_booking(%s, %s, %s)",
