@@ -53,3 +53,25 @@ class RoomsRepo:
                 """
             )
             return list(cursor.fetchall())
+
+    def get_room_types(self):
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                "SELECT room_type_id, daily_rate FROM room_types "
+                "ORDER BY room_type_id"
+            )
+            return list(cursor.fetchall())
+
+    def create_room(self, room_number, branch_id, room_type_id, capacity):
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                INSERT INTO room_details
+                    (room_number, branch_id, room_type_id, capacity, room_status)
+                VALUES (%s, %s, %s, %s, 'AVAILABLE')
+                RETURNING room_number, branch_id, room_type_id,
+                          capacity, room_status
+                """,
+                (room_number, branch_id, room_type_id, capacity),
+            )
+            return cursor.fetchone()

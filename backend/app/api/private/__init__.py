@@ -25,3 +25,8 @@ private_router.include_router(
 private_router.include_router(
     services_router, prefix="/services", tags=["Staff - Services"]
 )
+from app.api.private.rooms import router as rooms_router
+
+private_router.include_router(
+    rooms_router, prefix="/rooms", tags=["Admin - Rooms"]
+)
