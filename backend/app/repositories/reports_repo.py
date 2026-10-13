@@ -64,7 +64,7 @@ class ReportsRepo:
                 LEFT JOIN guests g ON g.guest_id = bk.guest_id
                 LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
                 WHERE (%s::INT IS NULL OR bk.branch_id = %s)
-                  AND (%s::TEXT IS NULL OR LOWER(bs.payment_status) = LOWER(%s))
+                  AND (%s::TEXT IS NULL OR LOWER(COALESCE(bs.payment_status, 'UNPAID')) = LOWER(%s))
                 ORDER BY bk.booking_id DESC
                 """,
                 (branch_id, branch_id, payment_status, payment_status),
@@ -126,7 +126,7 @@ class ReportsRepo:
 
     def get_service_trends_data(
         self, limit: int = 5, start_date: Optional[date] = None,
-        end_date: Optional[date] = None
+        end_date: Optional[date] = None, branch_id: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         if self.db is None:
             return []
@@ -138,7 +138,8 @@ class ReportsRepo:
                          SUM(COALESCE(sc.service_total, 0)) AS total_revenue
                   FROM service_charges sc
                   JOIN booking bk ON bk.booking_id = sc.booking_id
-                  WHERE (%s::DATE IS NULL OR bk.start_date >= %s::DATE)
+                  WHERE (%s::INT IS NULL OR bk.branch_id = %s)
+                    AND (%s::DATE IS NULL OR bk.start_date >= %s::DATE)
                     AND (%s::DATE IS NULL OR bk.end_date <= %s::DATE)
                   GROUP BY sc.service_id
                   ORDER BY times_used DESC, sc.service_id
@@ -149,6 +150,6 @@ class ReportsRepo:
                 FROM usage JOIN service_catalogue cat ON cat.service_id = usage.service_id
                 ORDER BY rank
                 """,
-                (start_date, start_date, end_date, end_date, limit),
+                (branch_id, branch_id, start_date, start_date, end_date, end_date, limit),
             )
             return list(cursor.fetchall())

@@ -18,16 +18,22 @@ export default function AdminReportsPage() {
     try {
       const now = new Date();
       const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const today = now.toISOString().split('T')[0];
+      const localDate = (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const today = localDate(now);
+
 
       const [revenue, occupancy] = await Promise.all([
         getMonthlyRevenue(CURRENT_YEAR),
-        getOccupancyReport(startOfMonth, today),
+        now.getDate() === 1
+          ? Promise.resolve({ branches: [] })
+          : getOccupancyReport(startOfMonth, today),
       ]);
 
       const totalRoom = revenue.data.reduce((s, r) => s + r.room_revenue, 0);
       const totalService = revenue.data.reduce((s, r) => s + r.service_revenue, 0);
-      setRevenueData({ room: totalRoom, service: totalService, total: totalRoom + totalService });
+      const totalRevenue = revenue.data.reduce((sum, row) => sum + row.total_revenue, 0);
+      setRevenueData({ room: totalRoom, service: totalService, total: totalRevenue });
       setOccupancyBranches(occupancy.branches);
     } catch (e: any) {
       setError(e.message ?? 'Failed to load report data');
@@ -38,7 +44,9 @@ export default function AdminReportsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const total = revenueData?.total || 1;
+  const total = revenueData?.total ?? 0;
+  const breakdownTotal = (revenueData?.room ?? 0) + (revenueData?.service ?? 0);
+  const breakdownDenominator = breakdownTotal || 1;
 
   return (
     <div className="space-y-6">
@@ -94,7 +102,7 @@ export default function AdminReportsPage() {
                     <span className="text-sky-600">LKR {revenueData.room.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div className="bg-sky-500 h-3 rounded-full" style={{ width: `${(revenueData.room / total) * 100}%` }} />
+                    <div className="bg-sky-500 h-3 rounded-full" style={{ width: `${(revenueData.room / breakdownDenominator) * 100}%` }} />
                   </div>
                 </div>
                 <div>
@@ -103,11 +111,11 @@ export default function AdminReportsPage() {
                     <span className="text-teal-600">LKR {revenueData.service.toLocaleString()}</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div className="bg-teal-500 h-3 rounded-full" style={{ width: `${(revenueData.service / total) * 100}%` }} />
+                    <div className="bg-teal-500 h-3 rounded-full" style={{ width: `${(revenueData.service / breakdownDenominator) * 100}%` }} />
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
-                  <span className="font-bold text-slate-500">Total Revenue</span>
+                  <span className="font-bold text-slate-500">Total Invoice Value (Including Tax)</span>
                   <span className="text-2xl font-black text-slate-900">LKR {total.toLocaleString()}</span>
                 </div>
               </div>
@@ -122,7 +130,7 @@ export default function AdminReportsPage() {
               <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><HiOutlineTrendingUp size={24} /></div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Branch Occupancy</h3>
-                <p className="text-xs text-slate-500 font-medium">This month — Live data</p>
+                <p className="text-xs text-slate-500 font-medium">Completed nights this month — Live data</p>
               </div>
             </div>
             {occupancyBranches.length > 0 ? (
@@ -145,7 +153,7 @@ export default function AdminReportsPage() {
                 })}
               </div>
             ) : (
-              <p className="text-slate-400 text-sm">No occupancy data available for this period.</p>
+              <p className="text-slate-400 text-sm">No completed-night occupancy data available for this period.</p>
             )}
           </div>
         </div>
