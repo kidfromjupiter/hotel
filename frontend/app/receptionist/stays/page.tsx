@@ -13,6 +13,7 @@ export default function ActiveStaysPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [invoice, setInvoice] = useState<InvoiceSummary | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isExtending, setIsExtending] = useState(false);
   const [newCheckOut, setNewCheckOut] = useState('');
 
   useEffect(() => {
@@ -99,21 +100,36 @@ export default function ActiveStaysPage() {
 
   const handleExtendStay = async () => {
     if (!selectedStay || !newCheckOut) return;
+    setIsExtending(true);
     try {
       const result = await extendStay(selectedStay.bookingId, newCheckOut);
       if (result.success) {
-        // alert(`Room is available!\nBooking ${selectedStay.bookingReference} end_date extended to ${newCheckOut}.`);
+        const extendedStay = { ...selectedStay, checkOut: newCheckOut };
+        setSelectedStay(extendedStay);
+        setActiveStays(prev => prev.map(s => s.bookingId === selectedStay.bookingId ? extendedStay : s));
+        setInvoice(null);
         setActiveModal('NONE');
-
-        // Update the stay in UI to reflect new date without full refresh
-        setSelectedStay({ ...selectedStay, checkOut: newCheckOut });
-        setActiveStays(prev => prev.map(s => s.bookingId === selectedStay.bookingId ? { ...s, checkOut: newCheckOut } : s));
         setNewCheckOut('');
+
+        try {
+          const bookings = await getAllBookings();
+          const checkedIn = bookings.filter(booking => booking.status === 'CHECKED_IN');
+          setActiveStays(checkedIn);
+          const refreshedStay = checkedIn.find(stay => stay.bookingId === selectedStay.bookingId);
+          if (refreshedStay) setSelectedStay(refreshedStay);
+        } catch (refreshError) {
+          console.error('Stay was extended, but the refreshed booking list could not be loaded.', refreshError);
+        }
+
+        alert(result.message);
       } else {
-        console.error(`Failed to extend stay: ${result.message}`);
+        alert(`Unable to extend stay: ${result.message}`);
       }
-    } catch (err) {
-      console.error('Error connecting to the database to extend stay.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not connect to the server.';
+      alert(`Unable to extend stay: ${message}`);
+    } finally {
+      setIsExtending(false);
     }
   };
 
@@ -284,10 +300,10 @@ export default function ActiveStaysPage() {
                       e.preventDefault();
                       handleExtendStay();
                     }}
-                    disabled={!newCheckOut}
+                    disabled={!newCheckOut || isExtending}
                     className="w-full py-4 bg-skynest-blue text-white font-black rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50"
                   >
-                    Confirm Extension
+                    {isExtending ? 'Extending...' : 'Confirm Extension'}
                   </button>
                 </div>
               )}

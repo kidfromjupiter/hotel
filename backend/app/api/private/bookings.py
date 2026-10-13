@@ -23,6 +23,8 @@ from app.schemas.bookings import (
     CheckInResponse,
     CheckOutRequest,
     CheckOutResponse,
+    ExtendStayRequest,
+    ExtendStayResponse,
 )
 from app.services.booking_service import BookingService
 from app.services.billing_service import BillingService
@@ -138,3 +140,16 @@ def cancel_booking(
 ):
     """Staff endpoint to cancel a booking."""
     return booking_service.cancel_booking(booking_id)
+
+
+@router.post("/{booking_id}/extend", response_model=ExtendStayResponse)
+def extend_stay(
+    booking_id: int,
+    payload: ExtendStayRequest,
+    booking_service: BookingService = Depends(get_booking_service),
+    current_user: StaffUser = Depends(get_current_user),
+):
+    """Extend a checked-in stay when the room remains available."""
+    booking = booking_service.get_booking_record(booking_id)
+    enforce_branch_access(booking.get("branch_id"), current_user)
+    return booking_service.extend_stay(booking_id, payload.new_check_out_date)

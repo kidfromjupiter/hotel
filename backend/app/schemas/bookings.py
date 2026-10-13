@@ -106,3 +106,19 @@ class AddServiceRequest(BaseModel):
     service_total: float
     # We can default service_dates to 1 since they usually just click "Add Service" once
     service_dates: int = 1
+
+
+class ExtendStayRequest(BaseModel):
+    new_check_out_date: date
+
+
+class ExtendStayResponse(BaseModel):
+    success: bool = True
+    message: str
+    booking_id: int
+    previous_check_out_date: date
+    new_check_out_date: date
+    added_nights: int
+    added_room_charge: float
+    grand_total: float
+    payment_status: str
