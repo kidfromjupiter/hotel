@@ -2,16 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineFilter, HiOutlineOfficeBuilding } from 'react-icons/hi';
-import { getAllRooms, getBranches } from '@/lib/api';
+import { getAllRooms, getBranches, getRoomTypes, createRoom } from '@/lib/api';
 import type { AdminRoom, BranchItem } from '@/lib/types';
 
-export default function AdminRoomsPage() {
-  const [activeTab, setActiveTab] = useState<'rooms' | 'types'>('rooms');
-  const [filterBranch, setFilterBranch] = useState('All Branches');
-  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
-  const [showAddTypeModal, setShowAddTypeModal] = useState(false);
+type ActiveTab = 'rooms' | 'types';
+type RoomStatus = 'Active' | string;
 
-  const [rooms, setRooms] = useState<AdminRoom[]>([]);
+interface RoomTypeOption {
+  room_type_id: string;
+  daily_rate: number;
+}
+
+interface RoomRow {
+  id: number;
+  type: string;
+  branch: string;
+  price: string;
+  status: RoomStatus;
+}
+
+export default function AdminRoomsPage() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('rooms');
+  const [filterBranch, setFilterBranch] = useState<string>('All Branches');
+  const [showAddRoomModal, setShowAddRoomModal] = useState<boolean>(false);
+  const [showAddTypeModal, setShowAddTypeModal] = useState<boolean>(false);
+
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
 
   useEffect(() => {
@@ -31,6 +47,69 @@ export default function AdminRoomsPage() {
     });
   }, []);
 
+  const [roomTypes, setRoomTypes] = useState<Array<{ room_type_id: string; daily_rate: number }>>([]);
+  const [roomNumber, setRoomNumber] = useState('');
+  const [branchId, setBranchId] = useState('');
+  const [roomTypeId, setRoomTypeId] = useState('');
+  const [capacity, setCapacity] = useState('2');
+  const [saving, setSaving] = useState(false);
+  const [roomError, setRoomError] = useState('');
+
+  async function openAddRoom() {
+    setRoomError('');
+    setRoomNumber('');
+    setCapacity('2');
+    setRoomTypes([]);
+    setShowAddRoomModal(true);
+    try {
+      const types = await getRoomTypes();
+      setRoomTypes(types);
+      setRoomTypeId(types[0]?.room_type_id ?? '');
+      const selected = branches.find(b => b.branch_name === filterBranch);
+      setBranchId(String(selected?.branch_id ?? branches[0]?.branch_id ?? ''));
+    } catch (error) {
+      setRoomError(error instanceof Error ? error.message : 'Could not load room types');
+    }
+  }
+
+  async function saveRoom() {
+    setRoomError('');
+    const number = Number(roomNumber);
+    const guests = Number(capacity);
+    if (!Number.isInteger(number) || number < 1 || number > 32767 ||
+        !Number.isInteger(guests) || guests < 1 || guests > 32767 ||
+        !branchId || !roomTypeId) {
+      setRoomError('Enter valid room details and select a branch and room type.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createRoom({
+        room_number: number, branch_id: Number(branchId),
+        room_type_id: roomTypeId, capacity: guests,
+      });
+    } catch (error) {
+      setRoomError(error instanceof Error ? error.message : 'Could not save room');
+      setSaving(false);
+      return;
+    }
+    setShowAddRoomModal(false);
+    setSaving(false);
+    setFilterBranch('All Branches');
+    try {
+      const data = await getAllRooms();
+      const branchMap = new Map(branches.map(b => [b.branch_id, b.branch_name]));
+      setRooms(data.map(r => ({
+        id: r.room_number,
+        type: r.room_type || 'Standard',
+        branch: branchMap.get(r.branch_id) || `Branch ${r.branch_id}`,
+        price: `$${r.daily_rate ?? 200}`,
+        status: r.room_status === 'AVAILABLE' ? 'Active' : r.room_status,
+      })));
+    } catch {
+      alert('Room saved. Reload the page to refresh the list.');
+    }
+  }
   const filteredRooms = filterBranch === 'All Branches'
     ? rooms
     : rooms.filter(room => room.branch === filterBranch);
@@ -58,7 +137,7 @@ export default function AdminRoomsPage() {
             </button>
           </div>
           <button
-            onClick={() => activeTab === 'rooms' ? setShowAddRoomModal(true) : setShowAddTypeModal(true)}
+            onClick={() => activeTab === 'rooms' ? void openAddRoom() : setShowAddTypeModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors"
           >
             <HiOutlinePlus size={20} />
@@ -159,34 +238,36 @@ export default function AdminRoomsPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Room Number</label>
-                <input type="text" placeholder="e.g. 101" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium" />
+                <input type="number" min={1} max={32767} value={roomNumber} onChange={e => setRoomNumber(e.target.value)} placeholder="e.g. 501" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Room Type</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">
-                    <option>Single Deluxe</option>
-                    <option>Double Deluxe</option>
-                    <option>Suite</option>
-                  </select>
+                  <select value={roomTypeId} onChange={e => setRoomTypeId(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">{roomTypes.map(t => <option key={t.room_type_id} value={t.room_type_id}>{t.room_type_id}</option>)}</select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Branch</label>
-                  <select className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">
-                    <option>Colombo City Center</option>
-                    <option>Kandy Resort</option>
-                    <option>Galle Fort Boutique</option>
-                  </select>
+                  <select value={branchId} onChange={e => setBranchId(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">{branches.map(b => <option key={b.branch_id} value={b.branch_id}>{b.branch_name}</option>)}</select>
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+            <div className="px-6 pb-6 space-y-2">
+  <label htmlFor="room-capacity" className="block text-sm font-bold text-slate-700">Capacity</label>
+  <input id="room-capacity" type="number" min={1} max={32767}
+    value={capacity} onChange={e => setCapacity(e.target.value)}
+    className="w-full px-4 py-2.5 rounded-xl border border-slate-200" />
+  {roomError && <p role="alert" className="text-sm text-red-600">{roomError}</p>}
+</div>
+<div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
               <button onClick={() => setShowAddRoomModal(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors">
                 Cancel
               </button>
-              <button onClick={() => setShowAddRoomModal(false)} className="px-5 py-2.5 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-md transition-colors">
-                Save Room
-              </button>
+
+<button onClick={() => void saveRoom()}
+  disabled={saving || !roomTypes.length || !branches.length}
+  className="px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl disabled:opacity-50">
+  {saving ? 'Saving...' : 'Save Room'}
+</button>
             </div>
           </div>
         </div>

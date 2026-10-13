@@ -517,3 +517,21 @@ export async function getServices(): Promise<Array<{ service_id: number; service
 export async function getGuests(): Promise<Array<{ guest_id: number; name: string; national_id: string; phone_number: string; membership_id: number | null }>> {
   return request('/api/v1/private/guests/');
 }
+
+export function getRoomTypes(): Promise<
+  Array<{ room_type_id: string; daily_rate: number }>
+> {
+  return request('/api/v1/private/rooms/types');
+}
+
+export function createRoom(data: {
+  room_number: number;
+  branch_id: number;
+  room_type_id: string;
+  capacity: number;
+}): Promise<unknown> {
+  return request('/api/v1/private/rooms/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
