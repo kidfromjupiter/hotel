@@ -31,7 +31,7 @@ def test_repository_reads_and_service_shaping_against_postgres(db_connection):
     assert detail.service_charges
 
     guest = guests.get_guest_by_id(booking["guest_id"])
-    assert guests.get_guest_by_phone("0" + guest["phone_number"])["guest_id"] == guest["guest_id"]
+    assert guests.get_guest_by_phone("0" + guest["phone_number"][3:])["guest_id"] == guest["guest_id"]
     assert any(row["guest_id"] == guest["guest_id"] for row in guests.get_all_guests())
     history = GuestService(guests).get_payment_history(str(guest["guest_id"]), booking["branch_id"])
     assert history["guest"]["guest_id"] == guest["guest_id"]
@@ -81,7 +81,7 @@ def test_single_row_updates_use_repository_sql(db_connection):
         cursor.execute("SELECT booking_id FROM booking WHERE booking_status = 'CONFIRMED' ORDER BY booking_id LIMIT 1")
         booking_id = cursor.fetchone()[0]
 
-    assert guests.update_guest_phone(guest_id, 771234560)["phone_number"] == "771234560"
+    assert guests.update_guest_phone(guest_id, "0771234560")["phone_number"] == "+94771234560"
     assert guests.enroll_guest_membership(guest_id, membership_id)["membership_id"] == membership_id
     assert booking_repo.update_booking(booking_id, {"booking_status": "CANCELLED"})["booking_status"] == "CANCELLED"
     assert booking_repo.update_booking(booking_id, {"booking_status": "CHECKED_IN"}) is None
@@ -91,6 +91,7 @@ def test_guest_and_booking_creation_roll_back_together(db_connection):
     name = "BOUNDARY_TEST_" + uuid4().hex
     guest = GuestsRepo(db_connection).create_guest("+94770000999", name)
     assert guest is not None
+    assert guest["phone_number"] == "+94770000999"
     with pytest.raises(psycopg2.Error):
         BookingRepository(db_connection).save_booking({
             "guest_id": guest["guest_id"], "branch_id": 999999, "room_number": 1,
