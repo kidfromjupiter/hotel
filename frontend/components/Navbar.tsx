@@ -8,9 +8,6 @@ import { HiMenu, HiX } from 'react-icons/hi';
 const NAV_LINKS = [
   { label: 'HOME', href: '/' },
   { label: 'ACCOMMODATIONS', href: '/#accommodations' },
-  { label: 'OUR SPA', href: '/#spa' },
-  { label: 'GALLERY', href: '/#gallery' },
-  { label: 'OFFERS', href: '/#offers' },
   { label: 'STAFF PORTAL', href: '/staff/login' },
 ];
 
