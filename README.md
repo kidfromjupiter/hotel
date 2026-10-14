@@ -73,8 +73,8 @@ GitHub Actions runs the same test command for pull requests and pushes to `main`
 - **Backend:** Developed and refactored booking and room APIs, added extended-stay and payment flows, and established a clear database access boundary.
 - **Database and tooling:** Set up Docker Compose, migrations and seed data, database tests, and the GitHub Actions test pipeline.
 
-### Bhanujan 
+### Visvalingam Banujan
 
-- **Frontend:** Built and improved administrator dashboard reporting, occupancy views, CSV export, and room creation.
-- **Backend:** Moved booking SQL into repositories and fixed report calculations and branch access.
-- **Database and testing:** Added database-generated guest and booking IDs, booking and billing constraints and triggers, and PostgreSQL integration tests.
+- **Frontend:** Built admin room creation; fixed reporting and added CSV export; improved dashboard charts and error handling.
+- **Backend:** Developed admin room creation APIs, refactored the service-charge repository, and added report validation and branch access controls.
+- **Database:** Implemented primary-key generation with PostgreSQL identities and seed sequence synchronization; wrote database concurrency and persistence tests.
