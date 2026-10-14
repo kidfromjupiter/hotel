@@ -25,7 +25,7 @@ def charge_service(
     result = services_service.charge_service(
         booking_id=payload.booking_id,
         service_id=payload.service_id,
-        service_dates=payload.service_dates or 1,
+        quantity=payload.quantity or 1,
     )
     if not result.get("success"):
         raise HTTPException(

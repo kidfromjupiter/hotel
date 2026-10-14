@@ -45,14 +45,7 @@ class BookingService:
                 detail="The selected room does not exist at this branch.",
             )
 
-        # Apply membership discounts if token is present
         if guest_token:
-            discount = guest_token.get("discount_percent", 0)
-            if discount > 0:
-                original_price = booking_dict.get("totalPrice", 0.0)
-                booking_dict["totalPrice"] = round(original_price * (1 - (discount / 100.0)), 2)
-
-            # Auto-assign guest_id if they are logged in
             if guest_token.get("guest_id") and not booking_dict.get("guest_id"):
                 booking_dict["guest_id"] = guest_token.get("guest_id")
 
@@ -227,7 +220,9 @@ class BookingService:
         services = [
             ServiceChargeItem(
                 service_name=s.get("service_name") or "Service",
-                service_dates=s.get("service_dates", 1),
+                quantity=s.get("quantity", 1),
+                usage_date=s.get("usage_date") or date.today(),
+                unit_price=float(s.get("unit_price") or 0),
                 service_total=float(s.get("service_total", 0.0)),
             )
             for s in self.booking_repo.get_service_charges(booking_id)
@@ -296,10 +291,7 @@ class BookingService:
             )
 
         in_time = check_in_time or datetime.now().strftime("%H:%M:%S")
-        updated = self.booking_repo.update_booking(
-            booking_id,
-            {"booking_status": "CHECKED_IN", "checked_in_time": in_time},
-        )
+        updated = self.booking_repo.check_in_booking(booking_id, in_time)
         if not updated:
             raise HTTPException(status_code=409, detail="Booking status changed before check-in.")
         return CheckInResponse(
@@ -338,18 +330,20 @@ class BookingService:
             )
 
         current_status = b.get("booking_status", "")
-        if current_status not in ("CONFIRMED", "CHECKED_IN"):
+        if current_status != "CHECKED_IN":
             raise HTTPException(
                 status_code=400,
                 detail="Can only add services to active stays.",
             )
 
         service_id = getattr(payload, "service_id", None) or 1
-        service_dates = getattr(payload, "service_dates", None) or 1
+        quantity = getattr(payload, "quantity", None) or 1
 
-        self.booking_repo.add_service_to_booking(
-            booking_id, service_id, service_dates
+        result = self.booking_repo.add_service_to_booking(
+            booking_id, service_id, quantity
         )
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Service charge failed."))
         return self.get_booking_by_id(booking_id)
 
     def get_pending_booking_by_id(self, booking_id: int):

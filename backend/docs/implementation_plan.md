@@ -1,4 +1,6 @@
-# API Design & Backend Architecture: SkyNest Hotel Management System (HRGSMS)
+# Historical API Design & Backend Architecture: SkyNest Hotel Management System (HRGSMS)
+
+This is an early design proposal. See the root README and the running API's `/docs` page for current behavior.
 
 ## Overview & Context
 SkyNest Hotels operates branches in Colombo, Kandy, and Galle. The backend must handle room bookings, check-in/check-out lifecycle, chargeable guest services, tax & membership discount calculations, partial/full payments, and 5 management reports.
@@ -88,7 +90,7 @@ def test_create_booking_prevents_double_booking(mocker):
 | Method | Endpoint | Description | Request Params / Body | Response |
 | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/services` | View service catalogue (Spa, Laundry, Minibar, Room Service, etc.) | None | `List[ServiceItemResponse]` |
-| `POST` | `/api/v1/bookings/{booking_id}/services` | Add service usage to an active booking | Body: `{ "service_id": int, "service_dates": int, "quantity": int }` | `ServiceChargeResponse` (201 Created) |
+| `POST` | `/api/v1/bookings/{booking_id}/services` | Add service usage to an active booking | Body: `{ "service_id": int, "quantity": int }` | `ServiceChargeResponse` (201 Created) |
 | `GET` | `/api/v1/bookings/{booking_id}/services` | List all service charges billed to this booking | Path param: `booking_id` | `List[ServiceChargeResponse]` |
 
 ### 5. Billing, Invoices & Payments (`/api/v1/billing`, `/api/v1/invoices`, `/api/v1/transactions`)

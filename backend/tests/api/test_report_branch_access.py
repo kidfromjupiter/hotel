@@ -42,7 +42,7 @@ def test_service_trends_branch_access(
         assert response.status_code == expected_status
         if expected_status == 200:
             service.get_service_trends_report.assert_called_once_with(
-                limit=3, branch_id=effective_branch
+                limit=3, branch_id=effective_branch, start_date=None, end_date=None
             )
         else:
             service.get_service_trends_report.assert_not_called()

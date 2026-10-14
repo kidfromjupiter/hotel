@@ -65,7 +65,7 @@ def test_services_and_billing_endpoints(monkeypatch, client):
     monkeypatch.setattr(
         ServicesRepo,
         "charge_service",
-        lambda self, booking_id, service_id, service_dates=1: {
+        lambda self, booking_id, service_id, quantity=1: {
             "success": True,
             "message": "Service charged successfully",
             "service_log_id": 1,
@@ -103,7 +103,7 @@ def test_services_and_billing_endpoints(monkeypatch, client):
     # 2. POST /api/v1/private/services/charge
     res_charge = client.post(
         "/api/v1/private/services/charge",
-        json={"booking_id": 9921, "service_id": 1, "service_dates": 1},
+        json={"booking_id": 9921, "service_id": 1, "quantity": 1},
     )
     assert res_charge.status_code == 200
     assert res_charge.json()["success"] is True

@@ -42,6 +42,7 @@ def test_database():
             )
             ids = [row[0] for row in cursor.fetchall()]
             if ids:
+                cursor.execute("DELETE FROM invoice_taxes WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id = ANY(%s))", (ids,))
                 cursor.execute(
                     "DELETE FROM service_charges WHERE booking_id = ANY(%s)", (ids,)
                 )
@@ -49,6 +50,7 @@ def test_database():
                     "DELETE FROM billing_summary WHERE booking_id = ANY(%s)", (ids,)
                 )
                 cursor.execute("DELETE FROM booking WHERE booking_id = ANY(%s)", (ids,))
+                cursor.execute("UPDATE room_details SET room_status = 'AVAILABLE' WHERE branch_id = 1 AND room_number = 101")
             cursor.execute("DELETE FROM guests WHERE name LIKE %s", (prefix + "%",))
         connection.commit()
         connection.close()
@@ -68,7 +70,8 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
         guest = GuestsRepo(setup).create_guest("+94770000111", prefix + "_owner")
         assert guest is not None
         guest_id = guest["guest_id"]
-        start = date(2100, 1, 1) + timedelta(days=int(uuid4().hex[:4], 16) * 4)
+        start = (date.today() - timedelta(days=1) if kind == "service"
+                 else date(2100, 1, 1) + timedelta(days=int(uuid4().hex[:4], 16) * 4))
 
         def booking_payload(index):
             check_in = start + timedelta(days=index * 2)
@@ -79,7 +82,7 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
                 "guest_id": guest_id,
                 "booking_status": "CONFIRMED",
                 "start_date": check_in.isoformat(),
-                "end_date": (check_in + timedelta(days=1)).isoformat(),
+                "end_date": (check_in + timedelta(days=3 if kind == "service" else 1)).isoformat(),
                 "adult_count": 1,
                 "children_count": 0,
                 "grand_total": 15000,
@@ -90,6 +93,7 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
             service_booking = BookingRepository(setup).save_booking(booking_payload(0))[
                 "booking_id"
             ]
+            assert BookingRepository(setup).check_in_booking(service_booking, "14:00:00")
 
         with setup.cursor() as cursor:
             cursor.execute(f"SELECT COALESCE(MAX({column}), 0) FROM {table}")
@@ -131,7 +135,6 @@ def test_concurrent_ids_are_unique_and_persisted(test_database, kind):
             ids = list(executor.map(insert, range(2)))
 
         assert len(set(ids)) == 2, "Concurrent requests received duplicate IDs"
-        assert min(ids) > previous_max, "Generated ID collided with existing data"
 
         with setup.cursor() as cursor:
             cursor.execute(

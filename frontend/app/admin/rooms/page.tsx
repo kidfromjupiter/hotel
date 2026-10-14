@@ -11,6 +11,7 @@ type RoomStatus = 'Active' | string;
 interface RoomTypeOption {
   room_type_id: string;
   daily_rate: number;
+  capacity: number;
 }
 
 interface RoomRow {
@@ -25,7 +26,7 @@ const ROOM_TYPE_META: Record<string, { name: string; occupancy: number }> = {
   STANDARD: { name: 'Standard Room', occupancy: 2 },
   DELUXE: { name: 'Deluxe Room', occupancy: 2 },
   FAMILY: { name: 'Family Room', occupancy: 4 },
-  SUITE: { name: 'Executive Suite', occupancy: 4 },
+  SUITE: { name: 'Executive Suite', occupancy: 2 },
 };
 
 export default function AdminRoomsPage() {
@@ -36,7 +37,7 @@ export default function AdminRoomsPage() {
 
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [branches, setBranches] = useState<BranchItem[]>([]);
-  const [roomTypesList, setRoomTypesList] = useState<Array<{ room_type_id: string; daily_rate: number }>>([]);
+  const [roomTypesList, setRoomTypesList] = useState<RoomTypeOption[]>([]);
 
   useEffect(() => {
     Promise.all([getAllRooms(), getBranches(), getRoomTypes()]).then(([roomsData, branchesData, typesData]) => {
@@ -56,7 +57,7 @@ export default function AdminRoomsPage() {
     });
   }, []);
 
-  const [roomTypes, setRoomTypes] = useState<Array<{ room_type_id: string; daily_rate: number }>>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [roomNumber, setRoomNumber] = useState('');
   const [branchId, setBranchId] = useState('');
   const [roomTypeId, setRoomTypeId] = useState('');
@@ -74,6 +75,7 @@ export default function AdminRoomsPage() {
       const types = await getRoomTypes();
       setRoomTypes(types);
       setRoomTypeId(types[0]?.room_type_id ?? '');
+      setCapacity(String(types[0]?.capacity ?? 2));
       const selected = branches.find(b => b.branch_name === filterBranch);
       setBranchId(String(selected?.branch_id ?? branches[0]?.branch_id ?? ''));
     } catch (error) {
@@ -219,7 +221,7 @@ export default function AdminRoomsPage() {
           {roomTypesList.map((type) => {
             const meta = ROOM_TYPE_META[type.room_type_id] || {
               name: type.room_type_id,
-              occupancy: 2,
+              occupancy: type.capacity,
             };
             return (
               <div key={type.room_type_id} className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
@@ -230,7 +232,7 @@ export default function AdminRoomsPage() {
                       {type.room_type_id}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-500 mt-1 font-medium">Max Occupancy: {meta.occupancy} Adults</p>
+                  <p className="text-sm text-slate-500 mt-1 font-medium">Max Occupancy: {type.capacity} Guests</p>
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-slate-200">
@@ -268,7 +270,7 @@ export default function AdminRoomsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Room Type</label>
-                  <select value={roomTypeId} onChange={e => setRoomTypeId(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">{roomTypes.map(t => <option key={t.room_type_id} value={t.room_type_id}>{t.room_type_id}</option>)}</select>
+                  <select value={roomTypeId} onChange={e => { setRoomTypeId(e.target.value); setCapacity(String(roomTypes.find(t => t.room_type_id === e.target.value)?.capacity ?? 2)); }} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-sm font-medium text-slate-700">{roomTypes.map(t => <option key={t.room_type_id} value={t.room_type_id}>{t.room_type_id}</option>)}</select>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Branch</label>
@@ -279,7 +281,7 @@ export default function AdminRoomsPage() {
             <div className="px-6 pb-6 space-y-2">
   <label htmlFor="room-capacity" className="block text-sm font-bold text-slate-700">Capacity</label>
   <input id="room-capacity" type="number" min={1} max={32767}
-    value={capacity} onChange={e => setCapacity(e.target.value)}
+    value={capacity} readOnly
     className="w-full px-4 py-2.5 rounded-xl border border-slate-200" />
   {roomError && <p role="alert" className="text-sm text-red-600">{roomError}</p>}
 </div>

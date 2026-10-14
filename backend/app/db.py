@@ -14,7 +14,10 @@ def get_pool() -> Optional[ThreadedConnectionPool]:
             "postgresql://app_user:app_password@localhost:5432/app_db",
         )
         try:
-            _pool = ThreadedConnectionPool(minconn=1, maxconn=10, dsn=dsn)
+            _pool = ThreadedConnectionPool(
+                minconn=1, maxconn=10, dsn=dsn,
+                options="-c timezone=Asia/Colombo",
+            )
         except Exception:
             _pool = None
     return _pool

@@ -18,9 +18,7 @@ def service_booking():
 
     try:
         guest = GuestsRepo(db).create_guest("+94770000114", prefix)
-        start = date(2100, 1, 1) + timedelta(
-            days=int(uuid4().hex[:4], 16) * 4
-        )
+        start = date.today() - timedelta(days=1)
         booking = BookingRepository(db).save_booking({
             "room_number": 101,
             "branch_id": 1,
@@ -32,6 +30,7 @@ def service_booking():
             "children_count": 0,
             "grand_total": 15000,
         })
+        assert BookingRepository(db).check_in_booking(booking["booking_id"], "14:00:00")
 
         with db.cursor() as cursor:
             cursor.execute(
@@ -51,6 +50,7 @@ def service_booking():
             )
             ids = [row[0] for row in cursor.fetchall()]
             if ids:
+                cursor.execute("DELETE FROM invoice_taxes WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id = ANY(%s))", (ids,))
                 cursor.execute(
                     "DELETE FROM service_charges WHERE booking_id = ANY(%s)",
                     (ids,),
@@ -62,6 +62,7 @@ def service_booking():
                 cursor.execute(
                     "DELETE FROM booking WHERE booking_id = ANY(%s)", (ids,)
                 )
+                cursor.execute("UPDATE room_details SET room_status = 'AVAILABLE' WHERE branch_id = 1 AND room_number = 101")
             cursor.execute("DELETE FROM guests WHERE name = %s", (prefix,))
         db.commit()
         db.close()
@@ -90,7 +91,7 @@ def test_caller_commits_service_charge_and_bill_together(service_booking):
     try:
         with observer.cursor() as cursor:
             cursor.execute(
-                "SELECT service_id, service_dates, service_total "
+                "SELECT service_id, quantity, service_total "
                 "FROM service_charges WHERE booking_id = %s",
                 (booking_id,),
             )
@@ -108,7 +109,8 @@ def test_caller_commits_service_charge_and_bill_together(service_booking):
             after = cursor.fetchone()
 
         assert after[0] == (before[0] or 0) + charge_total
-        assert after[1] == (before[1] or 0) + charge_total
+        from decimal import Decimal
+        assert after[1] == (before[1] or 0) + charge_total * Decimal('1.15')
     finally:
         observer.close()
 
@@ -121,8 +123,7 @@ def test_failed_save_rolls_back_and_connection_remains_usable(service_booking):
         assert cursor.fetchone() is None
     db.commit()
 
-    with pytest.raises(psycopg2.Error):
-        BookingRepository(db).add_service_to_booking(-1, service_id, 1)
+    assert not BookingRepository(db).add_service_to_booking(-1, service_id, 1)["success"]
 
     # The request transaction owner rolls back after a failed database call.
     db.rollback()

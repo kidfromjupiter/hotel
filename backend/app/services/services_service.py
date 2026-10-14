@@ -15,10 +15,10 @@ class ServicesService:
         ])
 
     def charge_service(
-        self, booking_id: int, service_id: int, service_dates: int = 1
+        self, booking_id: int, service_id: int, quantity: int = 1
     ) -> Dict[str, Any]:
         return self.repo.charge_service(
             booking_id=booking_id,
             service_id=service_id,
-            service_dates=service_dates,
+            quantity=quantity,
         )

@@ -48,15 +48,15 @@ def test_private_booking_staff_operations(client, booking_repo):
             "booking_id": 99901,
             "guest_id": 1,
             "guest_name": "Test Guest",
-            "room_number": 103,
+            "room_number": 202,
             "branch_id": 1,
             "branch_name": "Colombo",
             "booking_status": "CONFIRMED",
             "start_date": "2027-10-01",
             "end_date": "2027-10-05",
             "grand_total": 50000.0,
-            "amount_paid": 50000.0,
-            "invoice_status": "PAID",
+            "amount_paid": 0.0,
+            "invoice_status": "UNPAID",
         }
     )
     if booking_repo.db:
@@ -79,6 +79,14 @@ def test_private_booking_staff_operations(client, booking_repo):
     )
     assert res_checkin.status_code == 200
     assert res_checkin.json()["booking_status"] == "CHECKED_IN"
+
+    from decimal import Decimal
+    from app.repositories.billing_repo import BillingRepo
+    invoice = booking_repo.find_booking_by_id(99901)
+    payment = BillingRepo(booking_repo.db).record_payment(
+        invoice["invoice_id"], Decimal(invoice["grand_total"]), "Card")
+    assert payment["success"] is True
+    booking_repo.db.commit()
 
     # 4. Staff check-out
     res_checkout = client.post(

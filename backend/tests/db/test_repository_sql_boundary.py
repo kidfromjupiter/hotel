@@ -62,12 +62,12 @@ def test_retained_database_boundary(db_connection):
               "get_all_invoices", "update_guest_phone"],),
         )
         names = {row[0] for row in cursor.fetchall()}
-        cursor.execute("SELECT 1 FROM pg_trigger WHERE tgname = 'prevent_double_booking' AND NOT tgisinternal")
-        trigger = cursor.fetchone()
+        cursor.execute("SELECT 1 FROM pg_constraint WHERE conname = 'booking_no_overlap' AND contype = 'x'")
+        constraint = cursor.fetchone()
     assert {"create_booking", "add_service_to_booking", "extend_booking_stay",
             "record_invoice_payment", "checkout_booking"} <= names
     assert not {"get_booking_by_id", "get_all_invoices", "update_guest_phone"} & names
-    assert trigger is not None
+    assert constraint is not None
 
 
 def test_single_row_updates_use_repository_sql(db_connection):

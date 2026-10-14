@@ -3,15 +3,20 @@
 import { useState, useEffect } from 'react';
 import ServiceUsageReport from '@/components/ServiceUsageReport';
 import { HiOutlineDownload, HiOutlineChartPie, HiOutlineTrendingUp, HiOutlineRefresh } from 'react-icons/hi';
-import { getMonthlyRevenue, getOccupancyReport } from '@/lib/api';
+import { getMonthlyRevenue, getOccupancyReport, getGuestBillingReport, getServiceTrendsReport, getServiceUsageReport } from '@/lib/api';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function AdminReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revenueData, setRevenueData] = useState<{ room: number; service: number; total: number } | null>(null);
+  const [revenueData, setRevenueData] = useState<{ room: number; service: number; tax: number; total: number } | null>(null);
+  const [monthlyRows, setMonthlyRows] = useState<Array<{ branch_name: string; month: string; room_revenue: number; service_revenue: number; tax_revenue: number; total_revenue: number }>>([]);
   const [occupancyBranches, setOccupancyBranches] = useState<Array<{ branch_name: string; occupancy_rate_percent: number }>>([]);
+  const [billingRows, setBillingRows] = useState<Array<{ guest_name: string; booking_id: number; outstanding_balance: number; payment_status: string }>>([]);
+  const [trendRows, setTrendRows] = useState<Array<{ rank: number; service_name: string; times_used: number; unique_guests: number }>>([]);
+  const [startDate, setStartDate] = useState(`${CURRENT_YEAR}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`);
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 86400000).toLocaleDateString('en-CA'));
 
   const [occupancyPeriod, setOccupancyPeriod] = useState<{ start: string; end: string } | null>(null);
 
@@ -19,26 +24,24 @@ export default function AdminReportsPage() {
     setLoading(true);
     setError(null);
     try {
-      const now = new Date();
-      const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const localDate = (date: Date) =>
-        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const today = localDate(now);
-
-
-      const [revenue, occupancy] = await Promise.all([
+      if (endDate <= startDate) throw new Error('End date must be after start date.');
+      const [revenue, occupancy, billing, trends] = await Promise.all([
         getMonthlyRevenue(CURRENT_YEAR),
-        now.getDate() === 1
-          ? Promise.resolve({ branches: [] })
-          : getOccupancyReport(startOfMonth, today),
+        getOccupancyReport(startDate, endDate),
+        getGuestBillingReport(),
+        getServiceTrendsReport(),
       ]);
 
       const totalRoom = revenue.data.reduce((s, r) => s + r.room_revenue, 0);
       const totalService = revenue.data.reduce((s, r) => s + r.service_revenue, 0);
+      const totalTax = revenue.data.reduce((s, r) => s + r.tax_revenue, 0);
       const totalRevenue = revenue.data.reduce((sum, row) => sum + row.total_revenue, 0);
-      setRevenueData({ room: totalRoom, service: totalService, total: totalRevenue });
+      setRevenueData({ room: totalRoom, service: totalService, tax: totalTax, total: totalRevenue });
+      setMonthlyRows(revenue.data);
       setOccupancyBranches(occupancy.branches);
-      setOccupancyPeriod({ start: startOfMonth, end: today });
+      setOccupancyPeriod({ start: startDate, end: endDate });
+      setBillingRows(billing.data);
+      setTrendRows(trends.top_services);
     } catch (e: any) {
       setError(e.message ?? 'Failed to load report data');
     } finally {
@@ -49,14 +52,16 @@ export default function AdminReportsPage() {
   useEffect(() => { fetchData(); }, []);
 
 
-  function exportCsv() {
+  async function exportCsv() {
     if (loading || error || !revenueData || !occupancyPeriod) return;
+    const services = await getServiceUsageReport();
 
     const rows: Array<Array<string | number>> = [
       ['Report', 'Year', 'Period start', 'Period end (exclusive)', 'Branch', 'Metric', 'Value', 'Unit'],
-      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Room charges', revenueData.room, 'LKR'],
-      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Service charges', revenueData.service, 'LKR'],
-      ['Invoice summary', CURRENT_YEAR, '', '', 'All branches', 'Invoice total including tax', revenueData.total, 'LKR'],
+      ['Payments received', CURRENT_YEAR, '', '', 'All branches', 'Room revenue', revenueData.room, 'LKR'],
+      ['Payments received', CURRENT_YEAR, '', '', 'All branches', 'Service revenue', revenueData.service, 'LKR'],
+      ['Payments received', CURRENT_YEAR, '', '', 'All branches', 'Tax received', revenueData.tax, 'LKR'],
+      ['Payments received', CURRENT_YEAR, '', '', 'All branches', 'Total revenue', revenueData.total, 'LKR'],
     ];
 
     for (const branch of occupancyBranches) {
@@ -72,6 +77,17 @@ export default function AdminReportsPage() {
         'All branches', 'No completed-night occupancy data', '', '',
       ]);
     }
+    billingRows.forEach(row => rows.push(['Guest billing', CURRENT_YEAR, '', '', row.guest_name,
+      `Booking ${row.booking_id} ${row.payment_status}`, row.outstanding_balance, 'LKR']));
+    monthlyRows.forEach(row => {
+      rows.push(['Monthly revenue', CURRENT_YEAR, '', '', row.branch_name, `${row.month} room`, row.room_revenue, 'LKR']);
+      rows.push(['Monthly revenue', CURRENT_YEAR, '', '', row.branch_name, `${row.month} service`, row.service_revenue, 'LKR']);
+      rows.push(['Monthly revenue', CURRENT_YEAR, '', '', row.branch_name, `${row.month} tax`, row.tax_revenue, 'LKR']);
+    });
+    services.data.forEach(row => rows.push(['Service usage', CURRENT_YEAR, '', '',
+      `${row.branch_name} room ${row.room_number}`, row.service_name, row.total_quantity, 'units']));
+    trendRows.forEach(row => rows.push(['Service trends', CURRENT_YEAR, '', '', 'All branches',
+      `${row.rank}. ${row.service_name} (${row.unique_guests} guests)`, row.times_used, 'units']));
 
     const escapeCell = (value: string | number) => {
       const raw = String(value);
@@ -103,6 +119,8 @@ export default function AdminReportsPage() {
           <p className="text-sm text-slate-600 mt-1 font-medium">Live data — revenue and occupancy analytics.</p>
         </div>
         <div className="flex gap-3">
+          <label className="text-xs text-slate-600">From<input aria-label="Occupancy from" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="block border rounded px-2 py-1" /></label>
+          <label className="text-xs text-slate-600">To (exclusive)<input aria-label="Occupancy to" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="block border rounded px-2 py-1" /></label>
           <button
             onClick={fetchData}
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl shadow-sm transition-colors"
@@ -162,7 +180,7 @@ export default function AdminReportsPage() {
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center">
-                  <span className="font-bold text-slate-500">Total Invoice Value (Including Tax)</span>
+                  <span className="font-bold text-slate-500">Payments received (including LKR {revenueData.tax.toLocaleString()} tax)</span>
                   <span className="text-2xl font-black text-slate-900">LKR {total.toLocaleString()}</span>
                 </div>
               </div>
@@ -205,7 +223,27 @@ export default function AdminReportsPage() {
           </div>
         </div>
       )}
+      <section className="rounded-2xl bg-white p-6 shadow-xl">
+        <h2 className="font-bold text-lg mb-3">Monthly revenue by branch</h2>
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left">Branch</th><th>Month</th><th className="text-right">Rooms</th><th className="text-right">Services</th><th className="text-right">Tax</th><th className="text-right">Received</th></tr></thead><tbody>
+          {monthlyRows.map(row => <tr key={`${row.branch_name}-${row.month}`} className="border-t"><td>{row.branch_name}</td><td className="text-center">{row.month}</td><td className="text-right">{row.room_revenue.toLocaleString()}</td><td className="text-right">{row.service_revenue.toLocaleString()}</td><td className="text-right">{row.tax_revenue.toLocaleString()}</td><td className="text-right">{row.total_revenue.toLocaleString()}</td></tr>)}
+        </tbody></table></div>
+      </section>
       <ServiceUsageReport />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="rounded-2xl bg-white p-6 shadow-xl">
+          <h2 className="font-bold text-lg mb-3">Guest billing and unpaid balances</h2>
+          <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left">Guest</th><th>Booking</th><th>Status</th><th className="text-right">Due (LKR)</th></tr></thead><tbody>
+            {billingRows.map(row => <tr key={row.booking_id} className="border-t"><td>{row.guest_name}</td><td className="text-center">{row.booking_id}</td><td className="text-center">{row.payment_status}</td><td className="text-right">{row.outstanding_balance.toLocaleString()}</td></tr>)}
+          </tbody></table></div>
+        </section>
+        <section className="rounded-2xl bg-white p-6 shadow-xl">
+          <h2 className="font-bold text-lg mb-3">Top services and guest preferences</h2>
+          <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left">Service</th><th>Units</th><th>Guests</th></tr></thead><tbody>
+            {trendRows.map(row => <tr key={row.rank} className="border-t"><td>{row.rank}. {row.service_name}</td><td className="text-center">{row.times_used}</td><td className="text-center">{row.unique_guests}</td></tr>)}
+          </tbody></table></div>
+        </section>
+      </div>
     </div>
   );
 }

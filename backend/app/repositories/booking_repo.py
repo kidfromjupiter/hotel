@@ -43,7 +43,7 @@ class BookingRepository:
 
                     branch_id = record["branch_id"]
                     room_num = record["room_number"]
-                    guest_id = record.get("guest_id", 1)
+                    guest_id = record["guest_id"]
                     guest_name = record.get("guest_name") or record.get("name")
                     if guest_id and guest_name:
                         cursor.execute("UPDATE guests SET name = %s WHERE guest_id = %s", (guest_name, guest_id))
@@ -62,8 +62,8 @@ class BookingRepository:
                     end_date = record.get("end_date") or (record.get("checkOut") or "")[:10]
                     adult_count = record.get("adult_count", record.get("adults", 2))
                     children_count = record.get("children_count", record.get("children", 0))
-                    grand_total = float(record.get("grand_total", record.get("totalPrice", 0.0)))
-                    amount_paid = float(record.get("amount_paid", 0.0))
+                    grand_total = 0.0  # PostgreSQL calculates the room and tax charges.
+                    amount_paid = 0.0  # Only the payment function may record money received.
 
                     cursor.execute(
                         """
@@ -133,7 +133,8 @@ class BookingRepository:
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 """
-                SELECT cat.service_name, sc.service_dates, sc.service_total
+                SELECT cat.service_name, sc.quantity, sc.usage_date,
+                       sc.unit_price, sc.service_total
                 FROM service_charges sc
                 LEFT JOIN service_catalogue cat ON cat.service_id = sc.service_id
                 WHERE sc.booking_id = %s
@@ -228,6 +229,14 @@ class BookingRepository:
             )
             return list(cursor.fetchall())
 
+    def check_in_booking(self, booking_id: int, check_in_time: str) -> Optional[Dict[str, Any]]:
+        if self.db is None:
+            return None
+        with self.db.cursor() as cursor:
+            cursor.execute("SELECT check_in_booking(%s, %s::TIME)", (booking_id, check_in_time))
+            success = cursor.fetchone()[0]
+        return self.find_booking_by_id(booking_id) if success else None
+
     def update_booking(
         self, booking_id: int, updates: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
@@ -253,16 +262,17 @@ class BookingRepository:
         return self.find_booking_by_id(row["booking_id"]) if row else None
 
     def add_service_to_booking(
-        self, booking_id: int, service_id: int, service_dates: int
-    ) -> None:
+        self, booking_id: int, service_id: int, quantity: int
+    ) -> Dict[str, Any]:
         if self.db is None:
             raise RuntimeError("Database connection is unavailable")
 
         with self.db.cursor() as cursor:
             cursor.execute(
                 "SELECT add_service_to_booking(%s, %s, %s)",
-                (booking_id, service_id, service_dates),
+                (booking_id, service_id, quantity),
             )
+            return cursor.fetchone()[0]
 
     def extend_stay(
         self, booking_id: int, new_check_out_date: date

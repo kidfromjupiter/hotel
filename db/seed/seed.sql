@@ -12,6 +12,8 @@
 --   4. transactions.invoice_id has its FK to billing_summary(invoice_id)
 -- =====================================================================
 
+SET TIME ZONE 'Asia/Colombo';
+
 
 -- =====================================================================
 -- 1. SKYNEST MEMBERSHIP
@@ -42,7 +44,7 @@ INSERT INTO tax_policies (
 )
 VALUES
     (1, 'VAT',         TRUE,  15.00),
-    (2, 'Service Tax', TRUE,   5.00),
+    (2, 'Service Tax', FALSE,  5.00),
     (3, 'Tourism Tax', FALSE,  2.00);
 
 
@@ -73,6 +75,8 @@ VALUES
     ('DELUXE',   22000.00),
     ('SUITE',    35000.00),
     ('FAMILY',   28000.00);
+
+UPDATE room_types SET capacity = CASE WHEN room_type_id = 'FAMILY' THEN 4 ELSE 2 END;
 
 
 -- =====================================================================
@@ -129,10 +133,7 @@ VALUES
     (2, 2, 'Nimal Fernando',   '199923456789', '+94772345678'),
     (3, 3, 'Kavindi Silva',    '200045678901', '+94773456789'),
     (4, 4, 'Sahan Jayasinghe', '199756789012', '+94774567890'),
-    (5, 1, 'Tharushi Perera',  '200112345678', '+94775678901'),
-    (6, 2, 'Dilan Wijesinghe', '199634567890', '+94776789012'),
-    (7, 3, 'Hiruni Fernando',  '200234567890', '+94777890123'),
-    (8, 1, 'Kasun Bandara',    '199845678901', '+94778901234');
+    (5, 1, 'Tharushi Perera',  '200112345678', '+94775678901');
 
 
 -- =====================================================================
@@ -150,23 +151,23 @@ VALUES
     -- Colombo Branch
     (101, 1, 'STANDARD', 'AVAILABLE',2),
     (102, 1, 'STANDARD', 'OCCUPIED',2),
-    (103, 1, 'STANDARD', 'AVAILABLE',2),
-    (201, 1, 'DELUXE',   'AVAILABLE',2),
+    (103, 1, 'STANDARD', 'OCCUPIED',2),
+    (201, 1, 'DELUXE',   'OCCUPIED',2),
     (202, 1, 'DELUXE',   'AVAILABLE',2),
     (301, 1, 'SUITE',    'MAINTENANCE',2),
     (401, 1, 'FAMILY',   'AVAILABLE',4),
 
     -- Kandy Branch
     (101, 2, 'STANDARD', 'AVAILABLE',2),
-    (102, 2, 'DELUXE',   'OCCUPIED',2),
+    (102, 2, 'DELUXE',   'AVAILABLE',2),
     (201, 2, 'SUITE',    'AVAILABLE',2),
     (301, 2, 'FAMILY',   'AVAILABLE',4),
 
     -- Galle Branch
     (101, 3, 'STANDARD', 'AVAILABLE',2),
     (102, 3, 'DELUXE',   'AVAILABLE',2),
-    (201, 3, 'SUITE',    'OCCUPIED',2),
-    (301, 3, 'FAMILY',   'AVAILABLE',4);
+    (201, 3, 'SUITE',    'AVAILABLE',2),
+    (301, 3, 'FAMILY',   'OCCUPIED',4);
 
 
 -- =====================================================================
@@ -230,11 +231,13 @@ INSERT INTO booking (
     checked_in_time,
     checked_out_time,
     adult_count,
-    children_count
+    children_count,
+    nightly_rate,
+    room_discount_percentage
 )
 VALUES
 
-    -- Booking 1001 - Currently checked in
+    -- Booking 1001 - Checked in and paid
     (
         1001,
         'SKN-1001',
@@ -242,28 +245,32 @@ VALUES
         1,
         1,
         'CHECKED_IN',
-        '2026-09-01',
-        '2026-09-05',
+        CURRENT_DATE - 1,
+        CURRENT_DATE + 3,
         '14:00:00',
         NULL,
         2,
-        0
+        0,
+        15000.00,
+        5.00
     ),
 
-    -- Booking 1002 - Future booking
+    -- Booking 1002 - Checked in with a partial payment
     (
         1002,
         'SKN-1002',
         201,
         1,
         2,
-        'CONFIRMED',
-        '2026-09-10',
-        '2026-09-13',
-        NULL,
+        'CHECKED_IN',
+        CURRENT_DATE - 1,
+        CURRENT_DATE + 2,
+        '14:00:00',
         NULL,
         2,
-        1
+        0,
+        22000.00,
+        10.00
     ),
 
     -- Booking 1003 - Completed
@@ -273,13 +280,15 @@ VALUES
         201,
         2,
         3,
-        'COMPLETED',
-        '2026-08-20',
-        '2026-08-23',
+        'CHECKED_OUT',
+        CURRENT_DATE - 30,
+        CURRENT_DATE - 27,
         '13:30:00',
         '11:00:00',
         2,
-        0
+        0,
+        35000.00,
+        15.00
     ),
 
     -- Booking 1004 - Completed
@@ -289,29 +298,33 @@ VALUES
         201,
         3,
         4,
-        'COMPLETED',
-        '2026-08-25',
-        '2026-08-28',
+        'CHECKED_OUT',
+        CURRENT_DATE - 25,
+        CURRENT_DATE - 22,
         '14:00:00',
         '10:30:00',
         2,
-        2
+        0,
+        35000.00,
+        20.00
     ),
 
-    -- Booking 1005 - Future booking
+    -- Booking 1005 - Checked in with a partial payment
     (
         1005,
         'SKN-1005',
         103,
         1,
         5,
-        'CONFIRMED',
-        '2026-09-15',
-        '2026-09-18',
-        NULL,
+        'CHECKED_IN',
+        CURRENT_DATE - 1,
+        CURRENT_DATE + 2,
+        '14:00:00',
         NULL,
         1,
-        0
+        0,
+        15000.00,
+        5.00
     ),
 
     -- Booking 1006 - Cancelled
@@ -320,46 +333,52 @@ VALUES
         'SKN-1006',
         301,
         2,
-        6,
+        1,
         'CANCELLED',
-        '2026-09-05',
-        '2026-09-07',
+        CURRENT_DATE + 5,
+        CURRENT_DATE + 7,
         NULL,
         NULL,
         2,
-        0
+        0,
+        28000.00,
+        5.00
     ),
 
-    -- Booking 1007 - Future family booking
+    -- Booking 1007 - Checked in with a partial payment
     (
         1007,
         'SKN-1007',
         301,
         3,
-        7,
-        'CONFIRMED',
-        '2026-09-20',
-        '2026-09-24',
-        NULL,
+        2,
+        'CHECKED_IN',
+        CURRENT_DATE - 1,
+        CURRENT_DATE + 3,
+        '14:00:00',
         NULL,
         2,
-        2
+        2,
+        28000.00,
+        10.00
     ),
 
-    -- Booking 1008 - Completed
+    -- Booking 1008 - Future booking
     (
         1008,
         'SKN-1008',
         101,
         2,
-        8,
-        'COMPLETED',
-        '2026-08-15',
-        '2026-08-17',
-        '14:30:00',
-        '11:00:00',
+        3,
+        'CONFIRMED',
+        CURRENT_DATE + 10,
+        CURRENT_DATE + 12,
+        NULL,
+        NULL,
         1,
-        0
+        0,
+        15000.00,
+        15.00
     );
 
 
@@ -385,11 +404,11 @@ VALUES
         '11111111-1111-1111-1111-111111111111',
         'CARD',
         1001,
-        60000.00,
-        8000.00,
-        10200.00,
-        78200.00,
-        78200.00,
+        57000.00,
+        7600.00,
+        9690.00,
+        74290.00,
+        74290.00,
         'PAID'
     ),
 
@@ -398,10 +417,10 @@ VALUES
         '22222222-2222-2222-2222-222222222222',
         'CASH',
         1002,
-        66000.00,
-        3000.00,
-        10350.00,
-        79350.00,
+        59400.00,
+        2700.00,
+        9315.00,
+        71415.00,
         40000.00,
         'PARTIALLY_PAID'
     ),
@@ -411,11 +430,11 @@ VALUES
         '33333333-3333-3333-3333-333333333333',
         'CARD',
         1003,
-        44000.00,
-        7500.00,
-        7725.00,
-        59225.00,
-        59225.00,
+        89250.00,
+        6375.00,
+        14343.75,
+        109968.75,
+        109968.75,
         'PAID'
     ),
 
@@ -425,10 +444,10 @@ VALUES
         'CARD',
         1004,
         84000.00,
-        9000.00,
-        13950.00,
-        106950.00,
-        106950.00,
+        7200.00,
+        13680.00,
+        104880.00,
+        104880.00,
         'PAID'
     ),
 
@@ -437,25 +456,38 @@ VALUES
         '55555555-5555-5555-5555-555555555555',
         'CASH',
         1005,
-        45000.00,
+        42750.00,
         0.00,
-        6750.00,
-        51750.00,
+        6412.50,
+        49162.50,
+        20000.00,
+        'PARTIALLY_PAID'
+    ),
+
+    -- Invoice for Booking 1007
+    (
+        '66666666-6666-6666-6666-666666666666',
+        'CARD',
+        1007,
+        100800.00,
         0.00,
-        'PENDING'
+        15120.00,
+        115920.00,
+        10000.00,
+        'PARTIALLY_PAID'
     ),
 
     -- Invoice for Booking 1008
     (
-        '66666666-6666-6666-6666-666666666666',
+        '77777777-7777-7777-7777-777777777777',
         'CARD',
         1008,
-        30000.00,
-        3000.00,
-        4950.00,
-        37950.00,
-        37950.00,
-        'PAID'
+        25500.00,
+        0.00,
+        3825.00,
+        29325.00,
+        0.00,
+        'UNPAID'
     );
 
 
@@ -467,21 +499,19 @@ INSERT INTO service_charges (
     service_log_id,
     booking_id,
     service_id,
-    service_dates,
+    quantity,
+    usage_date,
+    unit_price,
+    discount_percentage,
     service_total
 )
 VALUES
-    (1, 1001, 1, 1, 5000.00),
-    (2, 1001, 5, 1, 3000.00),
-
-    (3, 1002, 5, 1, 3000.00),
-
-    (4, 1003, 4, 1, 7500.00),
-
-    (5, 1004, 1, 1, 5000.00),
-    (6, 1004, 7, 1, 4000.00),
-
-    (7, 1008, 2, 2, 3000.00);
+    (1, 1001, 1, 1, CURRENT_DATE, 5000.00, 5.00, 4750.00),
+    (2, 1001, 5, 1, CURRENT_DATE, 3000.00, 5.00, 2850.00),
+    (3, 1002, 5, 1, CURRENT_DATE, 3000.00, 10.00, 2700.00),
+    (4, 1003, 4, 1, CURRENT_DATE - 28, 7500.00, 15.00, 6375.00),
+    (5, 1004, 1, 1, CURRENT_DATE - 24, 5000.00, 20.00, 4000.00),
+    (6, 1004, 7, 1, CURRENT_DATE - 24, 4000.00, 20.00, 3200.00);
 
 
 -- =====================================================================
@@ -499,42 +529,47 @@ VALUES
     (
         '11111111-1111-1111-1111-111111111111',
         1,
-        10200.00
+        9690.00
     ),
 
     -- Invoice 2222
     (
         '22222222-2222-2222-2222-222222222222',
         1,
-        10350.00
+        9315.00
     ),
 
     -- Invoice 3333
     (
         '33333333-3333-3333-3333-333333333333',
         1,
-        7725.00
+        14343.75
     ),
 
     -- Invoice 4444
     (
         '44444444-4444-4444-4444-444444444444',
         1,
-        13950.00
+        13680.00
     ),
 
     -- Invoice 5555
     (
         '55555555-5555-5555-5555-555555555555',
         1,
-        6750.00
+        6412.50
     ),
 
     -- Invoice 6666
     (
         '66666666-6666-6666-6666-666666666666',
         1,
-        4950.00
+        15120.00
+    ),
+    (
+        '77777777-7777-7777-7777-777777777777',
+        1,
+        3825.00
     );
 
 
@@ -557,68 +592,19 @@ INSERT INTO transactions (
     invoice_id,
     payment_date,
     amount,
-    payment_method
+    payment_method,
+    room_amount,
+    service_amount,
+    tax_amount
 )
 VALUES
-
-    -- Invoice 1111 / Booking 1001
-    -- Fully paid: 78,200
-    (
-        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        '11111111-1111-1111-1111-111111111111',
-        '2026-09-01 14:15:00',
-        78200.00,
-        'CARD'
-    ),
-
-    -- Invoice 2222 / Booking 1002
-    -- Partially paid: 40,000
-    (
-        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-        '22222222-2222-2222-2222-222222222222',
-        '2026-09-02 10:30:00',
-        40000.00,
-        'CASH'
-    ),
-
-    -- Invoice 3333 / Booking 1003
-    -- Fully paid: 59,225
-    (
-        'cccccccc-cccc-cccc-cccc-cccccccccccc',
-        '33333333-3333-3333-3333-333333333333',
-        '2026-08-23 11:30:00',
-        59225.00,
-        'CARD'
-    ),
-
-    -- Invoice 4444 / Booking 1004
-    -- Fully paid using two transactions
-    -- 60,000 + 46,950 = 106,950
-    (
-        'dddddddd-dddd-dddd-dddd-dddddddddddd',
-        '44444444-4444-4444-4444-444444444444',
-        '2026-08-25 13:00:00',
-        60000.00,
-        'CARD'
-    ),
-
-    (
-        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
-        '44444444-4444-4444-4444-444444444444',
-        '2026-08-28 10:45:00',
-        46950.00,
-        'CARD'
-    ),
-
-    -- Invoice 6666 / Booking 1008
-    -- Fully paid: 37,950
-    (
-        'ffffffff-ffff-ffff-ffff-ffffffffffff',
-        '66666666-6666-6666-6666-666666666666',
-        '2026-08-17 11:15:00',
-        37950.00,
-        'CARD'
-    );
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111', CURRENT_TIMESTAMP, 74290.00, 'CARD', 57000.00, 7600.00, 9690.00),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', CURRENT_TIMESTAMP, 40000.00, 'CASH', 33270.32, 1512.29, 5217.39),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '33333333-3333-3333-3333-333333333333', CURRENT_TIMESTAMP - INTERVAL '27 days', 109968.75, 'CARD', 89250.00, 6375.00, 14343.75),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '44444444-4444-4444-4444-444444444444', CURRENT_TIMESTAMP - INTERVAL '24 days', 60000.00, 'CARD', 48054.92, 4118.99, 7826.09),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '44444444-4444-4444-4444-444444444444', CURRENT_TIMESTAMP - INTERVAL '22 days', 44880.00, 'CARD', 35945.08, 3081.01, 5853.91),
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', '55555555-5555-5555-5555-555555555555', CURRENT_TIMESTAMP, 20000.00, 'CARD', 17391.30, 0.00, 2608.70),
+    ('99999999-9999-9999-9999-999999999999', '66666666-6666-6666-6666-666666666666', CURRENT_TIMESTAMP, 10000.00, 'CARD', 8695.65, 0.00, 1304.35);
 
 -- =====================================================================
 -- 16. STAFF (AUTHENTICATION)

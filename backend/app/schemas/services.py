@@ -1,8 +1,7 @@
-from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ChargeServiceRequest(BaseModel):
     booking_id: int
     service_id: int
-    service_dates: Optional[int] = 1
+    quantity: int = Field(default=1, gt=0)

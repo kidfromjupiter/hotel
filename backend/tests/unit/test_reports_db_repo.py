@@ -18,7 +18,7 @@ def test_reports_repo_runs_aggregate_queries():
     repo.get_service_usage_data(branch_id=1)
     assert "COUNT(DISTINCT sc.booking_id)" in cursor.execute.call_args.args[0]
     repo.get_monthly_revenue_data(year=2026)
-    assert "SUM(bs.grand_total)" in cursor.execute.call_args.args[0]
+    assert "SUM(t.amount)" in cursor.execute.call_args.args[0]
     repo.get_service_trends_data(limit=1)
     assert "ROW_NUMBER() OVER" in cursor.execute.call_args.args[0]
 

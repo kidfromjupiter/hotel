@@ -58,12 +58,18 @@ def get_guest_billing_report(
 @router.get("/service-usage", response_model=ServiceUsageReportResponse)
 def get_service_usage_report(
     branch_id: Optional[int] = Query(None, description="Optional branch ID filter"),
+    service_id: Optional[int] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     report_service: ReportService = Depends(get_report_service),
     current_user: StaffUser = Depends(get_current_user),
 ):
     """Returns total revenue and usage count for each additional service."""
     effective_branch = enforce_branch_access(branch_id, current_user)
-    return report_service.get_service_usage_report(branch_id=effective_branch)
+    return report_service.get_service_usage_report(
+        branch_id=effective_branch, service_id=service_id,
+        start_date=start_date, end_date=end_date,
+    )
 
 
 @router.get("/monthly-revenue", response_model=MonthlyRevenueReportResponse)
@@ -85,6 +91,8 @@ def get_monthly_revenue_report(
 def get_service_trends_report(
     limit: int = Query(5, ge=1, le=20, description="Number of top services to return"),
     branch_id: Optional[int] = Query(None, description="Optional branch ID filter"),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
     current_user: StaffUser = Depends(get_current_user),
     report_service: ReportService = Depends(get_report_service),
 ):
@@ -93,5 +101,7 @@ def get_service_trends_report(
     return report_service.get_service_trends_report(
         limit=limit,
         branch_id=effective_branch,
+        start_date=start_date,
+        end_date=end_date,
     )
 

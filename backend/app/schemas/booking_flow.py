@@ -35,4 +35,4 @@ class CreateBookingRequest(BaseModel):
     roomNumber: int = Field(gt=0, le=32767)
     roomType: Optional[str] = None
     phone: str
-    totalPrice: float
+    totalPrice: Optional[float] = None  # Display estimate; PostgreSQL calculates the bill.

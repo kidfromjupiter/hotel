@@ -24,16 +24,24 @@ def booking_repo(db_connection):
 
     if repo.db:
         with repo.db.cursor() as cursor:
+            cursor.execute("DELETE FROM transactions WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id >= 90000);")
+            cursor.execute("DELETE FROM invoice_taxes WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id >= 90000);")
+            cursor.execute("DELETE FROM service_charges WHERE booking_id >= 90000;")
             cursor.execute("DELETE FROM billing_summary WHERE booking_id >= 90000;")
             cursor.execute("DELETE FROM booking WHERE booking_id >= 90000;")
+            cursor.execute("UPDATE room_details SET room_status = 'AVAILABLE' WHERE (branch_id, room_number) IN ((1, 101), (1, 202), (2, 201));")
         repo.db.commit()
 
     yield repo
 
     if repo.db:
         with repo.db.cursor() as cursor:
+            cursor.execute("DELETE FROM transactions WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id >= 90000);")
+            cursor.execute("DELETE FROM invoice_taxes WHERE invoice_id IN (SELECT invoice_id FROM billing_summary WHERE booking_id >= 90000);")
+            cursor.execute("DELETE FROM service_charges WHERE booking_id >= 90000;")
             cursor.execute("DELETE FROM billing_summary WHERE booking_id >= 90000;")
             cursor.execute("DELETE FROM booking WHERE booking_id >= 90000;")
+            cursor.execute("UPDATE room_details SET room_status = 'AVAILABLE' WHERE (branch_id, room_number) IN ((1, 101), (1, 202), (2, 201));")
         repo.db.commit()
 
     repo.clear()

@@ -45,9 +45,11 @@ class GuestBillingReportResponse(BaseModel):
 # 3. Service Usage Report Schemas
 # ─────────────────────────────────────────────
 class ServiceUsageItem(BaseModel):
+    branch_name: str
+    room_number: int
     service_name: str
     total_bookings_used: int
-    total_days_used: int
+    total_quantity: int
     total_revenue: float
 
 
@@ -63,6 +65,7 @@ class MonthlyRevenueItem(BaseModel):
     month: str
     room_revenue: float
     service_revenue: float
+    tax_revenue: float
     total_revenue: float
 
 
@@ -78,6 +81,7 @@ class ServiceTrendItem(BaseModel):
     rank: int
     service_name: str
     times_used: int
+    unique_guests: int
     total_revenue: float
 
 

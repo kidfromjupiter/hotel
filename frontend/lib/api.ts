@@ -230,7 +230,7 @@ export async function addServiceToTab(bookingId: number, serviceName: string, se
     body: JSON.stringify({
       service_name: serviceName,
       service_total: serviceTotal,
-      service_dates: 1
+      quantity: 1
     }),
   });
 }
@@ -430,7 +430,7 @@ export async function addServiceToBooking(bookingId: number, serviceId: number):
     body: JSON.stringify({
       booking_id: bookingId,
       service_id: serviceId,
-      service_dates: 1,
+      quantity: 1,
     }),
   });
 }
@@ -486,7 +486,7 @@ export async function getBranches(): Promise<Array<{ branch_id: number; branch_n
  */
 export async function getMonthlyRevenue(year: number): Promise<{
   year: number;
-  data: Array<{ branch_name: string; month: string; room_revenue: number; service_revenue: number; total_revenue: number }>;
+  data: Array<{ branch_name: string; month: string; room_revenue: number; service_revenue: number; tax_revenue: number; total_revenue: number }>;
 }> {
   return request(`/api/v1/private/reports/monthly-revenue?year=${year}`);
 }
@@ -519,7 +519,7 @@ export async function getGuests(): Promise<Array<{ guest_id: number; name: strin
 }
 
 export function getRoomTypes(): Promise<
-  Array<{ room_type_id: string; daily_rate: number }>
+  Array<{ room_type_id: string; daily_rate: number; capacity: number }>
 > {
   return request('/api/v1/private/rooms/types');
 }
@@ -537,9 +537,11 @@ export function createRoom(data: {
 }
 
 export interface ServiceUsageReportItem {
+  branch_name: string;
+  room_number: number;
   service_name: string;
   total_bookings_used: number;
-  total_days_used: number;
+  total_quantity: number;
   total_revenue: number;
 }
 
@@ -547,4 +549,18 @@ export function getServiceUsageReport(): Promise<{
   data: ServiceUsageReportItem[];
 }> {
   return request('/api/v1/private/reports/service-usage');
+}
+
+export function getGuestBillingReport(): Promise<{ data: Array<{
+  guest_name: string; booking_id: number; grand_total: number;
+  amount_paid: number; outstanding_balance: number; payment_status: string;
+}> }> {
+  return request('/api/v1/private/reports/guest-billing');
+}
+
+export function getServiceTrendsReport(): Promise<{ top_services: Array<{
+  rank: number; service_name: string; times_used: number;
+  unique_guests: number; total_revenue: number;
+}> }> {
+  return request('/api/v1/private/reports/service-trends');
 }

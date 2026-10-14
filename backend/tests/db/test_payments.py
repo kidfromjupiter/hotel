@@ -23,12 +23,12 @@ def test_partial_payments_and_checkout_do_not_create_extra_transaction(db_connec
     first = repo.record_payment(INVOICE_ID, Decimal("20000.00"), "Cash")
     assert first["success"] is True
     assert first["payment_status"] == "PARTIALLY_PAID"
-    assert Decimal(str(first["outstanding_balance"])) == Decimal("58200.00")
+    assert Decimal(str(first["outstanding_balance"])) == Decimal("54290.00")
 
-    overpayment = repo.record_payment(INVOICE_ID, Decimal("58200.01"), "Card")
+    overpayment = repo.record_payment(INVOICE_ID, Decimal("54290.01"), "Card")
     assert overpayment["error_code"] == "OVERPAYMENT"
 
-    second = repo.record_payment(INVOICE_ID, Decimal("58200.00"), "Card")
+    second = repo.record_payment(INVOICE_ID, Decimal("54290.00"), "Card")
     assert second["success"] is True
     assert second["payment_status"] == "PAID"
     assert second["transaction_id"] != first["transaction_id"]
@@ -45,7 +45,7 @@ def test_partial_payments_and_checkout_do_not_create_extra_transaction(db_connec
             (str(INVOICE_ID),),
         )
         amount_paid, status = cursor.fetchone()
-        assert amount_paid == Decimal("78200.00")
+        assert amount_paid == Decimal("74290.00")
         assert status == "PAID"
 
         cursor.execute(
@@ -55,13 +55,13 @@ def test_partial_payments_and_checkout_do_not_create_extra_transaction(db_connec
         )
         assert sorted(cursor.fetchall()) == [
             (Decimal("20000.00"), "Cash"),
-            (Decimal("58200.00"), "Card"),
+            (Decimal("54290.00"), "Card"),
         ]
 
 
 def test_payment_requires_checked_in_booking(db_connection):
     repo = BillingRepo(db_connection)
     result = repo.record_payment(
-        UUID("22222222-2222-2222-2222-222222222222"), Decimal("1.00"), "Cash"
+        UUID("77777777-7777-7777-7777-777777777777"), Decimal("1.00"), "Cash"
     )
     assert result["error_code"] == "INVALID_STATUS"

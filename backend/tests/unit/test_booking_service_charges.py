@@ -42,12 +42,12 @@ def test_repository_rejects_missing_database():
         BookingRepository(db=None).add_service_to_booking(1001, 2, 3)
 
 
-@pytest.mark.parametrize("status", ["CONFIRMED", "CHECKED_IN"])
-def test_service_delegates_and_returns_updated_booking(status):
+def test_service_delegates_and_returns_updated_booking():
     repo = MagicMock(spec=BookingRepository)
-    repo.find_booking_by_id.return_value = {"booking_status": status}
+    repo.find_booking_by_id.return_value = {"booking_status": "CHECKED_IN"}
+    repo.add_service_to_booking.return_value = {"success": True}
     service = BookingService(booking_repo=repo)
-    payload = SimpleNamespace(service_id=2, service_dates=3)
+    payload = SimpleNamespace(service_id=2, quantity=3)
     updated = object()
 
     with patch.object(service, "get_booking_by_id", return_value=updated) as read:
@@ -64,6 +64,7 @@ def test_service_delegates_and_returns_updated_booking(status):
         (None, 404),
         ({"booking_status": "CANCELLED"}, 400),
         ({"booking_status": "CHECKED_OUT"}, 400),
+        ({"booking_status": "CONFIRMED"}, 400),
     ],
 )
 def test_service_rejects_missing_or_inactive_booking(booking, expected_status):
@@ -73,7 +74,7 @@ def test_service_rejects_missing_or_inactive_booking(booking, expected_status):
 
     with pytest.raises(HTTPException) as caught:
         service.add_service_to_booking(
-            1001, SimpleNamespace(service_id=2, service_dates=3)
+            1001, SimpleNamespace(service_id=2, quantity=3)
         )
 
     assert caught.value.status_code == expected_status
@@ -90,7 +91,7 @@ def test_service_does_not_return_success_after_repository_failure():
     with patch.object(service, "get_booking_by_id") as read:
         with pytest.raises(RuntimeError) as caught:
             service.add_service_to_booking(
-                1001, SimpleNamespace(service_id=2, service_dates=3)
+                1001, SimpleNamespace(service_id=2, quantity=3)
             )
 
     assert caught.value is error

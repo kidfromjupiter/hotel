@@ -81,7 +81,9 @@ class RoomSummary(BaseModel):
 
 class ServiceChargeItem(BaseModel):
     service_name: str
-    service_dates: int
+    quantity: int
+    usage_date: date
+    unit_price: float
     service_total: float
 
 
@@ -109,8 +111,7 @@ class BookingDetailResponse(BaseModel):
 class AddServiceRequest(BaseModel):
     service_name: str
     service_total: float
-    # We can default service_dates to 1 since they usually just click "Add Service" once
-    service_dates: int = 1
+    quantity: int = Field(default=1, gt=0)
 
 
 class ExtendStayRequest(BaseModel):

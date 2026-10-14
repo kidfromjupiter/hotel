@@ -1,5 +1,7 @@
 # SkyNest Hotels — Backend API Documentation
 
+This document contains historical API examples. The running API's `/docs` page is authoritative for current routes and request fields; service charges now use `quantity` and record a usage date and unit price.
+
 > **Base URL:** `/api/v1`
 > **Framework:** FastAPI (Python)
 > **Auth:** _To be defined (JWT planned)_
@@ -396,7 +398,7 @@ Get full booking details including services and billing status.
   "adult_count": 2,
   "children_count": 0,
   "service_charges": [
-    { "service_name": "Spa", "service_dates": 2, "service_total": 80.00 }
+    { "service_name": "Spa", "quantity": 2, "service_total": 80.00 }
   ],
   "invoice_status": "PARTIAL"
 }
@@ -509,14 +511,14 @@ Log a service charge against an active booking.
 ```json
 {
   "service_id": 1,
-  "service_dates": 2
+  "quantity": 2
 }
 ```
 
 | Field           | Type  | Required | Description                                             |
 | :-------------- | :---- | :------: | :------------------------------------------------------ |
 | `service_id`    | `int` | Yes      | ID of the service from the catalogue                    |
-| `service_dates` | `int` | Yes      | Number of days / sessions the service was used          |
+| `quantity` | `int` | Yes      | Number of days / sessions the service was used          |
 
 **Response** `201 Created`
 ```json
@@ -524,7 +526,7 @@ Log a service charge against an active booking.
   "service_log_id": 301,
   "booking_id": 500001,
   "service_name": "Spa Treatment",
-  "service_dates": 2,
+  "quantity": 2,
   "service_total": 80.00
 }
 ```
@@ -534,7 +536,7 @@ Log a service charge against an active booking.
 - `404 Not Found` — Service or booking does not exist.
 
 **Business Logic**
-- `service_total` is calculated as `day_rate × service_dates`.
+- `service_total` is calculated as `day_rate × quantity`.
 - The service total snapshot is stored at time of logging (even if `day_rate` changes later).
 - Can only add services to bookings in `Checked-In` status.
 
@@ -547,8 +549,8 @@ List all service charges billed to a booking.
 **Response** `200 OK`
 ```json
 [
-  { "service_log_id": 301, "service_name": "Spa Treatment", "service_dates": 2, "service_total": 80.00 },
-  { "service_log_id": 302, "service_name": "Laundry",       "service_dates": 3, "service_total": 45.00 }
+  { "service_log_id": 301, "service_name": "Spa Treatment", "quantity": 2, "service_total": 80.00 },
+  { "service_log_id": 302, "service_name": "Laundry",       "quantity": 3, "service_total": 45.00 }
 ]
 ```
 

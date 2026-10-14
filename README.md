@@ -20,6 +20,17 @@ SkyNest is a hotel booking and guest services system for guests, receptionists, 
 
 Docker Compose runs the frontend, backend, PostgreSQL, migrations, and seed process together. The API is served under `/api/v1`, with interactive documentation at `/docs`.
 
+## Hotel and billing rules
+
+- `CONFIRMED` is the stored status for a booked room. Check-in and paid checkout change it to `CHECKED_IN` and `CHECKED_OUT` and update the room's occupied/available state in the same transaction.
+- The database prevents overlapping active bookings, including concurrent requests. Availability records for a date range come from `room_availability(start_date, end_date)`; the end date is exclusive.
+- A room's booked rate and membership discount are captured when the booking is made. Service usage stores its date, quantity, unit price, and discount at the time of use. Only checked-in bookings can receive service charges or payments.
+- This academic demo uses the seeded membership discounts and one active, configurable 15% tax on discounted room and service charges. It is a project assumption, not a statement of Sri Lankan tax law. There is no late checkout charge.
+- A bill must be fully paid before checkout. Monthly branch revenue uses the month payments were received and shows room, service, and tax amounts separately. Partial payments remain visible as outstanding balances.
+- Fresh installations seed 3 branches, 15 rooms, 7 services, 5 guests, 8 bookings, and 3 partially paid checked-in stays. The test stack uses an isolated temporary database.
+
+The reporting model uses room nights and occupancy rate, which are also reported in the [Sri Lanka Tourism Development Authority's accommodation statistics](https://sltda.gov.lk/storage/documents/d0b10601f0cedd91115f9774a935c6d8.pdf). Room types and capacities are modeled separately in line with the authority's [hotel classification materials](https://www.sltda.gov.lk/en/register-with-us). Tax, discounts, and checkout charges above are explicit demo policies.
+
 ## Run locally
 
 Install Docker with the Compose plugin, then run this from the repository root:

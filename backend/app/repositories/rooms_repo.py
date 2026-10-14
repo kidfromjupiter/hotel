@@ -29,7 +29,7 @@ class RoomsRepo:
                     SELECT 1 FROM booking bk
                     WHERE bk.room_number = rd.room_number
                       AND bk.branch_id = rd.branch_id
-                      AND bk.booking_status != 'CANCELLED'
+                      AND bk.booking_status IN ('CONFIRMED', 'CHECKED_IN')
                       AND bk.start_date < %s AND bk.end_date > %s
                   )
                 ORDER BY rd.room_number
@@ -57,7 +57,7 @@ class RoomsRepo:
     def get_room_types(self):
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
-                "SELECT room_type_id, daily_rate FROM room_types "
+                "SELECT room_type_id, daily_rate, capacity FROM room_types "
                 "ORDER BY room_type_id"
             )
             return list(cursor.fetchall())

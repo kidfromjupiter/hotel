@@ -25,8 +25,8 @@ def sample_bookings(booking_repo):
             "adult_count": 2,
             "children_count": 0,
             "grand_total": 50000.0,
-            "amount_paid": 50000.0,
-            "invoice_status": "PAID",
+            "amount_paid": 0.0,
+            "invoice_status": "UNPAID",
         }
     )
     booking_repo.save_booking(
@@ -38,16 +38,17 @@ def sample_bookings(booking_repo):
             "branch_id": 2,
             "branch_name": "Kandy",
             "room_type_id": "DELUXE",
-            "booking_status": "CHECKED_IN",
+            "booking_status": "CONFIRMED",
             "start_date": "2026-10-02",
             "end_date": "2026-10-06",
             "adult_count": 2,
-            "children_count": 1,
+            "children_count": 0,
             "checked_in_time": "14:00:00",
             "grand_total": 84000.0,
             "amount_paid": 0.0,
         }
     )
+    assert booking_repo.check_in_booking(500102, "14:00:00")
     if booking_repo.db:
         booking_repo.db.commit()
 
@@ -205,14 +206,20 @@ def test_check_out_success_when_paid(client, booking_repo):
     booking_repo.save_booking(
         {
             "booking_id": 500103,
-            "booking_status": "CHECKED_IN",
+            "booking_status": "CONFIRMED",
             "grand_total": 40000.0,
-            "amount_paid": 40000.0,
+            "amount_paid": 0.0,
             "guest_id": 1,
             "room_number": 101,
             "branch_id": 1,
         }
     )
+    assert booking_repo.check_in_booking(500103, "14:00:00")
+    from app.repositories.billing_repo import BillingRepo
+    from decimal import Decimal
+    invoice_id = booking_repo.find_booking_by_id(500103)["invoice_id"]
+    total = booking_repo.find_booking_by_id(500103)["grand_total"]
+    assert BillingRepo(booking_repo.db).record_payment(invoice_id, Decimal(total), "Card")["success"]
     if booking_repo.db:
         booking_repo.db.commit()
     res = client.post(

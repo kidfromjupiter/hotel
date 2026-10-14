@@ -20,13 +20,13 @@ class ServicesRepo:
             return list(cursor.fetchall())
 
     def charge_service(
-        self, booking_id: int, service_id: int, service_dates: int = 1
+        self, booking_id: int, service_id: int, quantity: int = 1
     ) -> Dict[str, Any]:
         if self.db is not None:
             with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
                     "SELECT add_service_to_booking(%s, %s, %s)",
-                    (booking_id, service_id, service_dates),
+                    (booking_id, service_id, quantity),
                 )
                 row = cursor.fetchone()
                 if row and "add_service_to_booking" in row:

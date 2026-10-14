@@ -63,7 +63,8 @@ class ReportsRepo:
                 FROM booking bk
                 LEFT JOIN guests g ON g.guest_id = bk.guest_id
                 LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
-                WHERE (%s::INT IS NULL OR bk.branch_id = %s)
+                WHERE bk.booking_status <> 'CANCELLED'
+                  AND (%s::INT IS NULL OR bk.branch_id = %s)
                   AND (%s::TEXT IS NULL OR LOWER(COALESCE(bs.payment_status, 'UNPAID')) = LOWER(%s))
                 ORDER BY bk.booking_id DESC
                 """,
@@ -80,19 +81,20 @@ class ReportsRepo:
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 """
-                SELECT cat.service_name,
+                SELECT br.branch_name, bk.room_number, cat.service_name,
                        COUNT(DISTINCT sc.booking_id) AS total_bookings_used,
-                       SUM(COALESCE(sc.service_dates, 1)) AS total_days_used,
+                       SUM(sc.quantity) AS total_quantity,
                        SUM(COALESCE(sc.service_total, 0)) AS total_revenue
                 FROM service_charges sc
                 JOIN booking bk ON bk.booking_id = sc.booking_id
+                JOIN branches br ON br.branch_id = bk.branch_id
                 JOIN service_catalogue cat ON cat.service_id = sc.service_id
                 WHERE (%s::INT IS NULL OR bk.branch_id = %s)
                   AND (%s::INT IS NULL OR sc.service_id = %s)
-                  AND (%s::DATE IS NULL OR bk.start_date >= %s::DATE)
-                  AND (%s::DATE IS NULL OR bk.end_date <= %s::DATE)
-                GROUP BY sc.service_id, cat.service_name
-                ORDER BY total_revenue DESC
+                  AND (%s::DATE IS NULL OR sc.usage_date >= %s::DATE)
+                  AND (%s::DATE IS NULL OR sc.usage_date < %s::DATE)
+                GROUP BY br.branch_id, br.branch_name, bk.room_number, sc.service_id, cat.service_name
+                ORDER BY br.branch_id, bk.room_number, total_revenue DESC
                 """,
                 (branch_id, branch_id, service_id, service_id, start_date, start_date,
                  end_date, end_date),
@@ -107,20 +109,23 @@ class ReportsRepo:
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 """
-                SELECT br.branch_name, TRIM(TO_CHAR(bk.start_date, 'Month')) AS month,
-                       COALESCE(SUM(bs.total_room_charges), 0) AS room_revenue,
-                       COALESCE(SUM(bs.total_service_charges), 0) AS service_revenue,
-                       COALESCE(SUM(bs.grand_total), 0) AS total_revenue
-                FROM booking bk
+                SELECT br.branch_name, TRIM(TO_CHAR(t.payment_date, 'Month')) AS month,
+                       SUM(t.room_amount) AS room_revenue,
+                       SUM(t.service_amount) AS service_revenue,
+                       SUM(t.tax_amount) AS tax_revenue,
+                       SUM(t.amount) AS total_revenue
+                FROM transactions t
+                JOIN billing_summary bs ON bs.invoice_id = t.invoice_id
+                JOIN booking bk ON bk.booking_id = bs.booking_id
                 JOIN branches br ON br.branch_id = bk.branch_id
-                LEFT JOIN billing_summary bs ON bs.booking_id = bk.booking_id
-                WHERE EXTRACT(YEAR FROM bk.start_date) = %s
+                WHERE t.payment_date >= MAKE_DATE(%s, 1, 1)
+                  AND t.payment_date < MAKE_DATE(%s, 1, 1)
                   AND (%s::INT IS NULL OR bk.branch_id = %s)
-                GROUP BY br.branch_id, br.branch_name, EXTRACT(MONTH FROM bk.start_date),
-                         TO_CHAR(bk.start_date, 'Month')
-                ORDER BY br.branch_id, EXTRACT(MONTH FROM bk.start_date)
+                GROUP BY br.branch_id, br.branch_name, EXTRACT(MONTH FROM t.payment_date),
+                         TO_CHAR(t.payment_date, 'Month')
+                ORDER BY br.branch_id, EXTRACT(MONTH FROM t.payment_date)
                 """,
-                (year, branch_id, branch_id),
+                (year, year + 1, branch_id, branch_id),
             )
             return list(cursor.fetchall())
 
@@ -134,19 +139,20 @@ class ReportsRepo:
             cursor.execute(
                 """
                 WITH usage AS (
-                  SELECT sc.service_id, COUNT(sc.service_log_id) AS times_used,
+                  SELECT sc.service_id, SUM(sc.quantity) AS times_used,
+                         COUNT(DISTINCT bk.guest_id) AS unique_guests,
                          SUM(COALESCE(sc.service_total, 0)) AS total_revenue
                   FROM service_charges sc
                   JOIN booking bk ON bk.booking_id = sc.booking_id
                   WHERE (%s::INT IS NULL OR bk.branch_id = %s)
-                    AND (%s::DATE IS NULL OR bk.start_date >= %s::DATE)
-                    AND (%s::DATE IS NULL OR bk.end_date <= %s::DATE)
+                    AND (%s::DATE IS NULL OR sc.usage_date >= %s::DATE)
+                    AND (%s::DATE IS NULL OR sc.usage_date < %s::DATE)
                   GROUP BY sc.service_id
                   ORDER BY times_used DESC, sc.service_id
                   LIMIT %s
                 )
                 SELECT ROW_NUMBER() OVER (ORDER BY usage.times_used DESC, usage.service_id) AS rank,
-                       cat.service_name, usage.times_used, usage.total_revenue
+                       cat.service_name, usage.times_used, usage.unique_guests, usage.total_revenue
                 FROM usage JOIN service_catalogue cat ON cat.service_id = usage.service_id
                 ORDER BY rank
                 """,

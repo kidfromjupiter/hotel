@@ -61,20 +61,22 @@ export default function ServiceUsageReport() {
             <caption className="sr-only">Service usage across all branches</caption>
             <thead className="border-b border-slate-200 text-slate-600">
               <tr>
+                <th scope="col" className="py-3 pr-4">Branch / room</th>
                 <th scope="col" className="py-3 pr-4">Service</th>
                 <th scope="col" className="py-3 px-4 text-right">Bookings using service</th>
-                <th scope="col" className="py-3 px-4 text-right">Days used</th>
+                <th scope="col" className="py-3 px-4 text-right">Quantity</th>
                 <th scope="col" className="py-3 pl-4 text-right">Service charges (LKR)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.service_name} className="border-b border-slate-100">
+                <tr key={`${row.branch_name}-${row.room_number}-${row.service_name}`} className="border-b border-slate-100">
+                  <td className="py-3 pr-4">{row.branch_name} / {row.room_number}</td>
                   <th scope="row" className="py-3 pr-4 font-medium text-slate-800">
                     {row.service_name}
                   </th>
                   <td className="py-3 px-4 text-right">{row.total_bookings_used.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right">{row.total_days_used.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right">{row.total_quantity.toLocaleString()}</td>
                   <td className="py-3 pl-4 text-right">
                     {row.total_revenue.toLocaleString(undefined, {
                       minimumFractionDigits: 2, maximumFractionDigits: 2
