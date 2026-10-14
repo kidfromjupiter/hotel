@@ -62,4 +62,4 @@ services:
       DATABASE_URL: postgresql://app_user:app_password@db:5432/app_test_db
     volumes:
       - ./backend:/app:ro
-    command: ["python", "-m", "pytest", "-q", "tests/db","-p", "no:cacheprovider"]
+    command: ["python", "-m", "pytest", "-q", "tests/unit", "tests/api", "tests/db", "-p", "no:cacheprovider"]
