@@ -18,7 +18,7 @@ def test_overlapping_booking_excludes_room(db_connection):
 
             INSERT INTO guests
                 (guest_id, membership_id, name, national_id, phone_number)
-            VALUES (9001, 9001, 'Test Guest', 'TEST9001', 771111111);
+            VALUES (9001, 9001, 'Test Guest', 'TEST9001', '+94771111111');
 
             INSERT INTO room_details
                 (room_number, branch_id, room_type_id, room_status, capacity)

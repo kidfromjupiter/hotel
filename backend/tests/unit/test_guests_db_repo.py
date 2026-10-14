@@ -19,12 +19,13 @@ def test_guests_repo_uses_row_queries_and_updates():
 
     cursor.fetchone.return_value = {"guest_id": 101, "has_membership": True}
     assert repo.get_guest_by_phone("+94771112233")["has_membership"] is True
-    assert cursor.execute.call_args.args[1] == (771112233,)
+    assert cursor.execute.call_args.args[1] == ("+94771112233",)
     assert repo.get_guest_by_id(101)["guest_id"] == 101
 
-    cursor.fetchone.return_value = {"guest_id": 101, "phone_number": "778889900"}
-    assert repo.update_guest_phone(101, 778889900)["phone_number"] == "778889900"
+    cursor.fetchone.return_value = {"guest_id": 101, "phone_number": "+94778889900"}
+    assert repo.update_guest_phone(101, "0778889900")["phone_number"] == "+94778889900"
     assert "UPDATE guests" in cursor.execute.call_args.args[0]
+    assert cursor.execute.call_args.args[1] == ("+94778889900", 101)
     cursor.fetchone.return_value = {"guest_id": 101, "membership_id": 2}
     assert repo.enroll_guest_membership(101, 2)["membership_id"] == 2
     assert "RETURNING guest_id, membership_id" in cursor.execute.call_args.args[0]

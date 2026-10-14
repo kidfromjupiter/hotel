@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 
+from app.phone import normalize_phone
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.rooms_repo import RoomsRepo
 from app.schemas.bookings import (
@@ -391,9 +392,14 @@ class BookingService:
 
     def get_pending_booking_by_phone(self, phone: str):
         bookings = self.booking_repo.list_all_bookings()
+        normalized = normalize_phone(phone)
         for b in bookings:
             # We are using .get() because b is a dictionary
-            if b.get("guest_phone") == phone and b.get("booking_status") == "CONFIRMED":
+            if (
+                normalized
+                and normalize_phone(b.get("guest_phone") or "") == normalized
+                and b.get("booking_status") == "CONFIRMED"
+            ):
                 # Returning the exact structure the frontend expects
                 return {
                     "success": True,

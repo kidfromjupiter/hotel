@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 from fastapi.encoders import jsonable_encoder
 
+from app.phone import normalize_phone
 from app.repositories.guests_repo import GuestsRepo
 
 
@@ -34,14 +35,10 @@ class GuestService:
         return self.repo.create_guest(phone, name)
 
     def update_phone(self, guest_id: int, phone: str) -> Dict[str, Any]:
-        digits = "".join(c for c in phone if c.isdigit())
-        if digits.startswith("94"):
-            digits = digits[2:]
-        elif digits.startswith("0"):
-            digits = digits[1:]
-        if not digits or int(digits) > 2147483647:
+        normalized = normalize_phone(phone)
+        if normalized is None:
             return {"success": False, "message": "Invalid phone number format"}
-        row = self.repo.update_guest_phone(guest_id, int(digits))
+        row = self.repo.update_guest_phone(guest_id, normalized)
         if row is None:
             return {"success": False, "message": "Guest not found"}
         return {"success": True, "message": "Phone number updated successfully",

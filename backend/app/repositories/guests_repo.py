@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from psycopg2.extensions import connection
 from psycopg2.extras import RealDictCursor
 
+from app.phone import normalize_phone
+
 
 GUEST_COLUMNS = """
     g.guest_id, g.name, g.national_id, g.phone_number::TEXT AS phone_number,
@@ -20,15 +22,13 @@ class GuestsRepo:
     def create_guest(self, phone: str, name: str = "Guest") -> Optional[Dict[str, Any]]:
         if self.db is None:
             return None
-        digits = "".join(c for c in phone if c.isdigit())
-        if digits.startswith("94"):
-            digits = digits[2:]
-        elif digits.startswith("0"):
-            digits = digits[1:]
+        normalized = normalize_phone(phone)
+        if normalized is None:
+            return None
         with self.db.cursor() as cursor:
             cursor.execute(
                 "INSERT INTO guests (name, phone_number) VALUES (%s, %s) RETURNING guest_id",
-                (name, int(digits) if digits else 0),
+                (name, normalized),
             )
             guest_id = cursor.fetchone()[0]
         return self.get_guest_by_id(guest_id)
@@ -54,12 +54,8 @@ class GuestsRepo:
     def get_guest_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
         if self.db is None:
             return None
-        digits = "".join(c for c in phone if c.isdigit())
-        if digits.startswith("94"):
-            digits = digits[2:]
-        elif digits.startswith("0"):
-            digits = digits[1:]
-        if not digits or not digits.isdigit() or int(digits) > 2147483647:
+        normalized = normalize_phone(phone)
+        if normalized is None:
             return None
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
@@ -70,7 +66,7 @@ class GuestsRepo:
                 WHERE g.phone_number = %s
                 LIMIT 1
                 """,
-                (int(digits),),
+                (normalized,),
             )
             return cursor.fetchone()
 
@@ -95,11 +91,7 @@ class GuestsRepo:
         if self.db is None or not query.strip():
             return None
         lookup = query.strip()
-        digits = "".join(c for c in lookup if c.isdigit())
-        if digits.startswith("94"):
-            digits = digits[2:]
-        elif digits.startswith("0"):
-            digits = digits[1:]
+        normalized = normalize_phone(lookup)
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 "SELECT guest_id, name, phone_number::TEXT AS phone_number "
@@ -107,11 +99,11 @@ class GuestsRepo:
                 (lookup,),
             )
             guest = cursor.fetchone()
-            if guest is None and digits:
+            if guest is None and normalized:
                 cursor.execute(
                     "SELECT guest_id, name, phone_number::TEXT AS phone_number "
                     "FROM guests WHERE phone_number::TEXT = %s LIMIT 1",
-                    (digits,),
+                    (normalized,),
                 )
                 guest = cursor.fetchone()
             if guest is None:
@@ -149,14 +141,17 @@ class GuestsRepo:
             )
             return dict(guest), dict(summary), list(cursor.fetchall())
 
-    def update_guest_phone(self, guest_id: int, phone_number: int) -> Optional[Dict[str, Any]]:
+    def update_guest_phone(self, guest_id: int, phone_number: str) -> Optional[Dict[str, Any]]:
         if self.db is None:
+            return None
+        normalized = normalize_phone(phone_number)
+        if normalized is None:
             return None
         with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 "UPDATE guests SET phone_number = %s WHERE guest_id = %s "
                 "RETURNING guest_id, phone_number::TEXT AS phone_number",
-                (phone_number, guest_id),
+                (normalized, guest_id),
             )
             return cursor.fetchone()
 
