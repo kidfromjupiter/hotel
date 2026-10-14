@@ -123,12 +123,8 @@ export async function checkAvailability(
     room_status: string;
   }>>(url, { method: 'GET' });
 
-  const hasMembership = typeof window !== 'undefined' ? !!localStorage.getItem('guest_token') : false;
-
   const rooms: AvailabilityResponse['rooms'] = raw.map(r => {
     const pricePerNight = r.price_per_night ?? r.daily_rate;
-    const membershipDiscount = 15; // 15% off for members
-    const membershipPrice = Math.round(pricePerNight * (1 - membershipDiscount / 100));
 
     return {
       id:              `${r.branch_id}-${r.room_number}`,
@@ -139,8 +135,6 @@ export async function checkAvailability(
       branchId:        r.branch_id,
       branchName:      r.branch_name,
       pricePerNight,
-      membershipPrice,
-      membershipDiscount,
       capacity:        r.capacity,
       maxCapacity:     r.capacity,
       status:          r.room_status,
@@ -155,7 +149,7 @@ export async function checkAvailability(
   return {
     available:     rooms.length > 0,
     rooms,
-    hasMembership,
+    hasMembership: false,
     message:       rooms.length === 0 ? 'No rooms available for the selected dates.' : undefined,
   };
 }

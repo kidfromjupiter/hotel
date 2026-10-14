@@ -1,5 +1,9 @@
 from datetime import date
+from decimal import Decimal
 from unittest.mock import MagicMock
+
+import pytest
+from fastapi import HTTPException
 
 from app.repositories.booking_repo import BookingRepository
 from app.repositories.rooms_repo import RoomsRepo
@@ -61,3 +65,50 @@ def test_booking_repo_reads_rows_and_updates_single_row():
 
 def test_booking_flow_service_is_consolidated():
     assert BookingFlowService is BookingService
+
+
+def test_booking_price_uses_database_rate_and_membership_not_client_values():
+    booking_repo = MagicMock(spec=BookingRepository)
+    booking_repo.get_room_pricing.return_value = {
+        "daily_rate": Decimal("22000.00"),
+        "room_discount_percentage": Decimal("10.00"),
+        "capacity": 2,
+        "room_status": "AVAILABLE",
+    }
+    booking_repo.save_booking.return_value = {"booking_ref": "SKN-42"}
+    service = BookingService(booking_repo=booking_repo)
+
+    result = service.create_booking(
+        {
+            "branchId": 1, "roomNumber": 201, "checkIn": "2026-11-01",
+            "checkOut": "2026-11-04", "adults": 2, "children": 0,
+            "nights": 99, "totalPrice": 1,
+        },
+        guest_token={"guest_id": 2, "discount_percent": 99},
+    )
+
+    saved = booking_repo.save_booking.call_args.args[0]
+    booking_repo.get_room_pricing.assert_called_once_with(1, 201, 2)
+    assert saved["grand_total"] == Decimal("59400.00")
+    assert "totalPrice" not in saved
+    assert result["totalPrice"] == 59400
+
+
+def test_booking_rejects_reversed_dates_before_writing():
+    booking_repo = MagicMock(spec=BookingRepository)
+    booking_repo.get_room_pricing.return_value = {
+        "daily_rate": Decimal("15000.00"),
+        "room_discount_percentage": Decimal("0"),
+        "capacity": 2,
+        "room_status": "AVAILABLE",
+    }
+    service = BookingService(booking_repo=booking_repo)
+
+    with pytest.raises(HTTPException) as error:
+        service.create_booking({
+            "branchId": 1, "roomNumber": 101, "checkIn": "2026-11-04",
+            "checkOut": "2026-11-01", "adults": 1, "children": 0,
+        })
+
+    assert error.value.status_code == 422
+    booking_repo.save_booking.assert_not_called()

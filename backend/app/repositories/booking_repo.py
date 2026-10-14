@@ -26,6 +26,28 @@ class BookingRepository:
             )
             return bool(cursor.fetchone()[0])
 
+    def get_room_pricing(
+        self, branch_id: int, room_number: int, guest_id: Optional[int]
+    ) -> Optional[Dict[str, Any]]:
+        """Read the authoritative room rate and guest discount for a booking."""
+        if self.db is None:
+            raise RuntimeError("Database connection is unavailable")
+        with self.db.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT rt.daily_rate, rd.capacity, rd.room_status,
+                       COALESCE(m.room_discount_percentage, 0) AS room_discount_percentage
+                FROM room_details rd
+                JOIN room_types rt ON rt.room_type_id = rd.room_type_id
+                LEFT JOIN guests g ON g.guest_id = %s
+                LEFT JOIN skynest_membership m ON m.membership_id = g.membership_id
+                WHERE rd.branch_id = %s AND rd.room_number = %s
+                """,
+                (guest_id, branch_id, room_number),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
     def save_booking(self, booking_data: Dict[str, Any]) -> Dict[str, Any]:
         record = dict(booking_data)
 

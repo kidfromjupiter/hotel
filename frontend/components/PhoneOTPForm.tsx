@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 interface PhoneConfirmFormProps {
   bookingData: Omit<CreateBookingPayload, 'phone'>;
   onBack: () => void;
-  onComplete: (phone: string, bookingRef: string) => void;
+  onComplete: (phone: string, bookingRef: string, totalPrice: number) => void;
 }
 
 /** Strip leading 0 and format as +94XXXXXXXXX */
@@ -96,7 +96,7 @@ export default function PhoneOTPForm({ bookingData, onBack, onComplete }: PhoneC
       }
 
       toast.success('Phone verified & booking confirmed! 🎉');
-      onComplete(fullPhone, bookingRes.bookingRef);
+      onComplete(fullPhone, bookingRes.bookingRef, bookingRes.totalPrice);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Invalid or expired OTP.';
       setError(msg);

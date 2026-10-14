@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
@@ -37,29 +38,47 @@ class BookingService:
         booking_dict["branch_id"] = booking_dict.pop("branchId")
         booking_dict["room_number"] = booking_dict.pop("roomNumber")
 
-        if not self.booking_repo.room_exists(
-            booking_dict["branch_id"], booking_dict["room_number"]
-        ):
+        guest_id = guest_token.get("guest_id") if guest_token else None
+        pricing = self.booking_repo.get_room_pricing(
+            booking_dict["branch_id"], booking_dict["room_number"], guest_id
+        )
+        if pricing is None:
             raise HTTPException(
                 status_code=404,
                 detail="The selected room does not exist at this branch.",
             )
 
-        # Apply membership discounts if token is present
-        if guest_token:
-            discount = guest_token.get("discount_percent", 0)
-            if discount > 0:
-                original_price = booking_dict.get("totalPrice", 0.0)
-                booking_dict["totalPrice"] = round(original_price * (1 - (discount / 100.0)), 2)
+        try:
+            check_in = date.fromisoformat(booking_dict["checkIn"])
+            check_out = date.fromisoformat(booking_dict["checkOut"])
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="Enter valid check-in and check-out dates.")
+        nights = (check_out - check_in).days
+        if nights < 1:
+            raise HTTPException(status_code=422, detail="Check-out must be after check-in.")
+        if booking_dict["adults"] < 1 or booking_dict["children"] < 0:
+            raise HTTPException(status_code=422, detail="Enter a valid number of guests.")
+        if booking_dict["adults"] + booking_dict["children"] > pricing["capacity"]:
+            raise HTTPException(status_code=422, detail="The selected room cannot fit all guests.")
+        if pricing["room_status"] == "MAINTENANCE":
+            raise HTTPException(status_code=409, detail="The selected room is under maintenance.")
 
-            # Auto-assign guest_id if they are logged in
-            if guest_token.get("guest_id") and not booking_dict.get("guest_id"):
-                booking_dict["guest_id"] = guest_token.get("guest_id")
+        discount = Decimal(str(pricing["room_discount_percentage"]))
+        daily_rate = Decimal(str(pricing["daily_rate"]))
+        booking_dict["grand_total"] = (
+            daily_rate * nights * (Decimal("1") - discount / Decimal("100"))
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        booking_dict["start_date"] = check_in
+        booking_dict["end_date"] = check_out
+        booking_dict.pop("totalPrice", None)
+        if guest_id is not None:
+            booking_dict["guest_id"] = guest_id
 
         saved = self.booking_repo.save_booking(booking_dict)
         return {
             "success": True,
             "bookingRef": saved["booking_ref"],
+            "totalPrice": float(booking_dict["grand_total"]),
             "message": "Your reservation has been confirmed successfully!",
         }
 

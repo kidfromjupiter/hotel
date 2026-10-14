@@ -174,8 +174,8 @@ export default function BookingSummary({ booking, onBack, onContinue }: BookingS
             {/* Total */}
             <div className="border-t-2 border-dashed border-gray-200 pt-3 mt-3 flex items-center justify-between">
               <div>
-                <span className="text-base font-black text-skynest-navy">Calculated Total</span>
-                <p className="text-xs text-gray-400">All applicable taxes included</p>
+                <span className="text-base font-black text-skynest-navy">Estimated Room Total</span>
+                <p className="text-xs text-gray-400">The final amount and any membership discount are confirmed after phone verification.</p>
               </div>
               <span className="text-2xl font-black text-skynest-blue">{LKR(calculatedGrandTotal)}</span>
             </div>
