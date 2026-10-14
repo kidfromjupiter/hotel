@@ -20,7 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <StaffRouteGuard requiredRole="admin">
     <div
-      className="flex h-screen pt-16 overflow-hidden font-sans relative"
+      className="flex h-screen overflow-hidden font-sans relative"
       style={{
         backgroundImage: 'url("https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80")', // Modern corporate/management vibe
         backgroundSize: 'cover',
