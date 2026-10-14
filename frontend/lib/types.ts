@@ -141,13 +141,13 @@ export interface CreateBookingPayload {
   nights: number;
   roomNumber: number;
   roomType: string;
-  totalPrice: number;
   phone: string;
 }
 
 export interface CreateBookingResponse {
   success: boolean;
   bookingRef: string;
+  totalPrice: number;
   message: string;
 }
 

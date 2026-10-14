@@ -35,4 +35,5 @@ class CreateBookingRequest(BaseModel):
     roomNumber: int = Field(gt=0, le=32767)
     roomType: Optional[str] = None
     phone: str
-    totalPrice: float
+    # Accepted for older clients, but never used to calculate the invoice.
+    totalPrice: Optional[float] = None

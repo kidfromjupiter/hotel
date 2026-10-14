@@ -64,7 +64,7 @@ def test_create_booking_success(client, booking_repo):
         "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
-        "totalPrice": 105000,
+        "totalPrice": 1,  # A tampered browser value must not affect the invoice.
     }
 
     response = client.post("/api/v1/bookings/", json=booking_payload)
@@ -77,13 +77,18 @@ def test_create_booking_success(client, booking_repo):
     if booking_repo.db:
         with booking_repo.db.cursor() as cursor:
             cursor.execute(
-                "SELECT booking_id, booking_ref, room_number, branch_id "
-                "FROM booking WHERE booking_ref = %s",
+                "SELECT b.booking_id, b.booking_ref, b.room_number, b.branch_id, "
+                "bs.total_room_charges, bs.grand_total "
+                "FROM booking b JOIN billing_summary bs ON bs.booking_id = b.booking_id "
+                "WHERE b.booking_ref = %s",
                 (data["bookingRef"],),
             )
-            booking_id, booking_ref, room_number, branch_id = cursor.fetchone()
+            booking_id, booking_ref, room_number, branch_id, room_charges, grand_total = cursor.fetchone()
             assert booking_ref == f"SKN-{booking_id}"
             assert (branch_id, room_number) == (1, 201)
+            # Deluxe costs 22,000/night; the seeded guest has a 5% room discount.
+            assert room_charges == grand_total == 62700
+            assert data["totalPrice"] == 62700
 
 
 def test_create_booking_create_path(client):
@@ -98,7 +103,6 @@ def test_create_booking_create_path(client):
         "roomNumber": 201,
         "roomType": "Deluxe Room",
         "phone": "+94771234567",
-        "totalPrice": 105000,
     }
     response = client.post("/api/v1/bookings/create", json=booking_payload)
     assert response.status_code == 200

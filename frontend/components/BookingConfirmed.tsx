@@ -105,7 +105,7 @@ export default function BookingConfirmed({ booking }: BookingConfirmedProps) {
             <span className="font-semibold text-skynest-navy">{booking.phone}</span>
           </div>
           <div className="flex justify-between py-3 border-t-2 border-dashed border-gray-200">
-            <span className="font-bold text-skynest-navy">Total Paid / Due</span>
+            <span className="font-bold text-skynest-navy">Total Due</span>
             <span className="font-black text-skynest-blue text-lg">{LKR(booking.totalPrice)}</span>
           </div>
         </div>

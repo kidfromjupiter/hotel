@@ -151,8 +151,8 @@ export default function BookingWizard({ branch }: Props) {
   // ─────────────────────────────────────────────
   //  STEP 5 → 6 : Phone Submitted → Booking Confirmed
   // ─────────────────────────────────────────────
-  const handlePhoneComplete = (phone: string, bookingRef: string) => {
-    setState(prev => ({ ...prev, phone, bookingRef }));
+  const handlePhoneComplete = (phone: string, bookingRef: string, totalPrice: number) => {
+    setState(prev => ({ ...prev, phone, bookingRef, totalPrice }));
     setStep('confirmed');
   };
 
@@ -301,7 +301,6 @@ export default function BookingWizard({ branch }: Props) {
               nights: state.nights,
               roomNumber: state.selectedRoom.roomNumber,
               roomType: state.selectedRoom.name,
-              totalPrice: state.totalPrice,
             }}
             onBack={() => setStep('summary')}
             onComplete={handlePhoneComplete}
