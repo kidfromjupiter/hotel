@@ -103,11 +103,8 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Executive Dashboard</h1>
           <p className="text-sm text-slate-600 mt-1 font-medium">Overview of hotel operations and financial performance.</p>
         </div>
-        <Link
-          href="/admin/reports"
-          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors inline-block"
-        >
-          Download Full Report
+        <Link href="/admin/reports" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg transition-colors">
+          View Reports &amp; Export
         </Link>
       </div>
 
